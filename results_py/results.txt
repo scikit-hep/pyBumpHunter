@@ -1,0 +1,17 @@
+Generating histograms
+5 values of width will be tested
+SCAN
+Global p-value : 0.0000  (0 / 800)
+time=0:00:01.566631
+
+BUMP WINDOW
+   loc = 16
+   width = 4
+   p-value | t = 5.520687511550139e-08 | 16.7121783422251
+
+BUMP POSITION
+   min : 5.333
+   max : 6.667
+   mean : 6.000
+   width : 1.333
+
