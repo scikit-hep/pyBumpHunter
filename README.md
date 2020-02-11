@@ -18,4 +18,6 @@ pyBumpHunter depends on the following python libraries :
 * scipy
 * matplotlib
 
+test.py also use uproot in order to read the data from a root file.
+
 
