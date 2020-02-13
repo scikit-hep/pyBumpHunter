@@ -255,7 +255,10 @@ def BumpHunter(data,bkg,Rang=None,
     Nworker = NWorker
     global seed
     seed = Seed
-    np.random.seed(seed)
+    
+    # Set the seed if required
+    if(seed!=None):
+        np.random.seed(seed)
     
     # Set global result variables
     global global_Pval
