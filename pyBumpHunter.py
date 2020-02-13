@@ -1,9 +1,9 @@
-########pyBumpHunter########
+########pyBumpHunterV2########
 #
 # Python version of the BupHunter algorithm as described in https://arxiv.org/pdf/1101.0390.pdf
-# This algorithm aim at finding the must significant bump in a data histogram with respect to 
-# the expected background.
-# The position of the bump is given together with its associated global p-value.
+# The way local p-values is calculated as been modified.
+# The objective is to make it more efficient (faster).
+# VERY SMALL gain in time.
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -169,11 +169,12 @@ def BumpHunter(data,bkg,Rang=None,
         
         # Create the results array
         res = np.empty(Nwidth,dtype=np.object)
+        min_Pval,min_loc = np.empty(Nwidth),np.empty(Nwidth)
         
         # Loop over all the width of the window
         for i in range(Nwidth):
             # Initialize window position at first bin
-            loc = 0
+            #loc = 0
             
             # Compute the actual width
             w = width_min + i*width_step
@@ -186,42 +187,26 @@ def BumpHunter(data,bkg,Rang=None,
             else:
                 scan_stepp = scan_step
             
-            # Initialize the results list for width w
-            res[i] = []
+            # Initialize local p-value array for width w
+            res[i] = np.empty((ref.size-w+1)//scan_stepp)
             
-            # Loop over all possible window position for a given w (ref.size=Tot nb of bins)
-            while(loc < ref.size-w+1):
-                # Get the number of events in the window defined by loc and w
-                Nhist = hist[loc:loc+w].sum()
-                Nref = ref[loc:loc+w].sum()
-                
-                # Compute the p-value of the current window and append the value to result list
-                if Nhist==0 and Nref==0:
-                    res[i].append(1.0)
-                elif Nref>Nhist:
-                    #res[i].append(1.0-G(Nhist+1,Nref))
-                    res[i].append(1.0)
-                else:
-                    res[i].append(G(Nhist,Nref))
-                loc += scan_stepp
-        
-        # Get the minimum p-value and it's position
-        min_Pval,min_loc = np.empty(Nwidth),np.empty(Nwidth)
-        for i in range(Nwidth):
-            # Get the scan step to compute proper position of minimum p-value window
-            w = width_min + i*width_step
-            if(scan_step=='full'):
-                scan_stepp = w
-            elif(scan_step=='half'):
-                scan_stepp = max(1,w//2)
-            else:
-                scan_stepp = scan_step
+            # Count events in all windows of width w
+            #FIXME any better way to do it ?? Without loop ?? FIXME
+            count = [[hist[loc*scan_stepp:loc*scan_stepp+w].sum(),ref[loc*scan_stepp:loc*scan_stepp+w].sum()] for loc in range((ref.size-w+1)//scan_stepp)]
+            count = np.array(count)
+            Nhist,Nref = count[:,0],count[:,1]
+            del count
             
-            a = np.array(res[i])
-            min_Pval[i] = a.min()
-            min_loc[i] = a.argmin()*scan_stepp
+            # Calculate all local p-values for for width w
+            res[i][(Nhist==0) & (Nref==0)] = 1.0
+            res[i][Nref>Nhist] = 1.0
+            res[i][Nref<=Nhist] = G(Nhist[Nref<=Nhist],Nref[Nref<=Nhist])
+            
+            # Get the minimum p-value and associated position for width w
+            min_Pval[i] = res[i].min()
+            min_loc[i] = res[i].argmin()*scan_stepp
         
-        del a
+        # Get the minimum p-value and associated windonw among all width
         min_width = width_min + min_Pval.argmin()*width_step
         min_loc = min_loc[min_Pval.argmin()]
         min_Pval = min_Pval[min_Pval.argmin()]
