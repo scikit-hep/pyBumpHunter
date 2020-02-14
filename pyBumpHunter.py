@@ -256,14 +256,13 @@ def BumpHunter(data,bkg,Rang=None,
     # Generate the background and data histograms
     print('Generating histograms')
     F = plt.figure()
-    bkg_hist = plt.hist(bkg,bins=bins,weights=weights,range=rang)
-    data_hist = plt.hist(data,bins=bins,range=rang)
+    bkg_hist = np.histogram(bkg,bins=bins,weights=weights,range=rang)
+    data_hist = np.histogram(data,bins=bins,range=rang)[0]
     plt.close(F)
     
     # Save histogram information in more usefull way
     Hbin = bkg_hist[1]
     bkg_hist = bkg_hist[0]
-    data_hist = data_hist[0]
     
     # Generate all the pseudo-data histograms
     pseudo_hist = np.random.poisson(lam=np.tile(bkg_hist,(Npe,1)).transpose(),size=(bkg_hist.size,Npe))
