@@ -1,5 +1,5 @@
 # Here we test pyBumpHunter.
-# The result will be compared to what can be obtained with the original C++ version.
+# The result can be compared to what can be obtained with the original C++ version.
 # We will use histograms ranging between 0 and 20 with 60 even bins.
 
 import numpy as np
@@ -36,7 +36,8 @@ plt.savefig('results_py/hist.png',bbox_inches='tight')
 plt.close(F)
 
 
-# Call the BumpHunter function
+# Call the BumpHunter function (v1)
+print('####VERSION 1####')
 begin = datetime.now()
 BH.BumpHunter(
     data,bkg,Rang=rang,
@@ -45,19 +46,29 @@ BH.BumpHunter(
     Width_step=1,
     Scan_step=1,
     npe=800,
-    NWorker=4
+    NWorker=1,
+    Seed=666
 )
 end = datetime.now()
 print('time={}'.format(end-begin))
 print('')
 
+# Print bump (v1)
+BH.PrintBumpInfo()
+BH.PrintBumpTrue(data,bkg)
+print('   mean (true) = {}'.format(Lth))
+print('')
+
+
+# Get and save tomography plot v1
 BH.GetTomography(data,filename='results_py/tomography.png')
 
-BH.PrintBumpInfo()
-BH.PrintBumpTrue(data)
 
+# Get and save bump plot
 BH.PlotBump(data,bkg,filename='results_py/bump.png')
 
+
+# Get and save statistics plot
 BH.PlotBHstat(show_Pval=True,filename='results_py/BH_statistics.png')
 
 
