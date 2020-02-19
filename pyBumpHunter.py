@@ -1,14 +1,13 @@
-########pyBumpHunterV2########
+########pyBumpHunter########
 #
 # Python version of the BupHunter algorithm as described in https://arxiv.org/pdf/1101.0390.pdf
-# The way local p-values is calculated as been modified.
-# The objective is to make it more efficient (faster).
-# VERY SMALL gain in time.
 
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.special import gammainc as G  ## Need G(a,b) for the gamma function
+from scipy.stats import norm
 import concurrent.futures as thd
+from matplotlib import gridspec as grd
 
 
 # Parameter global variables
@@ -346,8 +345,8 @@ def GetTomography(data,filename=None):
     plt.figure(figsize=(12,8))
     for i in inter:
         plt.plot([i[1],i[1]+i[2]],[i[0],i[0]],'r')
-    plt.xlabel('intervals')
-    plt.ylabel('local p-value')
+    plt.xlabel('intervals',size='large')
+    plt.ylabel('local p-value',size='large')
     plt.yscale('log')
     
     if(filename==None):
@@ -355,6 +354,7 @@ def GetTomography(data,filename=None):
     else:
         plt.savefig(filename,bbox_inches='tight')
     return
+
 
 # Function that print the infomation about the most significante bump in data
 def PrintBumpInfo():
@@ -373,17 +373,18 @@ def PrintBumpInfo():
     print('BUMP WINDOW')
     print('   loc = {}'.format(min_loc_ar[0]))
     print('   width = {}'.format(min_width_ar[0]))
-    print('   p-value | t = {} | {}'.format(min_Pval_ar[0],t_ar[0]))
+    print('   local p-value | t = {} | {}'.format(min_Pval_ar[0],t_ar[0]))
     print('')
     
     return
 
-def PrintBumpTrue(data):
+def PrintBumpTrue(data,bkg):
     '''
     Print the informations about the most significante bump in data in real scale.
     
     Argument :
         data : Numpy array containing the raw unbined data.
+        bkg : Numpy array containing the raw unbined background.
     '''
     
     # Set the global variables
@@ -391,23 +392,36 @@ def PrintBumpTrue(data):
     global rang
     global min_loc_ar
     global min_width_ar
+    global global_Pval
     
-    # Get the data in histogram form
+    # Get the data and background in histogram form
     F = plt.figure()
-    H = plt.hist(data,bins=bins,range=rang)
-    H = H[1]
+    H = np.histogram(data,bins=bins,range=rang)
+    Hb = np.histogram(bkg,bins=bins,range=rang,weights=weights)[0]
     plt.close(F)
     
     # Print informations about the bump itself
     print('BUMP POSITION')
-    Bmin = H[min_loc_ar[0]]
-    Bmax = H[min_loc_ar[0]+min_width_ar[0]]
+    Bmin = H[1][min_loc_ar[0]]
+    Bmax = H[1][min_loc_ar[0]+min_width_ar[0]]
     Bmean = (Bmax+Bmin)/2
     Bwidth = Bmax-Bmin
-    print('   min : {0:2.3f}'.format(Bmin))
-    print('   max : {0:2.3f}'.format(Bmax))
-    print('   mean : {0:2.3f}'.format(Bmean))
+    D =  H[0][min_loc_ar[0]:min_loc_ar[0]+min_width_ar[0]].sum()
+    B = Hb[min_loc_ar[0]:min_loc_ar[0]+min_width_ar[0]].sum()
+    
+    print('   min : {0:.3f}'.format(Bmin))
+    print('   max : {0:.3f}'.format(Bmax))
+    print('   mean : {0:.3f}'.format(Bmean))
     print('   width : {0:1.3f}'.format(Bwidth))
+    print('   Number of signal events : {}'.format(D-B))
+    print('   global p-value : {0:1.5f}'.format(global_Pval))
+    
+    # If global p-value is exactly 0, we might have trouble with the significance
+    if(global_Pval<0.0000000000000001):
+        print('   significance = {0:1.5f}'.format(norm.ppf(1-0.0000000000000001)))
+    else:
+        print('   significance = {0:1.5f}'.format(norm.ppf(1-global_Pval)))
+
     print('')
     
     return
@@ -433,22 +447,45 @@ def PlotBump(data,bkg,filename=None):
     
     # Get the data in histogram form
     F = plt.figure()
-    H = plt.hist(data,bins=bins,range=rang)
+    H = np.histogram(data,bins=bins,range=rang)
     plt.close(F)
     
     # Get bump min and max
     Bmin = H[1][min_loc_ar[0]]
     Bmax = H[1][min_loc_ar[0]+min_width_ar[0]]
     
-    # Plot the test histograms with the bump found by BumpHunter
-    F = plt.figure(figsize=(12,8))
+    # Calculate significance for each bin
+    Hbkg = np.histogram(bkg,bins=bins,range=rang)[0]
+    sig = np.empty(60)
+    mask = H[0]!=0
+    mask2 = H[0]==0
+    sig[mask] = (H[0][mask]-Hbkg[mask])/np.sqrt(H[0][mask])
+    sig[mask2] = H[0][mask2]-Hbkg[mask2]
+    del mask
+    del mask2
+    
+    # Plot the test histograms with the bump found by BumpHunter plus a little significance plot
+    F = plt.figure(figsize=(12,10))
+    gs = grd.GridSpec(2, 1, height_ratios=[4, 1])
+    
+    pl1 = plt.subplot(gs[0])
     plt.title('Distributions with bump')
-    plt.hist((bkg,data),bins=60,histtype='step',range=rang,label=('background','data'))
+    plt.hist(bkg,bins=bins,histtype='step',range=rang,weights=weights,label='background')
+    plt.hist(data,bins=bins,histtype='step',range=rang,label='data')
     plt.plot(np.full(2,Bmin),np.array([0,H[0][min_loc_ar[0]]]),'r--',label=('BUMP'))
     plt.plot(np.full(2,Bmax),np.array([0,H[0][min_loc_ar[0]+min_width_ar[0]]]),'r--')
     plt.legend()
     plt.yscale('log')
+    plt.tight_layout()
     
+    plt.subplot(gs[1],sharex=pl1)
+    plt.hist(H[1][:-1],bins=H[1],range=rang,weights=sig)
+    plt.plot(np.full(2,Bmin),np.array([sig.min(),sig.max()]),'r--',linewidth=2)
+    plt.plot(np.full(2,Bmax),np.array([sig.min(),sig.max()]),'r--',linewidth=2)
+    plt.yticks(np.arange(np.round(sig.min()),np.round(sig.max())+1,step=1))
+    plt.ylabel('$S/\sqrt{S+B}$',size='large')
+    
+    # Check if the plot should be saved or just displayed
     if(filename==None):
         plt.show()
     else:
@@ -456,6 +493,8 @@ def PlotBump(data,bkg,filename=None):
         plt.close(F)
     
     return
+
+
 def PlotBHstat(show_Pval=False,filename=None):
     '''
     Plot the Bumphunter statistic distribution together with the observed value with the data.
@@ -481,9 +520,10 @@ def PlotBHstat(show_Pval=False,filename=None):
     H=plt.hist(t_ar[1:],bins=20,histtype='step',label='pseudo-data')
     plt.plot(np.full(2,t_ar[0]),np.array([0,H[0].max()]),'r--',linewidth=2,label=('data'))
     plt.legend()
-    plt.xlabel('t')
+    plt.xlabel('t',size='large')
     plt.yscale('log')
     
+    # Check if the plot should be saved or just displayed
     if(filename==None):
         plt.show()
     else:
