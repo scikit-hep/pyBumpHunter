@@ -457,12 +457,14 @@ def PlotBump(data,bkg,filename=None):
     # Calculate significance for each bin
     Hbkg = np.histogram(bkg,bins=bins,range=rang)[0]
     sig = np.empty(60)
-    mask = H[0]!=0
-    mask2 = H[0]==0
-    sig[mask] = (H[0][mask]-Hbkg[mask])/np.sqrt(H[0][mask])
-    sig[mask2] = H[0][mask2]-Hbkg[mask2]
-    del mask
-    del mask2
+    sig[(H[0]==0) & (Hbkg==0)]=1.0
+    sig[H[0]>=Hbkg]=G(H[0][H[0]>=Hbkg],Hbkg[H[0]>=Hbkg])
+    sig[H[0]<Hbkg]=1-G(H[0][H[0]<Hbkg]+1,Hbkg[H[0]<Hbkg])
+
+    sig = norm.ppf(1-sig)
+    sig[H[0]<Hbkg]=-sig[H[0]<Hbkg]
+    sig[sig==np.inf]=0 # Avoid errors
+    sig[sig==np.NaN]=0
     
     # Plot the test histograms with the bump found by BumpHunter plus a little significance plot
     F = plt.figure(figsize=(12,10))
@@ -483,7 +485,7 @@ def PlotBump(data,bkg,filename=None):
     plt.plot(np.full(2,Bmin),np.array([sig.min(),sig.max()]),'r--',linewidth=2)
     plt.plot(np.full(2,Bmax),np.array([sig.min(),sig.max()]),'r--',linewidth=2)
     plt.yticks(np.arange(np.round(sig.min()),np.round(sig.max())+1,step=1))
-    plt.ylabel('$S/\sqrt{S+B}$',size='large')
+    plt.ylabel('significance',size='large')
     
     # Check if the plot should be saved or just displayed
     if(filename==None):
