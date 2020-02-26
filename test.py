@@ -36,8 +36,8 @@ plt.savefig('results_py/hist.png',bbox_inches='tight')
 plt.close(F)
 
 
-# Call the BumpHunter function (v1)
-print('####VERSION 1####')
+# Call the BumpHunter function
+print('###FIRST CALL###')
 begin = datetime.now()
 BH.BumpHunter(
     data,bkg,Rang=rang,
@@ -53,22 +53,51 @@ end = datetime.now()
 print('time={}'.format(end-begin))
 print('')
 
-# Print bump (v1)
+# Print bump
 BH.PrintBumpInfo()
 BH.PrintBumpTrue(data,bkg)
 print('   mean (true) = {}'.format(Lth))
 print('')
 
 
-# Get and save tomography plot v1
-BH.GetTomography(data,filename='results_py/tomography.png')
+# Get and save tomography plot
+BH.GetTomography(data,filename='results_py/tomography1.png')
 
 
 # Get and save bump plot
-BH.PlotBump(data,bkg,filename='results_py/bump.png')
+BH.PlotBump(data,bkg,filename='results_py/bump1.png')
 
 
 # Get and save statistics plot
-BH.PlotBHstat(show_Pval=True,filename='results_py/BH_statistics.png')
+BH.PlotBHstat(show_Pval=True,filename='results_py/BH_statistics1.png')
+
+
+# Change Parameters and cal BumpHunter function with keepparam argument
+BH.scan_step='half'
+BH.seed=42
+print('###SECOND CALL###')
+begin = datetime.now()
+BH.BumpHunter(data,bkg,keepparam=True)
+end = datetime.now()
+print('time={}'.format(end-begin))
+print('')
+
+# Print new bump
+BH.PrintBumpInfo()
+BH.PrintBumpTrue(data,bkg)
+print('   mean (true) = {}'.format(Lth))
+print('')
+
+
+# Get and save new tomography plot
+BH.GetTomography(data,filename='results_py/tomography2.png')
+
+
+# Get and save new bump plot
+BH.PlotBump(data,bkg,filename='results_py/bump2.png')
+
+
+# Get and save new statistics plot
+BH.PlotBHstat(show_Pval=True,filename='results_py/BH_statistics2.png')
 
 
