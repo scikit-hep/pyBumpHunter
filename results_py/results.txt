@@ -1,9 +1,9 @@
-####VERSION 1####
+###FIRST CALL###
 Generating histograms
 5 values of width will be tested
 SCAN
 Global p-value : 0.0000  (0 / 800)
-time=0:00:01.149749
+time=0:00:01.354076
 
 BUMP WINDOW
    loc = 16
@@ -20,4 +20,29 @@ BUMP POSITION
    significance = 8.20954
 
    mean (true) = 5.5
+
+
+###SECOND CALL###
+Generating histograms
+5 values of width will be tested
+SCAN
+Global p-value : 0.0000  (0 / 800)
+time=0:00:00.938950
+
+BUMP WINDOW
+   loc = 16
+   width = 4
+   local p-value | t = 5.520687511550139e-08 | 16.7121783422251
+
+BUMP POSITION
+   min : 5.333
+   max : 6.667
+   mean : 6.000
+   width : 1.333
+   Number of signal events : 310
+   global p-value : 0.00000
+   significance = 8.20954
+
+   mean (true) = 5.5
+
 
