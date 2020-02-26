@@ -36,11 +36,14 @@ t_ar = []
 def BumpHunter(data,bkg,Rang=None,
                Width_min=1,Width_max=None,Width_step=1,Scan_step=1,
                npe=100,Bins=60,Weights=None,NWorker=4,
-               Seed=None):
+               Seed=None,keepparam=False):
     '''    
     Function that perform the full BumpHunter algorithm presented in https://arxiv.org/pdf/1101.0390.pdf
     without sidebands. This includes the generation of pseudo-data, the calculation of the BumpHunter p-value
     associated to data and to all pseudo experiment as well as the calculation of the test satistic t.
+    
+    The values passed to the arguments and the results are stored in global variables. If ones call the result
+    variables before running this function, they will get either a empty list or 0.
     
     Arguments :
         data : Numpy array containing the data distribution. This distribution will be transformed into a binned
@@ -86,8 +89,12 @@ def BumpHunter(data,bkg,Rang=None,
                   Default to 4.
     
         Seed : Seed for the random number generator. Default to None.
+        
+        keepparam : Boolean specifying if BumpHunter should use the parameters saved in global variables. If True,
+                    all other arguments (except data and bkg) are ignored.
+                    Default to False.
     
-    Returns :
+    Result global variables :
         global_Pval : Global p-value obtained from the test statistic distribution.
         
         res_ar : Array of containers containing all the p-value calculated durring the scan of the data (indice=0)
@@ -115,7 +122,7 @@ def BumpHunter(data,bkg,Rang=None,
             
             M : The value of the maximum (must be integer).
             
-            step : The value of the step interval (must be integer)
+            step : The value of the step interval (must be integer).
         
         Returns : 
             Nscan : The number of iterations to be computed for the scan.
@@ -141,29 +148,29 @@ def BumpHunter(data,bkg,Rang=None,
     def scan_hist(hist,ref,ih):
         '''
         Function that scan a distribution and compute the p-value associated to every scan window following the
-        BumpHunter algorithm. Compute also the sinificance for the data histogram (S/sqrt(S+B))
+        BumpHunter algorithm. Compute also the significance for the data histogram.
+        
+        In order to make the function thread friendly, the results are saved through global variables.
         
         Arguments :
-            hist : The data histogram (as obtain with the pyplot.hist function)
+            hist : The data histogram (as obtain with the numpy.histogram function).
             
-            ref : The reference (background) histogram (as obtain with the pyplot.hist function)
+            ref : The reference (background) histogram (as obtain with the numpy.histogram function).
             
             ih : Indice of the distribution to be scanned. ih=0 refers to the data distribution and ih>0 refers to
-                 the ih-th pseudo-data distribution
+                 the ih-th pseudo-data distribution.
         
-        Returns :
-            res : Mumpy array of python list containing all the p-values of all windows computed durring the
+        Results stored in global variables :
+            res : Numpy array of python list containing all the p-values of all windows computed durring the
                   scan. The numpy array as dimention (Nwidth), with Nwidth the number of window's width tested.
                   Each python list as dimension (Nstep), with Nstep the number of scan step for a given width
-                  (different for every value of width)
+                  (different for every value of width).
                   
-            min_Pval : Minimum p_value obtained durring the scan (float)
+            min_Pval : Minimum p_value obtained durring the scan (float).
             
-            min_loc : Position of the window corresponding to the minimum p-value (integer)
+            min_loc : Position of the window corresponding to the minimum p-value (integer).
             
-            min_width : Width of the window corresponding to the minimum p-value (integer)
-        
-        Values are returned only if the function is not called in parralel threads.
+            min_width : Width of the window corresponding to the minimum p-value (integer).
         '''
         
         # Create the results array
@@ -218,39 +225,42 @@ def BumpHunter(data,bkg,Rang=None,
         return 
     
     
-    # Set global parameter variables
-    global rang
-    rang = Rang
-    global width_min
-    width_min = Width_min
-    global width_max
-    width_max = Width_max
-    global width_step
-    width_step = Width_step
-    global scan_step
-    scan_step = Scan_step
-    global Npe
-    Npe = npe
-    global bins
-    bins = Bins
-    global weights
-    weights = Weights
-    global Nworker
-    Nworker = NWorker
-    global seed
-    seed = Seed
+    # Check if we must keep the old parameter values or not
+    if(keepparam==False):
+        # Set global parameter variables
+        global rang
+        rang = Rang
+        global width_min
+        width_min = Width_min
+        global width_max
+        width_max = Width_max
+        global width_step
+        width_step = Width_step
+        global scan_step
+        scan_step = Scan_step
+        global Npe
+        Npe = npe
+        global bins
+        bins = Bins
+        global weights
+        weights = Weights
+        global Nworker
+        Nworker = NWorker
+        global seed
+        seed = Seed
+        
+        # Set the seed if required
+        if(seed!=None):
+            np.random.seed(seed)
+        
+        # Set global result variables
+        global global_Pval
+        global res_ar
+        global min_Pval_ar
+        global min_loc_ar
+        global min_width_ar
+        global t_ar
     
-    # Set the seed if required
-    if(seed!=None):
-        np.random.seed(seed)
-    
-    # Set global result variables
-    global global_Pval
-    global res_ar
-    global min_Pval_ar
-    global min_loc_ar
-    global min_width_ar
-    global t_ar
     
     # Generate the background and data histograms
     print('Generating histograms')
@@ -325,6 +335,7 @@ def GetTomography(data,filename=None):
     global res_ar
     global width_min
     global width_step
+    global scan_step
     global bins
     global rang
     
@@ -337,9 +348,18 @@ def GetTomography(data,filename=None):
     res_data = res_ar[0]    
     inter = []
     for i in range(res_data.size):
+        w = H[width_min+i*width_step]-H[0]
+        
+        # Get scan step for width w
+        if(scan_step=='half'):
+            scan_stepp = max(1,(width_min+i*width_step)//2)
+        elif(scan_step=='full'):
+            scan_stepp = width_min+i*width_step
+        else:
+            scan_stepp = scan_step
+        
         for j in range(len(res_data[i])):
-            w = H[width_min+i*width_step]-H[0]
-            loc = H[j]
+            loc = H[j*scan_stepp]
             inter.append([res_data[i][j],loc,w])
     
     plt.figure(figsize=(12,8))
@@ -353,6 +373,7 @@ def GetTomography(data,filename=None):
         plt.show()
     else:
         plt.savefig(filename,bbox_inches='tight')
+    print('')
     return
 
 
