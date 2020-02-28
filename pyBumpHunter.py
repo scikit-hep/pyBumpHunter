@@ -373,7 +373,6 @@ def GetTomography(data,filename=None):
         plt.show()
     else:
         plt.savefig(filename,bbox_inches='tight')
-    print('')
     return
 
 
