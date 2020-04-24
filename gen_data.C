@@ -8,11 +8,14 @@ void gen_data(){
 	//Create the trees
 	TTree* Dtree = new TTree("data","data");
 	TTree* Btree = new TTree("bkg","bkg");
+	TTree* Stree = new TTree("sig","sig");
 	
 	//Create 2 branches (bkg and data)
-	double data,bkg;
+	double data,bkg,sig;
 	Btree->Branch("bkg",&bkg,"bkg/D");
 	Dtree->Branch("data",&data,"data/D");
+	Stree->Branch("sig",&sig,"sig/D");
+	
 	
 	//Random generator
 	TRandom* G = new TRandom(42);
@@ -28,16 +31,30 @@ void gen_data(){
 			Dtree->Fill();
 		}
 	}
-	for(int i=0;i<300;i++){
+	/*for(int i=0;i<150;i++){
+		data = G->Gaus(5.5,0.35);
+		if(data<20.0){
+			Dtree->Fill();
+		}
+	}*/
+	for(int i=0;i<150;i++){
 		data = G->Gaus(5.5,0.35);
 		if(data<20.0){
 			Dtree->Fill();
 		}
 	}
+	for(int i=0;i<5000;i++){
+		sig = G->Gaus(5.5,0.35);
+		if(sig<20.0){
+			Stree->Fill();
+		}
+	}
+	
 	
 	//Save them in file
 	Ofile->Write("bkg");
 	Ofile->Write("data");
+	Ofile->Write("sig");
 	
 	
 	//Create new file to store histograms
@@ -47,12 +64,15 @@ void gen_data(){
 	//Create histograms from the trees
 	TH1F* Hdata = new TH1F("data_dijet","data_dijet",60,0,20);
 	TH1F* Hbkg = new TH1F("bkg_dijet","bkg_dijet",60,0,20);
+	TH1F* Hsig = new TH1F("sig_dijet","bkg_dijet",60,0,20);
 	Dtree->Draw("data>>data_dijet(60,0,20)","");
 	Btree->Draw("bkg>>bkg_dijet(60,0,20)","");
+	Stree->Draw("sig>>sig_dijet","");
 	
 	//save them in new file
 	Ofile2->Write("data_dijet");
 	Ofile2->Write("bkg_dijet");
+	Ofile2->Write("sig_dijet");
 	/**/
 	//Close files
 	Ofile->Close();
