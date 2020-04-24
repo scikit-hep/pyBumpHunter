@@ -21,19 +21,29 @@ bins = 60
 weights = None
 Nworker = 4
 seed = None
+sigma_limit = 5
+str_min = 0.5
+str_step = 0.25
+str_scale='lin'
+signal_exp = None
+data_inject = []
 
 
 # Result global variables
 global_Pval = 0
+significance = 0
 res_ar = []
 min_Pval_ar = []
 min_loc_ar = []
 min_width_ar = []
 t_ar = []
+signal_min = 0
+signal_ratio = None
+
 
 # Function that perform the scan on every pseudo experiment and data (in parrallel threads).
 # For each scan, the value of p-value and test statistic t is computed and stored in result array
-def BumpHunter(data,bkg,Rang=None,
+def BumpHunter(data,bkg,is_hist=False,Rang=None,
                Width_min=1,Width_max=None,Width_step=1,Scan_step=1,
                npe=100,Bins=60,Weights=None,NWorker=4,
                Seed=None,keepparam=False):
@@ -51,6 +61,11 @@ def BumpHunter(data,bkg,Rang=None,
         
         bkg : Numpy array containing the background reference distribution. This distribution will be transformed
               into a binned histogram and the algorithm will compare it to data while looking for a bump.
+        
+        is_hist : Boolean that specify if the given data and background are already in histogram form. If true,
+                  data and bkg are histograms and the Bins argument is expected to be a array with the bound of
+                  the bins and the Weights argument is expected to be a scalar scale factor or None.
+                  Default to False.
         
         Rang : x-axis range of the histograms. Also define the range in which the scan wiil be performed.
         
@@ -172,6 +187,10 @@ def BumpHunter(data,bkg,Rang=None,
             
             min_width : Width of the window corresponding to the minimum p-value (integer).
         '''
+        # Remove the first/last hist bins if empty ... just to be consistant we c++
+        non0 = [iii for iii in range(hist.size) if hist[iii]>0]
+        Hinf,Hsup = min(non0),max(non0)+1
+        #hist = hist[min(non0):max(non0)+1]
         
         # Create the results array
         res = np.empty(Nwidth,dtype=np.object)
@@ -179,9 +198,6 @@ def BumpHunter(data,bkg,Rang=None,
         
         # Loop over all the width of the window
         for i in range(Nwidth):
-            # Initialize window position at first bin
-            #loc = 0
-            
             # Compute the actual width
             w = width_min + i*width_step
             
@@ -194,26 +210,27 @@ def BumpHunter(data,bkg,Rang=None,
                 scan_stepp = scan_step
             
             # Initialize local p-value array for width w
-            res[i] = np.empty((ref.size-w+1)//scan_stepp)
+            res[i] = np.empty((Hsup-w+1-Hinf)//scan_stepp)
             
             # Count events in all windows of width w
             #FIXME any better way to do it ?? Without loop ?? FIXME
-            count = [[hist[loc*scan_stepp:loc*scan_stepp+w].sum(),ref[loc*scan_stepp:loc*scan_stepp+w].sum()] for loc in range((ref.size-w+1)//scan_stepp)]
+            count = [[hist[loc*scan_stepp:loc*scan_stepp+w].sum(),ref[loc*scan_stepp:loc*scan_stepp+w].sum()] for loc in range(Hinf,(Hsup-w+1)//scan_stepp)]
             count = np.array(count)
             Nhist,Nref = count[:,0],count[:,1]
             del count
             
             # Calculate all local p-values for for width w
+            res[i][Nhist<=Nref] = 1.0
+            res[i][Nhist>Nref] = G(Nhist[Nhist>Nref],Nref[Nhist>Nref])
             res[i][(Nhist==0) & (Nref==0)] = 1.0
-            res[i][Nref>Nhist] = 1.0
-            res[i][Nref<=Nhist] = G(Nhist[Nref<=Nhist],Nref[Nref<=Nhist])
+            res[i][(Nref==0) & (Nhist>0)] = 1.0 # To be consistant with c++ results
             
             # Get the minimum p-value and associated position for width w
             min_Pval[i] = res[i].min()
-            min_loc[i] = res[i].argmin()*scan_stepp
+            min_loc[i] = res[i].argmin()*scan_stepp + Hinf
         
         # Get the minimum p-value and associated windonw among all width
-        min_width = width_min + min_Pval.argmin()*width_step
+        min_width = width_min + (min_Pval.argmin())*width_step
         min_loc = min_loc[min_Pval.argmin()]
         min_Pval = min_Pval[min_Pval.argmin()]
         
@@ -225,55 +242,60 @@ def BumpHunter(data,bkg,Rang=None,
         return 
     
     
+    # Set global parameter variables
+    global rang
+    global width_min
+    global width_max
+    global width_step
+    global scan_step
+    global Npe
+    global bins
+    global weights
+    global Nworker
+    global seed
+    
     # Check if we must keep the old parameter values or not
     if(keepparam==False):
-        # Set global parameter variables
-        global rang
         rang = Rang
-        global width_min
         width_min = Width_min
-        global width_max
         width_max = Width_max
-        global width_step
         width_step = Width_step
-        global scan_step
         scan_step = Scan_step
-        global Npe
         Npe = npe
-        global bins
         bins = Bins
-        global weights
         weights = Weights
-        global Nworker
         Nworker = NWorker
-        global seed
         seed = Seed
-        
-        # Set the seed if required
-        if(seed!=None):
-            np.random.seed(seed)
-        
-        # Set global result variables
-        global global_Pval
-        global res_ar
-        global min_Pval_ar
-        global min_loc_ar
-        global min_width_ar
-        global t_ar
+    
+    # Set the seed if required (or reset it if None)
+    np.random.seed(seed)
+    
+    # Set global result variables
+    global global_Pval
+    global significance
+    global res_ar
+    global min_Pval_ar
+    global min_loc_ar
+    global min_width_ar
+    global t_ar
     
     
     # Generate the background and data histograms
-    print('Generating histograms')
-    F = plt.figure()
-    bkg_hist = np.histogram(bkg,bins=bins,weights=weights,range=rang)
-    data_hist = np.histogram(data,bins=bins,range=rang)[0]
-    plt.close(F)
+    if(is_hist==False):
+        print('Generating histograms')
+        F = plt.figure()
+        bkg_hist,Hbin = np.histogram(bkg,bins=bins,weights=weights,range=rang)
+        data_hist = np.histogram(data,bins=bins,range=rang)[0]
+        plt.close(F)
+    else:
+        if(weights==None):
+            bkg_hist = bkg
+        else:
+            bkg_hist = bkg * weights
+        data_hist = data
+        Hbins = Bins
     
-    # Save histogram information in more usefull way
-    Hbin = bkg_hist[1]
-    bkg_hist = bkg_hist[0]
-    
-    # Generate all the pseudo-data histograms
+    # Generate all the pseudo-data histograms TODO FIXME
     pseudo_hist = np.random.poisson(lam=np.tile(bkg_hist,(Npe,1)).transpose(),size=(bkg_hist.size,Npe))
     
     # Set width_max if it is given as None
@@ -290,7 +312,7 @@ def BumpHunter(data,bkg,Rang=None,
     Nwidth,width_max = get_Nscan(width_min,width_max,width_step)
     print('{} values of width will be tested'.format(Nwidth))
     
-    # Compute the p-value for data and all pseudo-experiment
+    # Compute the p-value for data and all pseudo-experiments
     # We must check if we should do it in multiple threads
     print('SCAN')
     if(Nworker>1):
@@ -316,16 +338,26 @@ def BumpHunter(data,bkg,Rang=None,
     global_Pval = S/Npe
     print('Global p-value : {0:1.4f}  ({1} / {2})'.format(global_Pval,S,Npe))
     
+    # If global p-value is exactly 0, we might have trouble with the significance
+    if(global_Pval<0.0000000000000001):
+        significance = norm.ppf(1-0.0000000000000001)
+    else:
+        significance = norm.ppf(1-global_Pval)
+    print('Significance = {0:1.5f}'.format(significance))
+    print('')
+    
     return
 
 
-def GetTomography(data,filename=None):
+def GetTomography(data,is_hist=False,filename=None):
     '''
     Function that do a tomography plot showing the local p-value for every positions and widths of the scan
     window.
     
     Arguments :
         data : Numpy array containing the raw unbined data.
+        
+        is_hist : Boolean specifying if data is in histogram form or not. Default to False.
     
         filename : Name of the file in which the plot will be saved. If None, the plot will be just shown
                    but not saved. Default to None.
@@ -339,16 +371,20 @@ def GetTomography(data,filename=None):
     global bins
     global rang
     
+    # Same c++ compatibility thing
+    non0 = [i for i in range(data.size) if data[i]>0]
+    Hinf = min(non0)
+    
     # Get real bin bounds
-    F = plt.figure()
-    H = plt.hist(data,bins=bins,range=rang)
-    H = H[1]
-    plt.close(F)
+    if(is_hist==False):
+        H = np.histogram(data,bins=bins,range=rang)[1]
+    else:
+        H = bins
     
     res_data = res_ar[0]    
     inter = []
     for i in range(res_data.size):
-        w = H[width_min+i*width_step]-H[0]
+        w = (H[1]-H[0])*(width_min+i*width_step) # bin_width * Nbins
         
         # Get scan step for width w
         if(scan_step=='half'):
@@ -359,12 +395,11 @@ def GetTomography(data,filename=None):
             scan_stepp = scan_step
         
         for j in range(len(res_data[i])):
-            loc = H[j*scan_stepp]
+            loc = H[j*scan_stepp+Hinf]
             inter.append([res_data[i][j],loc,w])
     
-    plt.figure(figsize=(12,8))
-    for i in inter:
-        plt.plot([i[1],i[1]+i[2]],[i[0],i[0]],'r')
+    F =plt.figure(figsize=(12,8))
+    [plt.plot([i[1],i[1]+i[2]],[i[0],i[0]],'r') for i in inter if i[0]<1.0]
     plt.xlabel('intervals',size='large')
     plt.ylabel('local p-value',size='large')
     plt.yscale('log')
@@ -373,6 +408,7 @@ def GetTomography(data,filename=None):
         plt.show()
     else:
         plt.savefig(filename,bbox_inches='tight')
+        plt.close(F)
     return
 
 
@@ -398,13 +434,16 @@ def PrintBumpInfo():
     
     return
 
-def PrintBumpTrue(data,bkg):
+def PrintBumpTrue(data,bkg,is_hist=False):
     '''
     Print the informations about the most significante bump in data in real scale.
     
-    Argument :
+    Arguments :
         data : Numpy array containing the raw unbined data.
+        
         bkg : Numpy array containing the raw unbined background.
+        
+        is_hist : Boolean specifying if data and bkg are in histogram form or not. Default to False.
     '''
     
     # Set the global variables
@@ -415,10 +454,12 @@ def PrintBumpTrue(data,bkg):
     global global_Pval
     
     # Get the data and background in histogram form
-    F = plt.figure()
-    H = np.histogram(data,bins=bins,range=rang)
-    Hb = np.histogram(bkg,bins=bins,range=rang,weights=weights)[0]
-    plt.close(F)
+    if(is_hist==False):
+        H = np.histogram(data,bins=bins,range=rang)
+        Hb = np.histogram(bkg,bins=bins,range=rang,weights=weights)[0]
+    else:
+        H = [data,bins]
+        Hb = bkg
     
     # Print informations about the bump itself
     print('BUMP POSITION')
@@ -428,27 +469,22 @@ def PrintBumpTrue(data,bkg):
     Bwidth = Bmax-Bmin
     D =  H[0][min_loc_ar[0]:min_loc_ar[0]+min_width_ar[0]].sum()
     B = Hb[min_loc_ar[0]:min_loc_ar[0]+min_width_ar[0]].sum()
+    print('   B={}   D={}'.format(B,D))
     
     print('   min : {0:.3f}'.format(Bmin))
     print('   max : {0:.3f}'.format(Bmax))
     print('   mean : {0:.3f}'.format(Bmean))
-    print('   width : {0:1.3f}'.format(Bwidth))
-    print('   Number of signal events : {}'.format(D-B))
+    print('   width : {0:.3f}'.format(Bwidth))
+    print('   number of signal events : {}'.format(D-B))
     print('   global p-value : {0:1.5f}'.format(global_Pval))
-    
-    # If global p-value is exactly 0, we might have trouble with the significance
-    if(global_Pval<0.0000000000000001):
-        print('   significance = {0:1.5f}'.format(norm.ppf(1-0.0000000000000001)))
-    else:
-        print('   significance = {0:1.5f}'.format(norm.ppf(1-global_Pval)))
-
+    print('   significance = {0:1.5f}'.format(significance))
     print('')
     
     return
 
 
 # Plot the data and bakground histograms with the bump found by BumpHunter highlighted
-def PlotBump(data,bkg,filename=None):
+def PlotBump(data,bkg,is_hist=False,filename=None):
     '''
     Plot the data and bakground histograms with the bump found by BumpHunter highlighted.
     
@@ -457,6 +493,8 @@ def PlotBump(data,bkg,filename=None):
         
         bkg : Numpy array containing the raw unbined background.
         
+        is_hist : Boolean specifying if data and bkg are in histogram form or not. Default to False.
+        
         filename : Name of the file in which the plot will be saved. If None, the plot will be just shown
                    but not saved. Default to None.
     '''
@@ -464,27 +502,40 @@ def PlotBump(data,bkg,filename=None):
     # Set the global variables
     global min_loc_ar
     global min_width_ar
+    global rang
+    global weights
+    global bins
     
     # Get the data in histogram form
-    F = plt.figure()
-    H = np.histogram(data,bins=bins,range=rang)
-    plt.close(F)
+    if(is_hist==False):
+        H = np.histogram(data,bins=bins,range=rang)
+    else:
+        H = [data,bins]
+    
     
     # Get bump min and max
     Bmin = H[1][min_loc_ar[0]]
     Bmax = H[1][min_loc_ar[0]+min_width_ar[0]]
     
+    # Get the background in histogram form
+    if(is_hist==False):
+        Hbkg = np.histogram(bkg,bins=bins,range=rang,weights=weights)[0]
+    else:
+        if(weights==None):
+            Hbkg = bkg
+        else:
+            Hbkg = bkg * weights
+    
     # Calculate significance for each bin
-    Hbkg = np.histogram(bkg,bins=bins,range=rang)[0]
-    sig = np.empty(60)
+    sig = np.empty(Hbkg.size)
     sig[(H[0]==0) & (Hbkg==0)]=1.0
-    sig[H[0]>=Hbkg]=G(H[0][H[0]>=Hbkg],Hbkg[H[0]>=Hbkg])
-    sig[H[0]<Hbkg]=1-G(H[0][H[0]<Hbkg]+1,Hbkg[H[0]<Hbkg])
-
+    sig[H[0]>=Hbkg] = G(H[0][H[0]>=Hbkg],Hbkg[H[0]>=Hbkg])
+    sig[H[0]<Hbkg] = 1-G(H[0][H[0]<Hbkg]+1,Hbkg[H[0]<Hbkg])
     sig = norm.ppf(1-sig)
-    sig[H[0]<Hbkg]=-sig[H[0]<Hbkg]
-    sig[sig==np.inf]=0 # Avoid errors
-    sig[sig==np.NaN]=0
+    sig[sig<0] = 0 # If negative, set it to 0
+    sig[sig==np.inf] = 0 # Avoid errors
+    sig[sig==np.NaN] = 0
+    sig[H[0]<Hbkg] = -sig[H[0]<Hbkg]  # Now we can make it signed
     
     # Plot the test histograms with the bump found by BumpHunter plus a little significance plot
     F = plt.figure(figsize=(12,10))
@@ -492,12 +543,24 @@ def PlotBump(data,bkg,filename=None):
     
     pl1 = plt.subplot(gs[0])
     plt.title('Distributions with bump')
-    plt.hist(bkg,bins=bins,histtype='step',range=rang,weights=weights,label='background')
-    plt.hist(data,bins=bins,histtype='step',range=rang,label='data')
+    
+    if(is_hist==False):
+        plt.hist(bkg,bins=bins,histtype='step',range=rang,weights=weights,label='background',linewidth=2,color='red')
+        plt.errorbar(0.5*(H[1][1:]+H[1][:-1]),H[0],
+                     xerr=(H[1][1]-H[1][0])/2,yerr=np.sqrt(H[0]),
+                     ls='',color='blue',label='data')
+    else:
+        plt.hist(bins[:-1],bins=bins,histtype='step',range=rang,weights=Hbkg,label='background',linewidth=2,color='red')
+        plt.errorbar(0.5*(H[1][1:]+H[1][:-1]),H[0],
+                     xerr=(H[1][1]-H[1][0])/2,yerr=np.sqrt(H[0]),
+                     ls='',color='blue',label='data')
+    
     plt.plot(np.full(2,Bmin),np.array([0,H[0][min_loc_ar[0]]]),'r--',label=('BUMP'))
     plt.plot(np.full(2,Bmax),np.array([0,H[0][min_loc_ar[0]+min_width_ar[0]]]),'r--')
-    plt.legend()
+    plt.legend(fontsize='large')
     plt.yscale('log')
+    if rang!=None:
+        plt.xlim(rang)
     plt.tight_layout()
     
     plt.subplot(gs[1],sharex=pl1)
@@ -517,6 +580,7 @@ def PlotBump(data,bkg,filename=None):
     return
 
 
+# Plot the Bumpunter test statistic distribution with the result for data
 def PlotBHstat(show_Pval=False,filename=None):
     '''
     Plot the Bumphunter statistic distribution together with the observed value with the data.
@@ -539,10 +603,10 @@ def PlotBHstat(show_Pval=False,filename=None):
         plt.title('BumpHunter statistics distribution      global p-value = {0:1.4f}'.format(global_Pval))
     else:
         plt.title('BumpHunter statistics distribution')
-    H=plt.hist(t_ar[1:],bins=20,histtype='step',label='pseudo-data')
-    plt.plot(np.full(2,t_ar[0]),np.array([0,H[0].max()]),'r--',linewidth=2,label=('data'))
-    plt.legend()
-    plt.xlabel('t',size='large')
+    H=plt.hist(t_ar[1:],bins=100,histtype='step',linewidth=2,label='pseudo-data')
+    plt.plot(np.full(2,t_ar[0]),np.array([0,H[0].max()]),'r--',linewidth=2,label='data')
+    plt.legend(fontsize='large')
+    plt.xlabel('BumpHunter statistic',size='large')
     plt.yscale('log')
     
     # Check if the plot should be saved or just displayed
@@ -553,4 +617,287 @@ def PlotBHstat(show_Pval=False,filename=None):
         plt.close(F)
     
     return
+
+
+# Perform signal injection on background and determine the minimum aount of signal required for observation
+def SignalInject(sig,bkg,is_hist=False,Rang=None,
+                 Width_min=1,Width_max=None,Width_step=1,Scan_step=1,
+                 npe=100,Bins=60,Weights=None,NWorker=4,
+                 Seed=None,
+                 Sigma_limit=5,Str_min=0.5,Str_step=0.25,
+                 Str_scale='lin',
+                 Signal_exp=None,keepparam=False):
+    '''    
+    Function that perform a signal injection test in order to determine the minimum signal strength required to
+    reach a target significance. This function use the BumpHunter algorithm in order to calculate the reached
+    significance for a given signal strength.
+    
+    This function share most of its parameters with the BumpHunter function.
+    
+    Arguments :
+        sig : Numpy array containing the simulated signal. This distribution will be used to perform the signal
+              injection.
+        
+        bkg : Numpy array containing the expected background. This distribution will be used to build the data in
+              which signal will be injected.
+        
+        is_hist : Boolean that specify if the given signal and background are already in histogram form. If true,
+                  data and bkg are histograms and the Bins argument is expected to be a array with the bound of
+                  the bins and the Weights argument is expected to be a scalar scale factor or None.
+                  Default to False.
+        
+        Rang : x-axis range of the histograms. Also define the range in which the scan wiil be performed.
+        
+        Width_min : Minimum value of the scan window width that should be tested. Default to 1.
+        
+        Width_max : Maximum value of the scan window width that should be tested. Can be either None or a
+                    positive integer. if None, the value is set to the total number of bins of the histograms.
+                    Default to none.
+        
+        Width_step : Number of bins by which the scan window width is increased at each step. Default to 1.
+        
+        Scan_step : Number of bins by which the position of the scan window is shifted at each step. Can be
+                    either 'full', 'half' or a positive integer.
+                    If 'full', the window will be shifted by a number of bins equal to its width.
+                    If 'half', the window will be shifted by a number of bins equal to max(1,width//2).
+                    Default to 1.
+        
+        npe : Number of pseudo-data distributions to be sampled from the reference background distribution.
+              Default to 100.
+        
+        Bins : Define the bins of the histograms. Can be ether a integer of a array-like of floats.
+               If integer (N), N bins of equal width will be considered.
+               If array-like of float (a), a number of bins equal to a length-1 with the values of a as edges will
+               be considered (variable width bins allowed).
+               Default to 60.
+        
+        Weights : Weights for the background distribution. Can be either None or a array-like of float.
+                  If array-like of floats, each background events will be acounted by its weights when making
+                  histograms. The size of the array-like must be the same than of bkg. The same weights are
+                  considered when sampling the pseudo-data.
+                  If None, no weights will be considered.
+                  Default to 1.
+        
+        NWorker : Number of thread to be run in parallel when scanning all the histograms (data and pseudo-data).
+                  If less or equal to 1, then parallelism will be disabled.
+                  Default to 4.
+    
+        Seed : Seed for the random number generator. Default to None.
+        
+        Sigma_limit : The minimum significance required after injection. Deault to 5.
+        
+        Str_min : The minimum number signal stregth to inject in background (first iteration). Default to 0.5.
+        
+        Str_step : Increase of the signal stregth to be injected in the background at each iteration. Default to 0.25.
+        
+        str_scale : Specify how the signal strength should vary. If 'log', the the signal strength will vary according to
+                    a log scale starting from 10**Str_min. If 'lin', the signal will vary according to a linear scale starting
+                    from Str_min with a step of Str_step.
+                    Default to 'lin'.
+        
+        Signal_exp : Expected number of signal used to compute the signal strength. If None, the signal strength is not
+                     computed. Default to None.
+        
+        keepparam : Boolean specifying if BumpHunter should use the parameters saved in global variables. If True,
+                    all other arguments (except data and sig) are ignored. If False, all the non specified parameter
+                    global variables will be reseted to their default values.
+                    Default to False.
+    
+    Result global variables :        
+        signal_ratio : Ratio signal_min/signal_exp (signal strength). If signal_exp is not specified, default to None.
+        
+        data_inject : Data obtained after injecting signal events in the backgound.
+        
+        sigma_ar : Numpy array containing the significance values obtained at each step.
+    
+    All the result global variables of the BumpHunter function will be filled with the results of the scan permormed
+    during the last iteration (when sigma_limit is reached).
+    '''
+    
+    # Set global parameter variables
+    global rang
+    global width_min
+    global width_max
+    global width_step
+    global scan_step
+    global Npe
+    global bins
+    global weights
+    global Nworker
+    global seed
+    global sigma_limit
+    global str_min
+    global str_step
+    global str_scale
+    global signal_exp
+    
+    # Check if we must keep the old parameter values or not
+    if(keepparam==False):
+        rang = Rang
+        width_min = Width_min
+        width_max = Width_max
+        width_step = Width_step
+        scan_step = Scan_step
+        Npe = npe
+        bins = Bins
+        weights = Weights
+        Nworker = NWorker
+        seed = Seed
+        sigma_limit = Sigma_limit
+        str_min = Str_min
+        str_min = Str_min
+        str_scale = Str_scale
+        signal_exp = Signal_exp
+        
+    # Set the seed if required (or reset it if None)
+    np.random.seed(seed)
+        
+    # Set global result variables
+    global global_Pval
+    global significance
+    global res_ar
+    global min_Pval_ar
+    global min_loc_ar
+    global min_width_ar
+    global t_ar
+    global signal_min
+    global signal_ratio
+    global data_inject
+    global sigma_ar
+    
+    # Internal variables
+    i = 0
+    inject = 0
+    data = []
+    
+    # Reset significance and sigma_ar global variable
+    significance = 0
+    sigma_ar = []
+    
+    # Turn the background and signal distributions into histogram
+    print('GENERATING DATA')
+    if(is_hist==False):
+        bkg_hist,bins = np.histogram(bkg,bins=bins,range=rang,weights=weights)
+    
+    # Sample background to create data TODO check if must do it inside or outside of main loop
+    bkg_phist = np.random.poisson(lam=bkg_hist,size=bkg_hist.size)
+    
+    # Main injection loop
+    print('STARTING INJECTION')
+    while(significance < sigma_limit):
+        # Check ow we should compute the signal strength to be injected
+        if(str_scale=='lin'):
+            print('   STEP {} : signal strength = {}'.format(i,str_min+i*str_step))
+            
+            # Inject signal events in the data and update signal min (linear scale)
+            if(i==0):
+                strength = str_min
+            else:
+                strength += str_step
+            signal_min = signal_exp * strength
+            i+=1
+            
+        elif(str_scale=='log'):
+            # Inject signal events in the data and update signal min (log scale)
+            if(i%10==0):
+                i+=1
+                continue
+            else:
+                print('   STEP {} : signal strength = {}'.format(i,(i%10)*10**(str_min+i//10)))
+                strength = (i%10)*10**(str_min+i//10)
+                signal_min = signal_exp * strength
+                i+=1
+        
+        else:
+            # If bad str_scale value, print a error mesage and abort
+            print("ERROR : Bad str_scale value ! Must be either 'lin' or 'log'")
+            return
+        
+        if(is_hist==False):
+            sig_hist = np.histogram(sig,bins=bins,range=rang)[0]
+        else:
+            sig_hist = sig
+        sig_hist = sig_hist * strength * (signal_exp / sig.size)
+        data_hist = bkg_phist + sig_hist
+        
+        # Perform the BumpHunter scan to get the significance
+        BumpHunter(data_hist,bkg_hist,is_hist=True,keepparam=True)
+        sigma_ar.append(significance)
+    
+    print('REACHED SIGMA LIMIT')
+    print('   Number of signal event injected : {}'.format(signal_min))
+    
+    # Compute signal strength if required
+    if(signal_exp!=None):
+        signal_ratio = signal_min/signal_exp
+        print('   Signal strength : {0:1.4f}'.format(signal_ratio))
+    else:
+        signal_ratio = None
+    print('')
+    
+    # Save the data obtained after injection in global variable
+    data_inject = data_hist
+     
+    return
+
+
+# Function to plot the signal injection result
+def PlotInject(filename=None):
+    '''
+    Function that uses the global parameters str_min and str_step as well as the global results sigma_ar to
+    generate a plot.
+    
+    Argument :
+        fliename : Name of the file in which the plot will be saved. If None, the plot will be just shown
+                   but not saved. Default to None.
+    '''
+    
+    # Get the x-values (signal strength)
+    if(str_scale=='lin'):
+        sig_str = np.arange(str_min,str_min+str_step*len(sigma_ar),step=str_step)
+    else:
+        sig_str = np.array([i%10*10**(str_min+i//10) for i in range(len(sigma_ar)+len(sigma_ar)//10+1) if i%10!=0])
+    
+    # If filename is not None and log scale must check
+    if(filename!=None and str_scale=='log'):
+        if(type(filename)==type('str')):
+            print('WARNING : log plot for signal injection will not be saved !')
+            nolog = True
+        else:
+            nolog = False
+    
+    # Do the plot
+    F = plt.figure(figsize=(12,8))
+    plt.title('Significane vs signal strength')
+    plt.plot(sig_str,sigma_ar,'o-',linewidth=2)
+    plt.xlabel('Signal strength',size='large')
+    plt.ylabel('Significance',size='large')
+    
+    if(filename==None):
+        plt.show()
+    else:
+        if(str_scale=='log' and nolog==False):
+            plt.savefig(filename[0],bbox_inches='tight')
+        else:
+            plt.savefig(filename,bbox_inches='tight')
+        plt.close(F)
+    
+    # If log scale, do also a log plot
+    F = plt.figure(figsize=(12,8))
+    plt.title('Significane vs signal strength')
+    plt.plot(sig_str,sigma_ar,'o-',linewidth=2)
+    plt.xlabel('Signal strength',size='large')
+    plt.ylabel('Significance',size='large')
+    plt.xscale('log')
+    
+    if(filename==None):
+        plt.show()
+    else:
+        if(str_scale=='log' and nolog==False):
+            plt.savefig(filename[1],bbox_inches='tight')
+        plt.close(F)
+    
+    return
+
+
 
