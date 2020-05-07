@@ -1,48 +1,103 @@
-###FIRST CALL###
+####BmupHunter call####
 Generating histograms
 5 values of width will be tested
 SCAN
-Global p-value : 0.0000  (0 / 800)
-time=0:00:01.354076
+Global p-value : 0.0177  (177 / 10000)
+Significance = 2.10375
+
+time=0:00:14.325635
 
 BUMP WINDOW
    loc = 16
    width = 4
-   local p-value | t = 5.520687511550139e-08 | 16.7121783422251
+   local p-value | t = 0.00017341067835451395 | 8.659847913307976
 
 BUMP POSITION
    min : 5.333
    max : 6.667
    mean : 6.000
    width : 1.333
-   Number of signal events : 310
-   global p-value : 0.00000
-   significance = 8.20954
+   number of signal events : 208
+   global p-value : 0.01770
+   significance = 2.10375
 
    mean (true) = 5.5
 
 
-###SECOND CALL###
-Generating histograms
+####SignalInject call####
+Generating background only histograms
 5 values of width will be tested
-SCAN
-Global p-value : 0.0000  (0 / 800)
-time=0:00:00.938950
+BACKGROUND ONLY SCAN
+STARTING INJECTION
+   STEP 1 : signal strength = 0.1
+Generating background+signal histograms
+BACKGROUND+SIGNAL SCAN
+Global p-value : 0.0495  (495 / 10000)   0.0835  (835)   0.0152  (152)
+Significance = 1.64972 (1.38191  2.16484)
 
-BUMP WINDOW
-   loc = 16
-   width = 4
-   local p-value | t = 5.520687511550139e-08 | 16.7121783422251
+   STEP 2 : signal strength = 0.2
+Generating background+signal histograms
+BACKGROUND+SIGNAL SCAN
+Global p-value : 0.0464  (464 / 10000)   0.0808  (808)   0.0146  (146)
+Significance = 1.68081 (1.39971  2.18078)
 
-BUMP POSITION
-   min : 5.333
-   max : 6.667
-   mean : 6.000
-   width : 1.333
-   Number of signal events : 310
-   global p-value : 0.00000
-   significance = 8.20954
+   STEP 3 : signal strength = 0.30000000000000004
+Generating background+signal histograms
+BACKGROUND+SIGNAL SCAN
+Global p-value : 0.0433  (433 / 10000)   0.0788  (788)   0.0132  (132)
+Significance = 1.71361 (1.41319  2.22028)
 
-   mean (true) = 5.5
+   STEP 4 : signal strength = 0.4
+Generating background+signal histograms
+BACKGROUND+SIGNAL SCAN
+Global p-value : 0.0408  (408 / 10000)   0.0764  (764)   0.0119  (119)
+Significance = 1.74148 (1.42971  2.26034)
 
+   STEP 5 : signal strength = 0.5
+Generating background+signal histograms
+BACKGROUND+SIGNAL SCAN
+Global p-value : 0.0383  (383 / 10000)   0.0754  (754)   0.0108  (108)
+Significance = 1.77076 (1.43671  2.29733)
+
+   STEP 6 : signal strength = 0.6
+Generating background+signal histograms
+BACKGROUND+SIGNAL SCAN
+Global p-value : 0.0326  (326 / 10000)   0.0721  (721)   0.0077  (77)
+Significance = 1.84388 (1.46033  2.42283)
+
+   STEP 7 : signal strength = 0.7
+Generating background+signal histograms
+BACKGROUND+SIGNAL SCAN
+Global p-value : 0.0288  (288 / 10000)   0.0677  (677)   0.0066  (66)
+Significance = 1.89873 (1.49314  2.47833)
+
+   STEP 8 : signal strength = 0.7999999999999999
+Generating background+signal histograms
+BACKGROUND+SIGNAL SCAN
+Global p-value : 0.0224  (224 / 10000)   0.0630  (630)   0.0050  (50)
+Significance = 2.00653 (1.53007  2.57583)
+
+   STEP 9 : signal strength = 0.8999999999999999
+Generating background+signal histograms
+BACKGROUND+SIGNAL SCAN
+Global p-value : 0.0170  (170 / 10000)   0.0568  (568)   0.0023  (23)
+Significance = 2.12007 (1.58222  2.83379)
+
+   STEP 10 : signal strength = 0.9999999999999999
+Generating background+signal histograms
+BACKGROUND+SIGNAL SCAN
+Global p-value : 0.0136  (136 / 10000)   0.0501  (501)   0.0013  (13)
+Significance = 2.20864 (1.64388  3.01145)
+
+   STEP 11 : signal strength = 2.0
+Generating background+signal histograms
+BACKGROUND+SIGNAL SCAN
+Global p-value : 0.0000  (0 / 10000)   0.0008  (8)   0.0000  (0)
+Significance = 8.20954 (3.15591  8.20954)
+
+REACHED SIGMA LIMIT
+   Number of signal event injected : 300.0
+   Signal strength : 2.0000
+
+time=0:02:36.267526
 
