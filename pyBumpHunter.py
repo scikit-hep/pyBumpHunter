@@ -295,12 +295,12 @@ def BumpHunter(data,bkg,is_hist=False,Rang=None,
         data_hist = data
         Hbins = Bins
     
-    # Generate all the pseudo-data histograms TODO FIXME
+    # Generate all the pseudo-data histograms
     pseudo_hist = np.random.poisson(lam=np.tile(bkg_hist,(Npe,1)).transpose(),size=(bkg_hist.size,Npe))
     
     # Set width_max if it is given as None
     if width_max==None:
-        width_max = data_hist.size
+        width_max = data_hist.size // 2
     
     # Initialize all results containenrs
     min_Pval_ar = np.empty(Npe+1)
@@ -349,6 +349,7 @@ def BumpHunter(data,bkg,is_hist=False,Rang=None,
     return
 
 
+# Function that do the tomography plot for the data
 def GetTomography(data,is_hist=False,filename=None):
     '''
     Function that do a tomography plot showing the local p-value for every positions and widths of the scan
@@ -412,10 +413,10 @@ def GetTomography(data,is_hist=False,filename=None):
     return
 
 
-# Function that print the infomation about the most significante bump in data
+# Function that print the local infomation about the most significante bump in data
 def PrintBumpInfo():
     '''
-    Function that print the infomation about the most significante bump in data. Information are
+    Function that print the local infomation about the most significante bump in data. Information are
     printed to stdout.
     '''
     
@@ -434,9 +435,11 @@ def PrintBumpInfo():
     
     return
 
+# Function that print the global infomation about the most significante bump in data
 def PrintBumpTrue(data,bkg,is_hist=False):
     '''
-    Print the informations about the most significante bump in data in real scale.
+    Print the global informations about the most significante bump in data in real scale.
+    Information are printed to stdout.
     
     Arguments :
         data : Numpy array containing the raw unbined data.
@@ -469,7 +472,6 @@ def PrintBumpTrue(data,bkg,is_hist=False):
     Bwidth = Bmax-Bmin
     D =  H[0][min_loc_ar[0]:min_loc_ar[0]+min_width_ar[0]].sum()
     B = Hb[min_loc_ar[0]:min_loc_ar[0]+min_width_ar[0]].sum()
-    print('   B={}   D={}'.format(B,D))
     
     print('   min : {0:.3f}'.format(Bmin))
     print('   max : {0:.3f}'.format(Bmax))
@@ -714,6 +716,121 @@ def SignalInject(sig,bkg,is_hist=False,Rang=None,
     during the last iteration (when sigma_limit is reached).
     '''
     
+    # Function that scan a histogram and compare it to the refernce.
+    # This is just a local copy of the same function defined inside the BumpHunter function.
+    def scan_hist(hist,ref,ih):
+        '''
+        Function that scan a distribution and compute the p-value associated to every scan window following the
+        BumpHunter algorithm. Compute also the significance for the data histogram.
+        
+        In order to make the function thread friendly, the results are saved through global variables.
+        
+        Arguments :
+            hist : The data histogram (as obtain with the numpy.histogram function).
+            
+            ref : The reference (background) histogram (as obtain with the numpy.histogram function).
+            
+            ih : Indice of the distribution to be scanned. ih=0 refers to the data distribution and ih>0 refers to
+                 the ih-th pseudo-data distribution.
+        
+        Results stored in global variables :
+            res : Numpy array of python list containing all the p-values of all windows computed durring the
+                  scan. The numpy array as dimention (Nwidth), with Nwidth the number of window's width tested.
+                  Each python list as dimension (Nstep), with Nstep the number of scan step for a given width
+                  (different for every value of width).
+                  
+            min_Pval : Minimum p_value obtained durring the scan (float).
+            
+            min_loc : Position of the window corresponding to the minimum p-value (integer).
+            
+            min_width : Width of the window corresponding to the minimum p-value (integer).
+        '''
+        # Remove the first/last hist bins if empty ... just to be consistant we c++
+        non0 = [iii for iii in range(hist.size) if hist[iii]>0]
+        Hinf,Hsup = min(non0),max(non0)+1
+        #hist = hist[min(non0):max(non0)+1]
+        
+        # Create the results array
+        res = np.empty(Nwidth,dtype=np.object)
+        min_Pval,min_loc = np.empty(Nwidth),np.empty(Nwidth)
+        
+        # Loop over all the width of the window
+        for i in range(Nwidth):
+            # Compute the actual width
+            w = width_min + i*width_step
+            
+            # Auto-adjust scan step if specified
+            if(scan_step=='full'):
+                scan_stepp = w
+            elif(scan_step=='half'):
+                scan_stepp = max(1,w//2)
+            else:
+                scan_stepp = scan_step
+            
+            # Initialize local p-value array for width w
+            res[i] = np.empty((Hsup-w+1-Hinf)//scan_stepp)
+            
+            # Count events in all windows of width w
+            #FIXME any better way to do it ?? Without loop ?? FIXME
+            count = [[hist[loc*scan_stepp:loc*scan_stepp+w].sum(),ref[loc*scan_stepp:loc*scan_stepp+w].sum()] for loc in range(Hinf,(Hsup-w+1)//scan_stepp)]
+            count = np.array(count)
+            Nhist,Nref = count[:,0],count[:,1]
+            del count
+            
+            # Calculate all local p-values for for width w
+            res[i][Nhist<=Nref] = 1.0
+            res[i][Nhist>Nref] = G(Nhist[Nhist>Nref],Nref[Nhist>Nref])
+            res[i][(Nhist==0) & (Nref==0)] = 1.0
+            res[i][(Nref==0) & (Nhist>0)] = 1.0 # To be consistant with c++ results
+            
+            # Get the minimum p-value and associated position for width w
+            min_Pval[i] = res[i].min()
+            min_loc[i] = res[i].argmin()*scan_stepp + Hinf
+        
+        # Get the minimum p-value and associated windonw among all width
+        min_width = width_min + (min_Pval.argmin())*width_step
+        min_loc = min_loc[min_Pval.argmin()]
+        min_Pval = min_Pval[min_Pval.argmin()]
+        
+        # Save the results in global variables and return
+        res_ar[ih] = res
+        min_Pval_ar[ih] = min_Pval
+        min_loc_ar[ih] = int(min_loc)
+        min_width_ar[ih] = int(min_width)
+        return 
+    
+    # Function that computes the number of iteration for the scan and correct scan_max if not integer
+    # Again a local copy
+    def get_Nscan(m,M,step):
+        '''
+        Function that determine the number of step to be computed given a minimum, maximum and step interval.
+        The function ensure that this number is integer by adjusting the value of the maximum if necessary.
+        
+        Arguments :
+            m : The value of the minimum (must be integer).
+            
+            M : The value of the maximum (must be integer).
+            
+            step : The value of the step interval (must be integer).
+        
+        Returns : 
+            Nscan : The number of iterations to be computed for the scan.
+            M : The corrected value of the maximum.
+        '''
+        
+        Nscan = (M-m)/step
+        
+        if(Nscan-(M-m)//step)>0.0:
+            M = np.ceil(Nscan)*step+m
+            M = int(M)
+            print('ajusting width_max to {}'.format(M))
+            Nscan=(M-m)//step
+        else:
+            Nscan=int(Nscan)
+        
+        return Nscan+1,M
+    
+    
     # Set global parameter variables
     global rang
     global width_min
@@ -766,78 +883,191 @@ def SignalInject(sig,bkg,is_hist=False,Rang=None,
     global sigma_ar
     
     # Internal variables
-    i = 0
-    inject = 0
+    i = 1
+#    inject = 0
+    strength = 0
     data = []
     
     # Reset significance and sigma_ar global variable
     significance = 0
+    sigma_inf = 0
+    sigma_sup = 0
     sigma_ar = []
     
-    # Turn the background and signal distributions into histogram
-    print('GENERATING DATA')
+    # Check the expected number of signal event
+    if(signal_exp==None):
+        if(is_hist==False):
+            signal_exp = sig.size
+        else:
+            signal_exp = sig.sum()
+    
+    # Turn the background distributions into histogram
     if(is_hist==False):
         bkg_hist,bins = np.histogram(bkg,bins=bins,range=rang,weights=weights)
     
-    # Sample background to create data TODO check if must do it inside or outside of main loop
-    bkg_phist = np.random.poisson(lam=bkg_hist,size=bkg_hist.size)
+    # Generate pseudo-data by sampling background
+    print('Generating background only histograms')
+    np.random.seed(seed)
+    pseudo_bkg = np.random.poisson(lam=np.tile(bkg_hist,(1000,1)).transpose(),size=(bkg_hist.size,1000))
+    
+    # Set width_max if it is given as None
+    if width_max==None:
+        width_max = data_hist.size // 2
+    
+    # Initialize all results containenrs
+    min_Pval_ar = np.empty(1000)
+    min_loc_ar = np.empty(1000,dtype=int)
+    min_width_ar = np.empty(1000,dtype=int)
+    res_ar = np.empty(1000,dtype=np.object)
+    
+    # Auto-adjust the value of width_max and compute Nwidth
+    Nwidth,width_max = get_Nscan(width_min,width_max,width_step)
+    print('{} values of width will be tested'.format(Nwidth))
+    
+    # Compute the p-value for background only pseudo-experiments
+    # We must check if we should do it in multiple threads
+    print('BACKGROUND ONLY SCAN')
+    if(Nworker>1):
+        with thd.ThreadPoolExecutor(max_workers=Nworker) as exe:
+            for th in range(1000):
+                exe.submit(scan_hist,pseudo_bkg[:,th],bkg_hist,th)
+    else:
+        for th in range(1000):
+            scan_hist(pseudo_bkg[:,th],bkg_hist,th)
+    
+    # Use the p-value results to compute t
+    t_ar_bkg = -np.log(min_Pval_ar)
+    
+    # Save background result separately and free some memory
+    min_Pval_ar_bkg = min_Pval_ar
+    min_Pval_ar = []
+    min_loc_ar_bkg = min_loc_ar
+    min_loc_ar = []
+    min_width_ar_bkg = min_width_ar
+    min_width_ar = []
+    res_ar = []
     
     # Main injection loop
     print('STARTING INJECTION')
     while(significance < sigma_limit):
-        # Check ow we should compute the signal strength to be injected
+        # Check how we should compute the signal strength to be injected
         if(str_scale=='lin'):
-            print('   STEP {} : signal strength = {}'.format(i,str_min+i*str_step))
-            
-            # Inject signal events in the data and update signal min (linear scale)
-            if(i==0):
+            # Signal strength increase linearly at each step
+            if(i==1):
                 strength = str_min
             else:
                 strength += str_step
+            print('   STEP {} : signal strength = {}'.format(i,strength))
+            
+            # Update signal_min
             signal_min = signal_exp * strength
             i+=1
             
         elif(str_scale=='log'):
-            # Inject signal events in the data and update signal min (log scale)
-            if(i%10==0):
-                i+=1
-                continue
+            # Signal strength increase to form a logarithmic scale axis
+            if(i==1):
+                strength = 10**str_min
+                str_step = strength
             else:
-                print('   STEP {} : signal strength = {}'.format(i,(i%10)*10**(str_min+i//10)))
-                strength = (i%10)*10**(str_min+i//10)
-                signal_min = signal_exp * strength
-                i+=1
+                strength += str_step
+                if(abs(strength-10*str_step)<1e-6):
+                    str_step *=10
+            print('   STEP {} : signal strength = {}'.format(i,strength))
+            
+            # Update signal_min
+            signal_min = signal_exp * strength
+            i+=1
         
         else:
             # If bad str_scale value, print a error mesage and abort
             print("ERROR : Bad str_scale value ! Must be either 'lin' or 'log'")
             return
         
+        # Check if the signal is alredy in histogram form or not
         if(is_hist==False):
             sig_hist = np.histogram(sig,bins=bins,range=rang)[0]
+            sig_hist = sig_hist * strength * (signal_exp / sig.size)
         else:
             sig_hist = sig
-        sig_hist = sig_hist * strength * (signal_exp / sig.size)
-        data_hist = bkg_phist + sig_hist
+            sig_hist = sig_hist * strength * (signal_exp / sig.sum())
         
-        # Perform the BumpHunter scan to get the significance
-        BumpHunter(data_hist,bkg_hist,is_hist=True,keepparam=True)
-        sigma_ar.append(significance)
+        # Inject the signal and do some poissonian fluctuation
+        print('Generating background+signal histograms')
+        data_hist = bkg_hist + sig_hist
+        pseudo_data = np.random.poisson(lam=np.tile(data_hist,(Npe,1)).transpose(),size=(data_hist.size,Npe))
+        
+        # Initialize all results containenrs
+        min_Pval_ar = np.empty(Npe)
+        min_loc_ar = np.empty(Npe,dtype=int)
+        min_width_ar = np.empty(Npe,dtype=int)
+        res_ar = np.empty(Npe,dtype=np.object)
+        
+        # Compute the p-value for background+signal pseudo-experiments
+        # We must check if we should do it in multiple threads
+        print('BACKGROUND+SIGNAL SCAN')
+        if(Nworker>1):
+            with thd.ThreadPoolExecutor(max_workers=Nworker) as exe:
+                for th in range(Npe):
+                    exe.submit(scan_hist,pseudo_data[:,th],bkg_hist,th)
+        else:
+            for th in range(Npe):
+                scan_hist(pseudo_data[:,th],bkg_hist,th)
+        
+        # Use the p-value results to compute t
+        t_ar = -np.log(min_Pval_ar)
+        
+        # Compute the global p-value from the t distribution with inf end sup values
+        tdat,tinf,tsup = np.median(t_ar),np.quantile(t_ar,0.16),np.quantile(t_ar,0.84)
+        S = t_ar_bkg[t_ar_bkg>tdat].size
+        Sinf = t_ar_bkg[t_ar_bkg>tinf].size
+        Ssup = t_ar_bkg[t_ar_bkg>tsup].size
+        global_Pval = S/Npe
+        global_inf = Sinf/Npe
+        global_sup = Ssup/Npe
+        print('Global p-value : {0:1.4f}  ({1} / {2})   {3:1.4f}  ({4})   {5:1.4f}  ({6})'.format(global_Pval,S,Npe,global_inf,Sinf,global_sup,Ssup))
+        
+        # If global p-value is exactly 0, we might have trouble with the significance
+        if(global_Pval<0.0000000000000001):
+            significance = norm.ppf(1-0.0000000000000001)
+        else:
+            significance = norm.ppf(1-global_Pval)
+        
+        if(global_inf<0.0000000000000001):
+            sigma_inf = norm.ppf(1-0.0000000000000001)
+        else:
+            sigma_inf = norm.ppf(1-global_inf)
+        
+        if(global_sup<0.0000000000000001):
+            sigma_sup = norm.ppf(1-0.0000000000000001)
+        else:
+            sigma_sup = norm.ppf(1-global_sup)
+        print('Significance = {0:1.5f} ({1:1.5f}  {2:1.5f})'.format(significance,sigma_inf,sigma_sup))
+        print('')
+        
+        # Append reached significance to sigma_ar (with sup and inf variations)
+        sigma_ar.append([significance,abs(significance-sigma_inf),abs(significance-sigma_sup)])
     
+    # End of injection loop
     print('REACHED SIGMA LIMIT')
     print('   Number of signal event injected : {}'.format(signal_min))
     
-    # Compute signal strength if required
-    if(signal_exp!=None):
-        signal_ratio = signal_min/signal_exp
-        print('   Signal strength : {0:1.4f}'.format(signal_ratio))
-    else:
-        signal_ratio = None
+    # Compute signal strength
+    signal_ratio = signal_min/signal_exp
+    print('   Signal strength : {0:1.4f}'.format(signal_ratio))
     print('')
     
-    # Save the data obtained after injection in global variable
+    # Save the data obtained after last injection in global variable
     data_inject = data_hist
-     
+    
+    # Append the last step results to the background results
+    t_ar = np.append(t_ar_bkg,t_ar)
+    min_Pval_ar = np.append(min_Pval_ar_bkg,min_Pval_ar)
+    min_loc_ar = np.append(min_loc_ar_bkg,min_loc_ar)
+    min_width_ar = np.append(min_width_ar_bkg,min_width_ar)
+    
+    # Convert the sigma_ar global variable into a numpy array
+    sigma_ar = np.array(sigma_ar)
+    
     return
 
 
@@ -869,7 +1099,9 @@ def PlotInject(filename=None):
     # Do the plot
     F = plt.figure(figsize=(12,8))
     plt.title('Significane vs signal strength')
-    plt.plot(sig_str,sigma_ar,'o-',linewidth=2)
+    plt.errorbar(sig_str,sigma_ar[:,0],
+                 xerr=0,yerr=[sigma_ar[:,1],sigma_ar[:,2]],
+                 linewidth=2,marker='o')
     plt.xlabel('Signal strength',size='large')
     plt.ylabel('Significance',size='large')
     
@@ -883,19 +1115,22 @@ def PlotInject(filename=None):
         plt.close(F)
     
     # If log scale, do also a log plot
-    F = plt.figure(figsize=(12,8))
-    plt.title('Significane vs signal strength')
-    plt.plot(sig_str,sigma_ar,'o-',linewidth=2)
-    plt.xlabel('Signal strength',size='large')
-    plt.ylabel('Significance',size='large')
-    plt.xscale('log')
-    
-    if(filename==None):
-        plt.show()
-    else:
-        if(str_scale=='log' and nolog==False):
-            plt.savefig(filename[1],bbox_inches='tight')
-        plt.close(F)
+    if(str_scale=='log'):
+        F = plt.figure(figsize=(12,8))
+        plt.title('Significane vs signal strength (log scale)')
+        plt.errorbar(sig_str,sigma_ar[:,0],
+                     xerr=0,yerr=[sigma_ar[:,1],sigma_ar[:,2]],
+                     linewidth=2,marker='o')
+        plt.xlabel('Signal strength',size='large')
+        plt.ylabel('Significance',size='large')
+        plt.xscale('log')
+        
+        if(filename==None):
+            plt.show()
+        else:
+            if(nolog==False):
+                plt.savefig(filename[1],bbox_inches='tight')
+            plt.close(F)
     
     return
 
