@@ -37,6 +37,20 @@ In order to run the example script, simply type `python3 test.py` in a terminal.
 
 You can also open the example notebook with jupyter or Binder.
 
+* Bump hunting:
+
+<p align="center">
+<img src="https://raw.githubusercontent.com/lovaslin/pyBumpHunter/master/results_py/bump.png" title="drawing"  width="500">
+</p>
+
+* Tomography scan:
+
+<p align="center">
+<img src="https://raw.githubusercontent.com/lovaslin/pyBumpHunter/master/results_py/tomography.png" title="drawing"  width="500">
+</p>
+
+* Test statistics and global p-value:
+
 <p align="center">
 <img src="https://raw.githubusercontent.com/lovaslin/pyBumpHunter/master/results_py/BH_statistics.png" title="drawing"  width="500">
 </p>
@@ -45,4 +59,3 @@ You can also open the example notebook with jupyter or Binder.
 
 Louis Vaslin (main developper), Julien Donini and Samuel Calvet.
 
-### Acknowledgments
