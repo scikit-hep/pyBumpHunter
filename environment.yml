@@ -8,3 +8,4 @@ dependencies:
   - scipy
   - awkward>=0.12.0,<1.0
   - uproot-methods>=0.7.0
+  - cachetools
