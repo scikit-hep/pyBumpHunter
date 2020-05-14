@@ -38,13 +38,9 @@ In order to run the example script, simply type `python3 test.py` in a terminal.
 You can also open the example notebook with jupyter or Binder.
 
 
+![Global p-value](https://raw.githubusercontent.com/lovaslin/pyBumpHunter/master/results_py/BH_statistics.png)
 
-
-
-.. image:: https://raw.githubusercontent.com/lovaslin/pyBumpHunter/master/results_py/BH_statistics.png
-   :alt: manual
-   :width: 500
-   :align: center
+![Global p-value](https://raw.githubusercontent.com/lovaslin/pyBumpHunter/master/results_py/BH_statistics.png s=200)
 
 
 
