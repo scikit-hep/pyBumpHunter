@@ -1,5 +1,7 @@
 # pyBumpHunter
 
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/lovaslin/pyBumpHunter/master)
+
 This is a python version of the BumpHunter algorithm based on the popular agorithm described in [arXiv:1101.0390 (G. Choudalakis)](https://arxiv.org/abs/1101.0390)
 
 This work has been cross-checked using the (internal) C++ version developped by the [ATLAS collaboration](https://atlas.cern/).
