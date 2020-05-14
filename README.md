@@ -1,8 +1,8 @@
 # pyBumpHunter
 
-Simple python version of the BumpHunter algorithm.
+This is a python version of the BumpHunter algorithm based on the popular agorithm described in [arXiv:1101.0390 (G. Choudalakis)](https://arxiv.org/abs/1101.0390)
 
-This work is based on the official version used by the [ATLAS collaboration](https://atlas.cern/).
+This work has been cross-checked using the (internal) C++ version developped by the [ATLAS collaboration](https://atlas.cern/).
 It as been made and tested to reproduce as accurately as possible the original version.
 
 ### Content
