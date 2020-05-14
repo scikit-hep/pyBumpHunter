@@ -37,9 +37,9 @@ In order to run the example script, simply type `python3 test.py` in a terminal.
 
 You can also open the example notebook with jupyter or Binder.
 
-
-<img src="https://raw.githubusercontent.com/lovaslin/pyBumpHunter/master/results_py/BH_statistics.png" alt="drawing" class="center" width="500"/>
-
+<p align="center">
+<img src="https://raw.githubusercontent.com/lovaslin/pyBumpHunter/master/results_py/BH_statistics.png" title="drawing"  width="500">
+</p>
 
 ### Authors and contributors
 
