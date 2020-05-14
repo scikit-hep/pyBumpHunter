@@ -37,6 +37,17 @@ In order to run the example script, simply type `python3 test.py` in a terminal.
 
 You can also open the example notebook with jupyter or Binder.
 
+
+
+
+
+.. image:: https://raw.githubusercontent.com/lovaslin/pyBumpHunter/master/results_py/BH_statistics.png
+   :alt: manual
+   :width: 500
+   :align: center
+
+
+
 ### Authors and contributors
 
 Louis Vaslin (main developper), Julien Donini and Samuel Calvet.
