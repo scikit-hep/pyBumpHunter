@@ -40,8 +40,9 @@ You can also open the example notebook with jupyter or Binder.
 
 ![Global p-value](https://raw.githubusercontent.com/lovaslin/pyBumpHunter/master/results_py/BH_statistics.png)
 
-![Global p-value](https://raw.githubusercontent.com/lovaslin/pyBumpHunter/master/results_py/BH_statistics.png s=200)
 
+
+<img src="https://raw.githubusercontent.com/lovaslin/pyBumpHunter/master/results_py/BH_statistics.png" alt="drawing" width="200"/>
 
 
 ### Authors and contributors
