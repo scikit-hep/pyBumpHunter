@@ -8,8 +8,6 @@ The main BumpHunter function will scan a data distribution using variable-width 
 
 The BumpHunter algorithm can also perform signal injection tests where more and more signal is injected in toy data until a given signal significance (global) is reached.
 
-Note: the present algorithm has been cross-checked using the (internal) C++ version of BumpHunter developped by the [ATLAS collaboration](https://atlas.cern/). It has been made and tested to reproduce as accurately as possible the original version.
-
 ### Content
 
 * pyBumpHunter.py : The pyBumpHunter package
@@ -55,7 +53,14 @@ You can also open the example notebook with jupyter or binder.
 <img src="https://raw.githubusercontent.com/lovaslin/pyBumpHunter/master/results_py/BH_statistics.png" title="drawing"  width="500">
 </p>
 
+### To do list
+
+* Run BH on 2D histograms
+
+* Test signal deficit mode
+
 ### Authors and contributors
 
-Louis Vaslin (main developper), Julien Donini and Samuel Calvet.
+Louis Vaslin (main developper), Julien Donini
 
+Thanks to Samuel Calvet for helping to cross-check and validate pyBumpHunter against the (internal) C++ version of BumpHunter developped by the [ATLAS collaboration](https://atlas.cern/).
