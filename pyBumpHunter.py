@@ -1098,7 +1098,7 @@ def PlotInject(filename=None):
     
     # Do the plot
     F = plt.figure(figsize=(12,8))
-    plt.title('Significane vs signal strength')
+    plt.title('Significance vs signal strength')
     plt.errorbar(sig_str,sigma_ar[:,0],
                  xerr=0,yerr=[sigma_ar[:,1],sigma_ar[:,2]],
                  linewidth=2,marker='o')
@@ -1117,7 +1117,7 @@ def PlotInject(filename=None):
     # If log scale, do also a log plot
     if(str_scale=='log'):
         F = plt.figure(figsize=(12,8))
-        plt.title('Significane vs signal strength (log scale)')
+        plt.title('Significance vs signal strength (log scale)')
         plt.errorbar(sig_str,sigma_ar[:,0],
                      xerr=0,yerr=[sigma_ar[:,1],sigma_ar[:,2]],
                      linewidth=2,marker='o')
