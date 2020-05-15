@@ -12,7 +12,7 @@ import uproot as upr  ## Used to read data from a root file
 
 
 # Open the file
-File = upr.open('data.root')
+File = upr.open('data/data.root')
 File.items()
 
 # Background
