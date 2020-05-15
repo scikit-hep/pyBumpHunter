@@ -55,12 +55,12 @@ You can also open the example notebook with jupyter or binder.
 
 ### To do list
 
-* Run BH on 2D histograms
-
 * Test signal deficit mode
+
+* Run BH on 2D histograms
 
 ### Authors and contributors
 
 Louis Vaslin (main developper), Julien Donini
 
-Thanks to Samuel Calvet for helping to cross-check and validate pyBumpHunter against the (internal) C++ version of BumpHunter developped by the [ATLAS collaboration](https://atlas.cern/).
+Thanks to Samuel Calvet for his help in cross-checking and validating pyBumpHunter against the (internal) C++ version of BumpHunter developped by the [ATLAS collaboration](https://atlas.cern/).
