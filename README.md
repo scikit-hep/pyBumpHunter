@@ -53,6 +53,8 @@ You can also open the example notebook with jupyter or binder.
 <img src="https://raw.githubusercontent.com/lovaslin/pyBumpHunter/master/results_py/BH_statistics.png" title="drawing"  width="500">
 </p>
 
+See the [wiki](https://github.com/lovaslin/pyBumpHunter/wiki) for a detailed overview of all the features offered by pyBumpHunter.
+
 ### To do list
 
 * Test signal deficit mode
