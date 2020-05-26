@@ -12,6 +12,7 @@ from matplotlib import gridspec as grd
 
 # Parameter global variables
 rang = None
+mode = 'excess'
 width_min = 1
 width_max = None
 width_step = 1
@@ -43,7 +44,7 @@ signal_ratio = None
 
 # Function that perform the scan on every pseudo experiment and data (in parrallel threads).
 # For each scan, the value of p-value and test statistic t is computed and stored in result array
-def BumpHunter(data,bkg,is_hist=False,Rang=None,
+def BumpHunter(data,bkg,is_hist=False,Rang=None,Mode='excess',
                Width_min=1,Width_max=None,Width_step=1,Scan_step=1,
                npe=100,Bins=60,Weights=None,NWorker=4,
                Seed=None,keepparam=False):
@@ -68,6 +69,9 @@ def BumpHunter(data,bkg,is_hist=False,Rang=None,
                   Default to False.
         
         Rang : x-axis range of the histograms. Also define the range in which the scan wiil be performed.
+        
+        Mode : String specifying if the algorithm must look for a excess or a deficit in the data.
+               Can be either 'excess' or 'deficit'. Default to 'excess'.
         
         Width_min : Minimum value of the scan window width that should be tested. Default to 1.
         
@@ -220,8 +224,12 @@ def BumpHunter(data,bkg,is_hist=False,Rang=None,
             del count
             
             # Calculate all local p-values for for width w
-            res[i][Nhist<=Nref] = 1.0
-            res[i][Nhist>Nref] = G(Nhist[Nhist>Nref],Nref[Nhist>Nref])
+            if(mode=='excess'):
+                res[i][Nhist<=Nref] = 1.0
+                res[i][Nhist>Nref] = G(Nhist[Nhist>Nref],Nref[Nhist>Nref])
+            elif(mode=='deficit'):
+                res[i][Nhist<=Nref] = 1.0-G(Nhist[Nhist>Nref]+1,Nref[Nhist>Nref])
+                res[i][Nhist>Nref] = 1.0
             res[i][(Nhist==0) & (Nref==0)] = 1.0
             res[i][(Nref==0) & (Nhist>0)] = 1.0 # To be consistant with c++ results
             
@@ -244,6 +252,7 @@ def BumpHunter(data,bkg,is_hist=False,Rang=None,
     
     # Set global parameter variables
     global rang
+    global mode
     global width_min
     global width_max
     global width_step
@@ -257,6 +266,7 @@ def BumpHunter(data,bkg,is_hist=False,Rang=None,
     # Check if we must keep the old parameter values or not
     if(keepparam==False):
         rang = Rang
+        mode = Mode
         width_min = Width_min
         width_max = Width_max
         width_step = Width_step
