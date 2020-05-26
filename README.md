@@ -25,6 +25,8 @@ pyBumpHunter depends on the following python libraries :
 * scipy
 * matplotlib
 
+### [pyBumpHunter wiki](https://github.com/lovaslin/pyBumpHunter/wiki)
+
 ### Examples
 
 The examples provided in test.py and test.ipy require the [uproot](https://github.com/scikit-hep/uproot) package in order to read the data from a [ROOT software](https://root.cern.ch/) file.
