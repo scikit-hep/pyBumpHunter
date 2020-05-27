@@ -59,8 +59,6 @@ See the [wiki](https://github.com/lovaslin/pyBumpHunter/wiki) for a detailed ove
 
 ### To do list
 
-* Test signal deficit mode (for signal injection)
-
 * Run BH on 2D histograms
 
 ### Authors and contributors
