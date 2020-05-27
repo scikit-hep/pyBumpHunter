@@ -28,6 +28,7 @@ str_step = 0.25
 str_scale='lin'
 signal_exp = None
 data_inject = []
+flip_sig = True
 
 
 # Result global variables
@@ -228,7 +229,7 @@ def BumpHunter(data,bkg,is_hist=False,Rang=None,Mode='excess',
                 res[i][Nhist<=Nref] = 1.0
                 res[i][Nhist>Nref] = G(Nhist[Nhist>Nref],Nref[Nhist>Nref])
             elif(mode=='deficit'):
-                res[i][Nhist<=Nref] = 1.0-G(Nhist[Nhist>Nref]+1,Nref[Nhist>Nref])
+                res[i][Nhist<=Nref] = 1.0-G(Nhist[Nhist<=Nref]+1,Nref[Nhist<=Nref])
                 res[i][Nhist>Nref] = 1.0
             res[i][(Nhist==0) & (Nref==0)] = 1.0
             res[i][(Nref==0) & (Nhist>0)] = 1.0 # To be consistant with c++ results
@@ -632,13 +633,13 @@ def PlotBHstat(show_Pval=False,filename=None):
 
 
 # Perform signal injection on background and determine the minimum aount of signal required for observation
-def SignalInject(sig,bkg,is_hist=False,Rang=None,
+def SignalInject(sig,bkg,is_hist=False,Rang=None,Mode='excess',
                  Width_min=1,Width_max=None,Width_step=1,Scan_step=1,
                  npe=100,Bins=60,Weights=None,NWorker=4,
                  Seed=None,
                  Sigma_limit=5,Str_min=0.5,Str_step=0.25,
                  Str_scale='lin',
-                 Signal_exp=None,keepparam=False):
+                 Signal_exp=None,Flip_sig=True,keepparam=False):
     '''    
     Function that perform a signal injection test in order to determine the minimum signal strength required to
     reach a target significance. This function use the BumpHunter algorithm in order to calculate the reached
@@ -659,6 +660,9 @@ def SignalInject(sig,bkg,is_hist=False,Rang=None,
                   Default to False.
         
         Rang : x-axis range of the histograms. Also define the range in which the scan wiil be performed.
+        
+        Mode : String specifying if the algorithm must look for a excess or a deficit in the data.
+               Can be either 'excess' or 'deficit'. Default to 'excess'.
         
         Width_min : Minimum value of the scan window width that should be tested. Default to 1.
         
@@ -709,6 +713,9 @@ def SignalInject(sig,bkg,is_hist=False,Rang=None,
         
         Signal_exp : Expected number of signal used to compute the signal strength. If None, the signal strength is not
                      computed. Default to None.
+        
+        Flip_sig : Boolean specifying if the signal should be fliped when running in deficit mode.
+                   Ignored in excess mode. Default to True.
         
         keepparam : Boolean specifying if BumpHunter should use the parameters saved in global variables. If True,
                     all other arguments (except data and sig) are ignored. If False, all the non specified parameter
@@ -788,8 +795,12 @@ def SignalInject(sig,bkg,is_hist=False,Rang=None,
             del count
             
             # Calculate all local p-values for for width w
-            res[i][Nhist<=Nref] = 1.0
-            res[i][Nhist>Nref] = G(Nhist[Nhist>Nref],Nref[Nhist>Nref])
+            if(mode=='excess'):
+                res[i][Nhist<=Nref] = 1.0
+                res[i][Nhist>Nref] = G(Nhist[Nhist>Nref],Nref[Nhist>Nref])
+            elif(mode=='deficit'):
+                res[i][Nhist<=Nref] = 1.0-G(Nhist[Nhist<=Nref]+1,Nref[Nhist<=Nref])
+                res[i][Nhist>Nref] = 1.0
             res[i][(Nhist==0) & (Nref==0)] = 1.0
             res[i][(Nref==0) & (Nhist>0)] = 1.0 # To be consistant with c++ results
             
@@ -843,6 +854,7 @@ def SignalInject(sig,bkg,is_hist=False,Rang=None,
     
     # Set global parameter variables
     global rang
+    global mode
     global width_min
     global width_max
     global width_step
@@ -857,10 +869,12 @@ def SignalInject(sig,bkg,is_hist=False,Rang=None,
     global str_step
     global str_scale
     global signal_exp
+    global flip_sig
     
     # Check if we must keep the old parameter values or not
     if(keepparam==False):
         rang = Rang
+        mode = Mode
         width_min = Width_min
         width_max = Width_max
         width_step = Width_step
@@ -875,6 +889,7 @@ def SignalInject(sig,bkg,is_hist=False,Rang=None,
         str_min = Str_min
         str_scale = Str_scale
         signal_exp = Signal_exp
+        flip_sig = Flip_sig
         
     # Set the seed if required (or reset it if None)
     np.random.seed(seed)
@@ -894,7 +909,6 @@ def SignalInject(sig,bkg,is_hist=False,Rang=None,
     
     # Internal variables
     i = 1
-#    inject = 0
     strength = 0
     data = []
     
@@ -917,18 +931,19 @@ def SignalInject(sig,bkg,is_hist=False,Rang=None,
     
     # Generate pseudo-data by sampling background
     print('Generating background only histograms')
+    Nbkg = 1000
     np.random.seed(seed)
-    pseudo_bkg = np.random.poisson(lam=np.tile(bkg_hist,(1000,1)).transpose(),size=(bkg_hist.size,1000))
+    pseudo_bkg = np.random.poisson(lam=np.tile(bkg_hist,(Nbkg,1)).transpose(),size=(bkg_hist.size,Nbkg))
     
     # Set width_max if it is given as None
     if width_max==None:
         width_max = data_hist.size // 2
     
     # Initialize all results containenrs
-    min_Pval_ar = np.empty(1000)
-    min_loc_ar = np.empty(1000,dtype=int)
-    min_width_ar = np.empty(1000,dtype=int)
-    res_ar = np.empty(1000,dtype=np.object)
+    min_Pval_ar = np.empty(Nbkg)
+    min_loc_ar = np.empty(Nbkg,dtype=int)
+    min_width_ar = np.empty(Nbkg,dtype=int)
+    res_ar = np.empty(Nbkg,dtype=np.object)
     
     # Auto-adjust the value of width_max and compute Nwidth
     Nwidth,width_max = get_Nscan(width_min,width_max,width_step)
@@ -939,10 +954,10 @@ def SignalInject(sig,bkg,is_hist=False,Rang=None,
     print('BACKGROUND ONLY SCAN')
     if(Nworker>1):
         with thd.ThreadPoolExecutor(max_workers=Nworker) as exe:
-            for th in range(1000):
+            for th in range(Nbkg):
                 exe.submit(scan_hist,pseudo_bkg[:,th],bkg_hist,th)
     else:
-        for th in range(1000):
+        for th in range(Nbkg):
             scan_hist(pseudo_bkg[:,th],bkg_hist,th)
     
     # Use the p-value results to compute t
@@ -993,6 +1008,10 @@ def SignalInject(sig,bkg,is_hist=False,Rang=None,
             print("ERROR : Bad str_scale value ! Must be either 'lin' or 'log'")
             return
         
+        # Check if we inject a deficit
+        if(mode=='deficit'):
+            signal_min = -signal_min
+        
         # Check if the signal is alredy in histogram form or not
         if(is_hist==False):
             sig_hist = np.histogram(sig,bins=bins,range=rang)[0]
@@ -1000,6 +1019,11 @@ def SignalInject(sig,bkg,is_hist=False,Rang=None,
         else:
             sig_hist = sig
             sig_hist = sig_hist * strength * (signal_exp / sig.sum())
+        
+        # Check if sig_hist should be fliped in deficit mode
+        if(mode=='deficit'):
+            if(flip_sig==True):
+                sig_hist = -sig_hist
         
         # Inject the signal and do some poissonian fluctuation
         print('Generating background+signal histograms')
@@ -1062,7 +1086,7 @@ def SignalInject(sig,bkg,is_hist=False,Rang=None,
     print('   Number of signal event injected : {}'.format(signal_min))
     
     # Compute signal strength
-    signal_ratio = signal_min/signal_exp
+    signal_ratio = abs(signal_min/signal_exp)
     print('   Signal strength : {0:1.4f}'.format(signal_ratio))
     print('')
     
