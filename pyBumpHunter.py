@@ -131,39 +131,9 @@ def BumpHunter(data,bkg,is_hist=False,Rang=None,Mode='excess',
                        the data (indice=0) and pseudo-data (indice>0).
     '''
     
-    # Function that computes the number of iteration for the scan and correct scan_max if not integer
-    def get_Nscan(m,M,step):
-        '''
-        Function that determine the number of step to be computed given a minimum, maximum and step interval.
-        The function ensure that this number is integer by adjusting the value of the maximum if necessary.
-        
-        Arguments :
-            m : The value of the minimum (must be integer).
-            
-            M : The value of the maximum (must be integer).
-            
-            step : The value of the step interval (must be integer).
-        
-        Returns : 
-            Nscan : The number of iterations to be computed for the scan.
-            M : The corrected value of the maximum.
-        '''
-        
-        Nscan = (M-m)/step
-        
-        if(Nscan-(M-m)//step)>0.0:
-            M = np.ceil(Nscan)*step+m
-            M = int(M)
-            print('ajusting width_max to {}'.format(M))
-            Nscan=(M-m)//step
-        else:
-            Nscan=int(Nscan)
-        
-        return Nscan+1,M
-    
     
     # Function that scan a histogram and compare it to the refernce.
-    # Returns a numpy array of python list with all p-values for all windows width and position.
+    # Compute a numpy array of python list with all p-values for all windows width and position.
     # This function might be called in parallel threads in order to save time.
     def scan_hist(hist,ref,ih):
         '''
@@ -195,17 +165,14 @@ def BumpHunter(data,bkg,is_hist=False,Rang=None,Mode='excess',
         # Remove the first/last hist bins if empty ... just to be consistant we c++
         non0 = [iii for iii in range(hist.size) if hist[iii]>0]
         Hinf,Hsup = min(non0),max(non0)+1
-        #hist = hist[min(non0):max(non0)+1]
         
         # Create the results array
-        res = np.empty(Nwidth,dtype=np.object)
-        min_Pval,min_loc = np.empty(Nwidth),np.empty(Nwidth)
+        res = np.empty(w_ar.size,dtype=np.object)
+        min_Pval,min_loc = np.empty(w_ar.size),np.empty(w_ar.size)
         
         # Loop over all the width of the window
-        for i in range(Nwidth):
-            # Compute the actual width
-            w = width_min + i*width_step
-            
+        i = 0
+        for w in w_ar:
             # Auto-adjust scan step if specified
             if(scan_step=='full'):
                 scan_stepp = w
@@ -214,15 +181,16 @@ def BumpHunter(data,bkg,is_hist=False,Rang=None,Mode='excess',
             else:
                 scan_stepp = scan_step
             
+            # Define possition range
+            pos = np.arange(Hinf,Hsup-w+1,scan_stepp)
+            
             # Initialize local p-value array for width w
-            res[i] = np.empty((Hsup-w+1-Hinf)//scan_stepp)
+            res[i] = np.empty(pos.size)
             
             # Count events in all windows of width w
             #FIXME any better way to do it ?? Without loop ?? FIXME
-            count = [[hist[loc*scan_stepp:loc*scan_stepp+w].sum(),ref[loc*scan_stepp:loc*scan_stepp+w].sum()] for loc in range(Hinf,(Hsup-w+1)//scan_stepp)]
-            count = np.array(count)
-            Nhist,Nref = count[:,0],count[:,1]
-            del count
+            Nref = np.array([ref[p:p+w].sum() for p in pos])
+            Nhist = np.array([hist[p:p+w].sum() for p in pos])
             
             # Calculate all local p-values for for width w
             if(mode=='excess'):
@@ -236,12 +204,14 @@ def BumpHunter(data,bkg,is_hist=False,Rang=None,Mode='excess',
             
             # Get the minimum p-value and associated position for width w
             min_Pval[i] = res[i].min()
-            min_loc[i] = res[i].argmin()*scan_stepp + Hinf
+            min_loc[i] = pos[res[i].argmin()]
+
+            i += 1
         
         # Get the minimum p-value and associated windonw among all width
-        min_width = width_min + (min_Pval.argmin())*width_step
+        min_width = w_ar[min_Pval.argmin()]
         min_loc = min_loc[min_Pval.argmin()]
-        min_Pval = min_Pval[min_Pval.argmin()]
+        min_Pval = min_Pval.min()
         
         # Save the results in global variables and return
         res_ar[ih] = res
@@ -292,12 +262,10 @@ def BumpHunter(data,bkg,is_hist=False,Rang=None,Mode='excess',
     
     
     # Generate the background and data histograms
+    print('Generating histograms')
     if(is_hist==False):
-        print('Generating histograms')
-        F = plt.figure()
         bkg_hist,Hbin = np.histogram(bkg,bins=bins,weights=weights,range=rang)
         data_hist = np.histogram(data,bins=bins,range=rang)[0]
-        plt.close(F)
     else:
         if(weights==None):
             bkg_hist = bkg
@@ -319,9 +287,10 @@ def BumpHunter(data,bkg,is_hist=False,Rang=None,Mode='excess',
     min_width_ar = np.empty(Npe+1,dtype=int)
     res_ar = np.empty(Npe+1,dtype=np.object)
     
-    # Auto-adjust the value of width_max and compute Nwidth
-    Nwidth,width_max = get_Nscan(width_min,width_max,width_step)
-    print('{} values of width will be tested'.format(Nwidth))
+    # Auto-adjust the value of width_max and do an array of all width
+    w_ar = np.arange(width_min,width_max+1,width_step)
+    width_max = w_ar[-1]
+    print('{} values of width will be tested'.format(w_ar.size))
     
     # Compute the p-value for data and all pseudo-experiments
     # We must check if we should do it in multiple threads
@@ -765,17 +734,14 @@ def SignalInject(sig,bkg,is_hist=False,Rang=None,Mode='excess',
         # Remove the first/last hist bins if empty ... just to be consistant we c++
         non0 = [iii for iii in range(hist.size) if hist[iii]>0]
         Hinf,Hsup = min(non0),max(non0)+1
-        #hist = hist[min(non0):max(non0)+1]
         
         # Create the results array
-        res = np.empty(Nwidth,dtype=np.object)
-        min_Pval,min_loc = np.empty(Nwidth),np.empty(Nwidth)
+        res = np.empty(w_ar.size,dtype=np.object)
+        min_Pval,min_loc = np.empty(w_ar.size),np.empty(w_ar.size)
         
         # Loop over all the width of the window
-        for i in range(Nwidth):
-            # Compute the actual width
-            w = width_min + i*width_step
-            
+        i = 0
+        for w in w_ar:
             # Auto-adjust scan step if specified
             if(scan_step=='full'):
                 scan_stepp = w
@@ -784,15 +750,16 @@ def SignalInject(sig,bkg,is_hist=False,Rang=None,Mode='excess',
             else:
                 scan_stepp = scan_step
             
+            # Define possition range
+            pos = np.arange(Hinf,Hsup-w+1,scan_stepp)
+            
             # Initialize local p-value array for width w
-            res[i] = np.empty((Hsup-w+1-Hinf)//scan_stepp)
+            res[i] = np.empty(pos.size)
             
             # Count events in all windows of width w
             #FIXME any better way to do it ?? Without loop ?? FIXME
-            count = [[hist[loc*scan_stepp:loc*scan_stepp+w].sum(),ref[loc*scan_stepp:loc*scan_stepp+w].sum()] for loc in range(Hinf,(Hsup-w+1)//scan_stepp)]
-            count = np.array(count)
-            Nhist,Nref = count[:,0],count[:,1]
-            del count
+            Nref = np.array([ref[p:p+w].sum() for p in pos])
+            Nhist = np.array([hist[p:p+w].sum() for p in pos])
             
             # Calculate all local p-values for for width w
             if(mode=='excess'):
@@ -806,12 +773,14 @@ def SignalInject(sig,bkg,is_hist=False,Rang=None,Mode='excess',
             
             # Get the minimum p-value and associated position for width w
             min_Pval[i] = res[i].min()
-            min_loc[i] = res[i].argmin()*scan_stepp + Hinf
+            min_loc[i] = pos[res[i].argmin()]
+
+            i += 1
         
         # Get the minimum p-value and associated windonw among all width
-        min_width = width_min + (min_Pval.argmin())*width_step
+        min_width = w_ar[min_Pval.argmin()]
         min_loc = min_loc[min_Pval.argmin()]
-        min_Pval = min_Pval[min_Pval.argmin()]
+        min_Pval = min_Pval.min()
         
         # Save the results in global variables and return
         res_ar[ih] = res
@@ -819,38 +788,7 @@ def SignalInject(sig,bkg,is_hist=False,Rang=None,Mode='excess',
         min_loc_ar[ih] = int(min_loc)
         min_width_ar[ih] = int(min_width)
         return 
-    
-    # Function that computes the number of iteration for the scan and correct scan_max if not integer
-    # Again a local copy
-    def get_Nscan(m,M,step):
-        '''
-        Function that determine the number of step to be computed given a minimum, maximum and step interval.
-        The function ensure that this number is integer by adjusting the value of the maximum if necessary.
-        
-        Arguments :
-            m : The value of the minimum (must be integer).
-            
-            M : The value of the maximum (must be integer).
-            
-            step : The value of the step interval (must be integer).
-        
-        Returns : 
-            Nscan : The number of iterations to be computed for the scan.
-            M : The corrected value of the maximum.
-        '''
-        
-        Nscan = (M-m)/step
-        
-        if(Nscan-(M-m)//step)>0.0:
-            M = np.ceil(Nscan)*step+m
-            M = int(M)
-            print('ajusting width_max to {}'.format(M))
-            Nscan=(M-m)//step
-        else:
-            Nscan=int(Nscan)
-        
-        return Nscan+1,M
-    
+     
     
     # Set global parameter variables
     global rang
@@ -945,9 +883,10 @@ def SignalInject(sig,bkg,is_hist=False,Rang=None,Mode='excess',
     min_width_ar = np.empty(Nbkg,dtype=int)
     res_ar = np.empty(Nbkg,dtype=np.object)
     
-    # Auto-adjust the value of width_max and compute Nwidth
-    Nwidth,width_max = get_Nscan(width_min,width_max,width_step)
-    print('{} values of width will be tested'.format(Nwidth))
+    # Auto-adjust the value of width_max and do an array of all width
+    w_ar = np.arange(width_min,width_max+1,width_step)
+    width_max = w_ar[-1]
+    print('{} values of width will be tested'.format(w_ar.size))
     
     # Compute the p-value for background only pseudo-experiments
     # We must check if we should do it in multiple threads
