@@ -39,59 +39,60 @@ plt.savefig('results_py/hist.png',bbox_inches='tight')
 plt.close(F)
 
 
-# Call the BumpHunter function
-print('####BmupHunter call####')
+# Create a BumpHunter class instance
+BHtest = BH.BumpHunter(rang=rang,
+                       width_min=2,
+                       width_max=6,
+                       width_step=1,
+                       scan_step=1,
+                       Npe=10000,
+                       Nworker=1,
+                       seed=666)
+
+
+# Call the BumpScan method
+print('####BmupScan call####')
 begin = datetime.now()
-BH.BumpHunter(
-    data,bkg,Rang=rang,
-    Width_min=2,
-    Width_max=6,
-    Width_step=1,
-    Scan_step=1,
-    npe=10000,
-    NWorker=1,
-    Seed=666
-)
+BHtest.BumpScan(data,bkg)
 end = datetime.now()
 print('time={}'.format(end-begin))
 print('')
 
 # Print bump
-BH.PrintBumpInfo()
-BH.PrintBumpTrue(data,bkg)
+BHtest.PrintBumpInfo()
+BHtest.PrintBumpTrue(data,bkg)
 print('   mean (true) = {}'.format(Lth))
 print('')
 
 
 # Get and save tomography plot
-BH.GetTomography(data,filename='results_py/tomography.png')
+BHtest.GetTomography(data,filename='results_py/tomography.png')
 
 
 # Get and save bump plot
-BH.PlotBump(data,bkg,filename='results_py/bump.png')
+BHtest.PlotBump(data,bkg,filename='results_py/bump.png')
 
 
 # Get and save statistics plot
-BH.PlotBHstat(show_Pval=True,filename='results_py/BH_statistics.png')
+BHtest.PlotBHstat(show_Pval=True,filename='results_py/BH_statistics.png')
 
 print('')
 
-# Set injection parrameter and call SignalInject function with keepparam argument
-# (so we keep the same BumpHunter parameters)
-BH.sigma_limit = 5
-BH.str_min = -1 # if str_scale='log', the real starting value is 10**str_min
-BH.str_scale = 'log'
-BH.signal_exp = 150 # Correspond the the real number of signal events generated when making the data
+# We have to set additionnal parameters specific to the signal injection.
+# All the parameters defined previously are kept.
+BHtest.sigma_limit = 5
+BHtest.str_min = -1 # if str_scale='log', the real starting value is 10**str_min
+BHtest.str_scale = 'log'
+BHtest.signal_exp = 150 # Correspond the the real number of signal events generated when making the data
 
 print('####SignalInject call####')
 begin = datetime.now()
-BH.SignalInject(sig,bkg,is_hist=False,keepparam=True)
+BHtest.SignalInject(sig,bkg,is_hist=False)
 end = datetime.now()
 print('time={}'.format(end-begin))
 print('')
 
 
 # Get and save the injection plot
-BH.PlotInject(filename=('results_py/SignalInject.png','results_py/SignalInject_log.png'))
-
+BHtest.PlotInject(filename=('results_py/SignalInject.png','results_py/SignalInject_log.png'))
 
