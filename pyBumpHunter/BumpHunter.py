@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 ########pyBumpHunter########
 #
 # Python version of the BupHunter algorithm as described in https://arxiv.org/pdf/1101.0390.pdf
