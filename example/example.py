@@ -12,7 +12,7 @@ import uproot as upr  ## Used to read data from a root file
 
 
 # Open the file
-File = upr.open('data/data.root')
+File = upr.open('../data/data.root')
 File.items()
 
 # Background
@@ -35,7 +35,7 @@ F = plt.figure(figsize=(12,8))
 plt.title('Test distribution')
 plt.hist((bkg,data),bins=60,histtype='step',range=rang,label=('bakground','data'),linewidth=2)
 plt.legend()
-plt.savefig('results_py/hist.png',bbox_inches='tight')
+plt.savefig('results/hist.png',bbox_inches='tight')
 plt.close(F)
 
 
@@ -66,15 +66,15 @@ print('')
 
 
 # Get and save tomography plot
-BHtest.GetTomography(data,filename='results_py/tomography.png')
+BHtest.GetTomography(data,filename='results/tomography.png')
 
 
 # Get and save bump plot
-BHtest.PlotBump(data,bkg,filename='results_py/bump.png')
+BHtest.PlotBump(data,bkg,filename='results/bump.png')
 
 
 # Get and save statistics plot
-BHtest.PlotBHstat(show_Pval=True,filename='results_py/BH_statistics.png')
+BHtest.PlotBHstat(show_Pval=True,filename='results/BH_statistics.png')
 
 print('')
 
@@ -94,5 +94,5 @@ print('')
 
 
 # Get and save the injection plot
-BHtest.PlotInject(filename=('results_py/SignalInject.png','results_py/SignalInject_log.png'))
+BHtest.PlotInject(filename=('results/SignalInject.png','results_py/SignalInject_log.png'))
 
