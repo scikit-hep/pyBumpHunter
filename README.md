@@ -1,6 +1,7 @@
 # pyBumpHunter
 
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/lovaslin/pyBumpHunter/master)
+[![Test](https://github.com/lovaslin/pyBumpHunter/workflows/automated_testing/badge.svg)](https://github.com/lovaslin/pyBumpHunter/actions)
 
 This is a python version of the BumpHunter algorithm, see [arXiv:1101.0390, G. Choudalakis](https://arxiv.org/abs/1101.0390), designed to find localized excess (or deficit) of events in a 1D distribution.
 
