@@ -796,7 +796,7 @@ class BumpHunter():
         if(is_hist==False):
             H = np.histogram(data,bins=self.bins,range=self.rang)[1]
         else:
-            H = bins
+            H = self.bins
         
         res_data = self.res_ar[0]    
         inter = []
@@ -848,7 +848,7 @@ class BumpHunter():
         if(is_hist==False):
             H = np.histogram(data,bins=self.bins,range=self.rang)
         else:
-            H = [self.data,self.bins]
+            H = [data,self.bins]
         
         # Get bump min and max
         Bmin = H[1][self.min_loc_ar[0]]
@@ -858,7 +858,7 @@ class BumpHunter():
         if(is_hist==False):
             Hbkg = np.histogram(bkg,bins=self.bins,range=self.rang,weights=self.weights)[0]
         else:
-            if(weights==None):
+            if(self.weights==None):
                 Hbkg = bkg
             else:
                 Hbkg = bkg * self.weights
