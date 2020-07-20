@@ -11,6 +11,99 @@ import concurrent.futures as thd
 from matplotlib import gridspec as grd
 
 
+# Funtrion that perform a scan of a given data histogram and compare it to a reference background histogram.
+# This function is used by the BumpHunter class methods and is not intended to be used directly.
+def scan_hist(hist,ref,w_ar,self,ih):
+            '''
+            Function that scan a distribution and compute the p-value associated to every scan window following the
+            BumpHunter algorithm. Compute also the significance for the data histogram.
+            
+            In order to make the function thread friendly, the results are saved through global variables.
+            
+            Arguments :
+                hist : The data histogram (as obtain with the numpy.histogram function).
+                
+                ref : The reference (background) histogram (as obtain with the numpy.histogram function).
+                
+                w_ar : Array containing all the values of width to be tested.
+                
+                self : The BumpHunter instance that call the function
+                
+                ih : Indice of the distribution to be scanned. ih=0 refers to the data distribution and ih>0 refers to
+                     the ih-th pseudo-data distribution.
+            
+            Results stored in inner variables :
+                res : Numpy array of python list containing all the p-values of all windows computed durring the
+                      scan. The numpy array as dimention (Nwidth), with Nwidth the number of window's width tested.
+                      Each python list as dimension (Nstep), with Nstep the number of scan step for a given width
+                      (different for every value of width).
+                      
+                min_Pval : Minimum p_value obtained durring the scan (float).
+                
+                min_loc : Position of the window corresponding to the minimum p-value (integer).
+                
+                min_width : Width of the window corresponding to the minimum p-value (integer).
+            '''
+            
+            # Remove the first/last hist bins if empty ... just to be consistant we c++
+            non0 = [iii for iii in range(hist.size) if hist[iii]>0]
+            Hinf,Hsup = min(non0),max(non0)+1
+            
+            # Create the results array
+            res = np.empty(w_ar.size,dtype=np.object)
+            min_Pval,min_loc = np.empty(w_ar.size),np.empty(w_ar.size)
+            
+            # Loop over all the width of the window
+            i = 0
+            for w in w_ar:
+                # Auto-adjust scan step if specified
+                if(self.scan_step=='full'):
+                    scan_stepp = w
+                elif(self.scan_step=='half'):
+                    scan_stepp = max(1,w//2)
+                else:
+                    scan_stepp = self.scan_step
+                
+                # Define possition range
+                pos = np.arange(Hinf,Hsup-w+1,scan_stepp)
+                
+                # Initialize local p-value array for width w
+                res[i] = np.empty(pos.size)
+                
+                # Count events in all windows of width w
+                #FIXME any better way to do it ?? Without loop ?? FIXME
+                Nref = np.array([ref[p:p+w].sum() for p in pos])
+                Nhist = np.array([hist[p:p+w].sum() for p in pos])
+                
+                # Calculate all local p-values for for width w
+                if(self.mode=='excess'):
+                    res[i][Nhist<=Nref] = 1.0
+                    res[i][Nhist>Nref] = G(Nhist[Nhist>Nref],Nref[Nhist>Nref])
+                elif(self.mode=='deficit'):
+                    res[i][Nhist<=Nref] = 1.0-G(Nhist[Nhist<=Nref]+1,Nref[Nhist<=Nref])
+                    res[i][Nhist>Nref] = 1.0
+                res[i][(Nhist==0) & (Nref==0)] = 1.0
+                res[i][(Nref==0) & (Nhist>0)] = 1.0 # To be consistant with c++ results
+                
+                # Get the minimum p-value and associated position for width w
+                min_Pval[i] = res[i].min()
+                min_loc[i] = pos[res[i].argmin()]
+    
+                i += 1
+            
+            # Get the minimum p-value and associated windonw among all width
+            min_width = w_ar[min_Pval.argmin()]
+            min_loc = min_loc[min_Pval.argmin()]
+            min_Pval = min_Pval.min()
+            
+            # Save the results in inner variables and return
+            self.res_ar[ih] = res
+            self.min_Pval_ar[ih] = min_Pval
+            self.min_loc_ar[ih] = int(min_loc)
+            self.min_width_ar[ih] = int(min_width)
+            return 
+
+
 # THE super BumpHunter class
 class BumpHunter():
     '''
@@ -25,11 +118,12 @@ class BumpHunter():
         mode : String specifying if the algorithm must look for a excess or a deficit in the data.
                Can be either 'excess' or 'deficit'. Default to 'excess'.
         
-        width_min : Minimum value of the scan window width that should be tested. Default to 1.
+        width_min : Minimum value of the scan window width that should be tested (in number of bins).
+                    Default to 1.
         
-        width_max : Maximum value of the scan window width that should be tested. Can be either None or a
-                    positive integer. if None, the value is set to the total number of bins of the histograms.
-                    Default to none.
+        width_max : Maximum value of the scan window width that should be tested (in number of bins). Can be
+                    either None or a positive integer. if None, the value is set to the total number of bins
+                    of the histograms ivided by 2. Default to none.
         
         width_step : Number of bins by which the scan window width is increased at each step. Default to 1.
         
@@ -373,95 +467,6 @@ class BumpHunter():
                            the data (indice=0) and pseudo-data (indice>0).
         '''
         
-        # Function that scan a histogram and compare it to the refernce.
-        # Compute a numpy array of python list with all p-values for all windows width and position.
-        # This function might be called in parallel threads in order to save time.
-        def scan_hist(hist,ref,ih):
-            '''
-            Function that scan a distribution and compute the p-value associated to every scan window following the
-            BumpHunter algorithm. Compute also the significance for the data histogram.
-            
-            In order to make the function thread friendly, the results are saved through global variables.
-            
-            Arguments :
-                hist : The data histogram (as obtain with the numpy.histogram function).
-                
-                ref : The reference (background) histogram (as obtain with the numpy.histogram function).
-                
-                ih : Indice of the distribution to be scanned. ih=0 refers to the data distribution and ih>0 refers to
-                     the ih-th pseudo-data distribution.
-            
-            Results stored in inner variables :
-                res : Numpy array of python list containing all the p-values of all windows computed durring the
-                      scan. The numpy array as dimention (Nwidth), with Nwidth the number of window's width tested.
-                      Each python list as dimension (Nstep), with Nstep the number of scan step for a given width
-                      (different for every value of width).
-                      
-                min_Pval : Minimum p_value obtained durring the scan (float).
-                
-                min_loc : Position of the window corresponding to the minimum p-value (integer).
-                
-                min_width : Width of the window corresponding to the minimum p-value (integer).
-            '''
-            # Remove the first/last hist bins if empty ... just to be consistant we c++
-            non0 = [iii for iii in range(hist.size) if hist[iii]>0]
-            Hinf,Hsup = min(non0),max(non0)+1
-            
-            # Create the results array
-            res = np.empty(w_ar.size,dtype=np.object)
-            min_Pval,min_loc = np.empty(w_ar.size),np.empty(w_ar.size)
-            
-            # Loop over all the width of the window
-            i = 0
-            for w in w_ar:
-                # Auto-adjust scan step if specified
-                if(self.scan_step=='full'):
-                    scan_stepp = w
-                elif(self.scan_step=='half'):
-                    scan_stepp = max(1,w//2)
-                else:
-                    scan_stepp = self.scan_step
-                
-                # Define possition range
-                pos = np.arange(Hinf,Hsup-w+1,scan_stepp)
-                
-                # Initialize local p-value array for width w
-                res[i] = np.empty(pos.size)
-                
-                # Count events in all windows of width w
-                #FIXME any better way to do it ?? Without loop ?? FIXME
-                Nref = np.array([ref[p:p+w].sum() for p in pos])
-                Nhist = np.array([hist[p:p+w].sum() for p in pos])
-                
-                # Calculate all local p-values for for width w
-                if(self.mode=='excess'):
-                    res[i][Nhist<=Nref] = 1.0
-                    res[i][Nhist>Nref] = G(Nhist[Nhist>Nref],Nref[Nhist>Nref])
-                elif(self.mode=='deficit'):
-                    res[i][Nhist<=Nref] = 1.0-G(Nhist[Nhist<=Nref]+1,Nref[Nhist<=Nref])
-                    res[i][Nhist>Nref] = 1.0
-                res[i][(Nhist==0) & (Nref==0)] = 1.0
-                res[i][(Nref==0) & (Nhist>0)] = 1.0 # To be consistant with c++ results
-                
-                # Get the minimum p-value and associated position for width w
-                min_Pval[i] = res[i].min()
-                min_loc[i] = pos[res[i].argmin()]
-    
-                i += 1
-            
-            # Get the minimum p-value and associated windonw among all width
-            min_width = w_ar[min_Pval.argmin()]
-            min_loc = min_loc[min_Pval.argmin()]
-            min_Pval = min_Pval.min()
-            
-            # Save the results in inner variables and return
-            self.res_ar[ih] = res
-            self.min_Pval_ar[ih] = min_Pval
-            self.min_loc_ar[ih] = int(min_loc)
-            self.min_width_ar[ih] = int(min_width)
-            return 
-        
-        
         # Set the seed if required (or reset it if None)
         np.random.seed(self.seed)
         
@@ -503,15 +508,15 @@ class BumpHunter():
             with thd.ThreadPoolExecutor(max_workers=self.Nworker) as exe:
                 for th in range(self.Npe+1):
                     if(th==0):
-                        exe.submit(scan_hist,data_hist,bkg_hist,th)
+                        exe.submit(scan_hist,data_hist,bkg_hist,w_ar,self,th)
                     else:
-                        exe.submit(scan_hist,pseudo_hist[:,th-1],bkg_hist,th)
+                        exe.submit(scan_hist,pseudo_hist[:,th-1],bkg_hist,w_ar,self,th)
         else:
             for i in range(self.Npe+1):
                 if(i==0):
-                    scan_hist(data_hist,bkg_hist,i)
+                    scan_hist(data_hist,bkg_hist,w_ar,self,i)
                 else:
-                    scan_hist(pseudo_hist[:,i-1],bkg_hist,i)
+                    scan_hist(pseudo_hist[:,i-1],bkg_hist,w_ar,self,i)
         
         # Use the p-value results to compute t
         self.t_ar = -np.log(self.min_Pval_ar)
@@ -563,94 +568,6 @@ class BumpHunter():
         All the result global variables of the BumpHunter function will be filled with the results of the scan permormed
         during the last iteration (when sigma_limit is reached).
         '''
-        
-        # Function that scan a histogram and compare it to the refernce.
-        # This is just a local copy of the same function defined inside the BumpHunter function.
-        def scan_hist(hist,ref,ih):
-            '''
-            Function that scan a distribution and compute the p-value associated to every scan window following the
-            BumpHunter algorithm. Compute also the significance for the data histogram.
-            
-            In order to make the function thread friendly, the results are saved through global variables.
-            
-            Arguments :
-                hist : The data histogram (as obtain with the numpy.histogram function).
-                
-                ref : The reference (background) histogram (as obtain with the numpy.histogram function).
-                
-                ih : Indice of the distribution to be scanned. ih=0 refers to the data distribution and ih>0 refers to
-                     the ih-th pseudo-data distribution.
-            
-            Results stored in inner variables :
-                res : Numpy array of python list containing all the p-values of all windows computed durring the
-                      scan. The numpy array as dimention (Nwidth), with Nwidth the number of window's width tested.
-                      Each python list as dimension (Nstep), with Nstep the number of scan step for a given width
-                      (different for every value of width).
-                      
-                min_Pval : Minimum p_value obtained durring the scan (float).
-                
-                min_loc : Position of the window corresponding to the minimum p-value (integer).
-                
-                min_width : Width of the window corresponding to the minimum p-value (integer).
-            '''
-            # Remove the first/last hist bins if empty ... just to be consistant we c++
-            non0 = [iii for iii in range(hist.size) if hist[iii]>0]
-            Hinf,Hsup = min(non0),max(non0)+1
-            
-            # Create the results array
-            res = np.empty(w_ar.size,dtype=np.object)
-            min_Pval,min_loc = np.empty(w_ar.size),np.empty(w_ar.size)
-            
-            # Loop over all the width of the window
-            i = 0
-            for w in w_ar:
-                # Auto-adjust scan step if specified
-                if(self.scan_step=='full'):
-                    scan_stepp = w
-                elif(self.scan_step=='half'):
-                    scan_stepp = max(1,w//2)
-                else:
-                    scan_stepp = self.scan_step
-                
-                # Define possition range
-                pos = np.arange(Hinf,Hsup-w+1,scan_stepp)
-                
-                # Initialize local p-value array for width w
-                res[i] = np.empty(pos.size)
-                
-                # Count events in all windows of width w
-                #FIXME any better way to do it ?? Without loop ?? FIXME
-                Nref = np.array([ref[p:p+w].sum() for p in pos])
-                Nhist = np.array([hist[p:p+w].sum() for p in pos])
-                
-                # Calculate all local p-values for for width w
-                if(self.mode=='excess'):
-                    res[i][Nhist<=Nref] = 1.0
-                    res[i][Nhist>Nref] = G(Nhist[Nhist>Nref],Nref[Nhist>Nref])
-                elif(self.mode=='deficit'):
-                    res[i][Nhist<=Nref] = 1.0-G(Nhist[Nhist<=Nref]+1,Nref[Nhist<=Nref])
-                    res[i][Nhist>Nref] = 1.0
-                res[i][(Nhist==0) & (Nref==0)] = 1.0
-                res[i][(Nref==0) & (Nhist>0)] = 1.0 # To be consistant with c++ results
-                
-                # Get the minimum p-value and associated position for width w
-                min_Pval[i] = res[i].min()
-                min_loc[i] = pos[res[i].argmin()]
-    
-                i += 1
-            
-            # Get the minimum p-value and associated windonw among all width
-            min_width = w_ar[min_Pval.argmin()]
-            min_loc = min_loc[min_Pval.argmin()]
-            min_Pval = min_Pval.min()
-            
-            # Save the results in inner variables and return
-            self.res_ar[ih] = res
-            self.min_Pval_ar[ih] = min_Pval
-            self.min_loc_ar[ih] = int(min_loc)
-            self.min_width_ar[ih] = int(min_width)
-            return 
-         
         
         # Set the seed if required (or reset it if None)
         np.random.seed(self.seed)
@@ -704,10 +621,10 @@ class BumpHunter():
         if(self.Nworker>1):
             with thd.ThreadPoolExecutor(max_workers=self.Nworker) as exe:
                 for th in range(Nbkg):
-                    exe.submit(scan_hist,pseudo_bkg[:,th],bkg_hist,th)
+                    exe.submit(scan_hist,pseudo_bkg[:,th],bkg_hist,w_ar,self,th)
         else:
             for th in range(Nbkg):
-                scan_hist(pseudo_bkg[:,th],bkg_hist,th)
+                scan_hist(pseudo_bkg[:,th],bkg_hist,w_ar,self,th)
         
         # Use the p-value results to compute t
         t_ar_bkg = -np.log(self.min_Pval_ar)
@@ -791,10 +708,10 @@ class BumpHunter():
             if(self.Nworker>1):
                 with thd.ThreadPoolExecutor(max_workers=self.Nworker) as exe:
                     for th in range(self.Npe):
-                        exe.submit(scan_hist,pseudo_data[:,th],bkg_hist,th)
+                        exe.submit(scan_hist,pseudo_data[:,th],bkg_hist,w_ar,self,th)
             else:
                 for th in range(self.Npe):
-                    scan_hist(pseudo_data[:,th],bkg_hist,th)
+                    scan_hist(pseudo_data[:,th],bkg_hist,w_ar,self,th)
             
             # Use the p-value results to compute t
             self.t_ar = -np.log(self.min_Pval_ar)
@@ -879,7 +796,7 @@ class BumpHunter():
         if(is_hist==False):
             H = np.histogram(data,bins=self.bins,range=self.rang)[1]
         else:
-            H = bins
+            H = self.bins
         
         res_data = self.res_ar[0]    
         inter = []
@@ -931,7 +848,7 @@ class BumpHunter():
         if(is_hist==False):
             H = np.histogram(data,bins=self.bins,range=self.rang)
         else:
-            H = [self.data,self.bins]
+            H = [data,self.bins]
         
         # Get bump min and max
         Bmin = H[1][self.min_loc_ar[0]]
@@ -941,7 +858,7 @@ class BumpHunter():
         if(is_hist==False):
             Hbkg = np.histogram(bkg,bins=self.bins,range=self.rang,weights=self.weights)[0]
         else:
-            if(weights==None):
+            if(self.weights==None):
                 Hbkg = bkg
             else:
                 Hbkg = bkg * self.weights
