@@ -2,7 +2,7 @@ name: automated_build
 
 on:
   release:
-    type: [published]
+    types: [published]
 
 jobs:
   dist:
