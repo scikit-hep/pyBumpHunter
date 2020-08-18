@@ -14,7 +14,7 @@ jobs:
     - name: Setup python
       uses: actions/setup-python@v2
       with:
-        python_ersion: 3.x
+        python_version: 3.x
     
     - name: Install requirement
       run: |
