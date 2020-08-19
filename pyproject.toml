@@ -6,5 +6,5 @@ requires = [
 ]
 build-backend="setuptools.build_meta"
 
-[tool.setuptool_scm]
+[tool.setuptools_scm]
 write_to = "pyBumpHunter/version.py"
