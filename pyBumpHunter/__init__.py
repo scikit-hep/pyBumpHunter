@@ -39,3 +39,8 @@ https://github.com/lovaslin/pyBumpHunter/wiki
 '''
 
 from .BumpHunter import BumpHunter
+
+# Automatic versioning
+from .version import version as __version__
+
+
