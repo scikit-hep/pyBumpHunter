@@ -4,4 +4,6 @@ from setuptools import setup
 import setuptools_scm
 import toml
 
-setup()
+setup(
+    use_scm_version=True,
+)
