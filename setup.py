@@ -5,6 +5,6 @@ import setuptools_scm
 import toml
 
 setup(
-    use_scm_version={'version_scheme': 'post-release',
-                     'local_scheme': 'dirty-tag'},
+    use_scm_version={'version_scheme': 'final-release',
+                     'local_scheme': 'final-release'},
 )
