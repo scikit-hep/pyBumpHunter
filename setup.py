@@ -4,4 +4,8 @@ from setuptools import setup
 import setuptools_scm
 import toml
 
-setup()
+setuptools_scm.local_scheme = lambda v: ""
+
+setup(
+    use_scm_version=True,
+)
