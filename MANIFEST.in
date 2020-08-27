@@ -1,0 +1,9 @@
+graft pyBumpHunter
+graft data
+graft example
+graft testing
+
+global-exclude .git*
+prune .github
+
+include LICENCE README.MD pyproject.toml setup.py setup.cfg
