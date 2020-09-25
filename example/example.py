@@ -94,5 +94,5 @@ print('')
 
 
 # Get and save the injection plot
-BHtest.PlotInject(filename=('results/SignalInject.png','results_py/SignalInject_log.png'))
+BHtest.PlotInject(filename=('results/SignalInject.png','results/SignalInject_log.png'))
 

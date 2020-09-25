@@ -472,11 +472,11 @@ class BumpHunter():
         
         # Generate the background and data histograms
         print('Generating histograms')
-        if(is_hist==False):
+        if(is_hist is False):
             bkg_hist,Hbin = np.histogram(bkg,bins=self.bins,weights=self.weights,range=self.rang)
             data_hist = np.histogram(data,bins=self.bins,range=self.rang)[0]
         else:
-            if(self.weights==None):
+            if(self.weights is None):
                 bkg_hist = bkg
             else:
                 bkg_hist = bkg * self.weights
@@ -487,7 +487,7 @@ class BumpHunter():
         pseudo_hist = np.random.poisson(lam=np.tile(bkg_hist,(self.Npe,1)).transpose(),size=(bkg_hist.size,self.Npe))
         
         # Set width_max if it is given as None
-        if self.width_max==None:
+        if self.width_max is None:
             self.width_max = data_hist.size // 2
         
         # Initialize all results containenrs
@@ -584,14 +584,14 @@ class BumpHunter():
         self.sigma_ar = []
         
         # Check the expected number of signal event
-        if(self.signal_exp==None):
-            if(is_hist==False):
+        if(self.signal_exp is None):
+            if(is_hist is False):
                 self.signal_exp = sig.size
             else:
                 self.signal_exp = sig.sum()
         
         # Turn the background distributions into histogram
-        if(is_hist==False):
+        if(is_hist is False):
             bkg_hist,bins = np.histogram(bkg,bins=self.bins,range=self.rang,weights=self.weights)
         
         # Generate pseudo-data by sampling background
@@ -601,7 +601,7 @@ class BumpHunter():
         pseudo_bkg = np.random.poisson(lam=np.tile(bkg_hist,(Nbkg,1)).transpose(),size=(bkg_hist.size,Nbkg))
         
         # Set width_max if it is given as None
-        if self.width_max==None:
+        if self.width_max is None:
             self.width_max = bkg_hist.size // 2
         
         # Initialize all results containenrs
@@ -679,7 +679,7 @@ class BumpHunter():
                 self.signal_min = -self.signal_min
             
             # Check if the signal is alredy in histogram form or not
-            if(is_hist==False):
+            if(is_hist is False):
                 sig_hist = np.histogram(sig,bins=self.bins,range=self.rang)[0]
                 sig_hist = sig_hist * strength * (self.signal_exp / sig.size)
             else:
@@ -688,7 +688,7 @@ class BumpHunter():
             
             # Check if sig_hist should be fliped in deficit mode
             if(self.mode=='deficit'):
-                if(self.flip_sig==True):
+                if(self.flip_sig is True):
                     sig_hist = -sig_hist
             
             # Inject the signal and do some poissonian fluctuation
@@ -793,7 +793,7 @@ class BumpHunter():
         Hinf = min(non0)
         
         # Get real bin bounds
-        if(is_hist==False):
+        if(is_hist is False):
             H = np.histogram(data,bins=self.bins,range=self.rang)[1]
         else:
             H = self.bins
@@ -821,7 +821,7 @@ class BumpHunter():
         plt.ylabel('local p-value',size='large')
         plt.yscale('log')
         
-        if(filename==None):
+        if(filename is None):
             plt.show()
         else:
             plt.savefig(filename,bbox_inches='tight')
@@ -845,7 +845,7 @@ class BumpHunter():
         '''
         
         # Get the data in histogram form
-        if(is_hist==False):
+        if(is_hist is False):
             H = np.histogram(data,bins=self.bins,range=self.rang)
         else:
             H = [data,self.bins]
@@ -855,10 +855,10 @@ class BumpHunter():
         Bmax = H[1][self.min_loc_ar[0]+self.min_width_ar[0]]
         
         # Get the background in histogram form
-        if(is_hist==False):
+        if(is_hist is False):
             Hbkg = np.histogram(bkg,bins=self.bins,range=self.rang,weights=self.weights)[0]
         else:
-            if(self.weights==None):
+            if(self.weights is None):
                 Hbkg = bkg
             else:
                 Hbkg = bkg * self.weights
@@ -881,7 +881,7 @@ class BumpHunter():
         pl1 = plt.subplot(gs[0])
         plt.title('Distributions with bump')
         
-        if(is_hist==False):
+        if(is_hist is False):
             plt.hist(bkg,bins=self.bins,histtype='step',range=self.rang,weights=self.weights,label='background',linewidth=2,color='red')
             plt.errorbar(0.5*(H[1][1:]+H[1][:-1]),H[0],
                          xerr=(H[1][1]-H[1][0])/2,yerr=np.sqrt(H[0]),
@@ -908,7 +908,7 @@ class BumpHunter():
         plt.ylabel('significance',size='large')
         
         # Check if the plot should be saved or just displayed
-        if(filename==None):
+        if(filename is None):
             plt.show()
         else:
             plt.savefig(filename,bbox_inches='tight')
@@ -942,7 +942,7 @@ class BumpHunter():
         plt.yscale('log')
         
         # Check if the plot should be saved or just displayed
-        if(filename==None):
+        if(filename is None):
             plt.show()
         else:
             plt.savefig(filename,bbox_inches='tight')
@@ -984,10 +984,10 @@ class BumpHunter():
         plt.xlabel('Signal strength',size='large')
         plt.ylabel('Significance',size='large')
         
-        if(filename==None):
+        if(filename is None):
             plt.show()
         else:
-            if(self.str_scale=='log' and nolog==False):
+            if(self.str_scale=='log' and nolog is False):
                 plt.savefig(filename[0],bbox_inches='tight')
             else:
                 plt.savefig(filename,bbox_inches='tight')
@@ -1004,10 +1004,10 @@ class BumpHunter():
             plt.ylabel('Significance',size='large')
             plt.xscale('log')
             
-            if(filename==None):
+            if(filename is None):
                 plt.show()
             else:
-                if(nolog==False):
+                if(nolog is False):
                     plt.savefig(filename[1],bbox_inches='tight')
                 plt.close(F)
         
@@ -1044,7 +1044,7 @@ class BumpHunter():
         '''
         
         # Get the data and background in histogram form
-        if(is_hist==False):
+        if(is_hist is False):
             H = np.histogram(data,bins=self.bins,range=self.rang)
             Hb = np.histogram(bkg,bins=self.bins,range=self.rang,weights=self.weights)[0]
         else:
