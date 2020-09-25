@@ -1,11 +1,7 @@
 #!/usr/bin/env python
 
 from setuptools import setup
-import setuptools_scm
-import toml
+import setuptools_scm  # noqa: F401
+import toml  # noqa: F401
 
-setuptools_scm.local_scheme = lambda v: ""
-
-setup(
-    use_scm_version=True,
-)
+setup()
