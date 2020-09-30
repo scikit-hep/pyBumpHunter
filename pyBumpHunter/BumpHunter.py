@@ -870,8 +870,7 @@ class BumpHunter():
         sig[H[0]<Hbkg] = 1-G(H[0][H[0]<Hbkg]+1,Hbkg[H[0]<Hbkg])
         sig = norm.ppf(1-sig)
         sig[sig<0] = 0 # If negative, set it to 0
-        sig[sig==np.inf] = 0 # Avoid errors
-        sig[sig==np.NaN] = 0
+        np.nan_to_num(sig, posinf=0, neginf=0, nan=0, copy=False) # Avoid errors
         sig[H[0]<Hbkg] = -sig[H[0]<Hbkg]  # Now we can make it signed
         
         # Plot the test histograms with the bump found by BumpHunter plus a little significance plot
