@@ -73,6 +73,7 @@ def scan_hist(hist,ref,w_ar,self,ih):
                     res[i] = np.array([1.0])
                     min_Pval[i] = 1.0
                     min_loc[i] = 0
+                    i+=1
                     continue
                 
                 # Initialize local p-value array for width w
