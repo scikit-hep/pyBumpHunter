@@ -67,6 +67,14 @@ def scan_hist(hist,ref,w_ar,self,ih):
                 # Define possition range
                 pos = np.arange(Hinf,Hsup-w+1,scan_stepp)
                 
+                # Check that there is at least one interval to check for width w
+                # If not, we must set dummy values in order to avoid crashes
+                if(pos.size==0):
+                    res[i] = np.array([1.0])
+                    min_Pval[i] = 1.0
+                    min_loc[i] = 0
+                    continue
+                
                 # Initialize local p-value array for width w
                 res[i] = np.empty(pos.size)
                 
@@ -109,11 +117,11 @@ class BumpHunter():
     '''
     The BumpHunter class is the object providing all the necessary tools to "bump hunt" with ease.
     
-    It comes with a set of methos to perform scans using the BumpHunter algorithm and to manage all
+    It comes with a set of methods to perform scans using the BumpHunter algorithm and to manage all
     the parameters and results stored in the inner variables.
     
     List of inner parameter variables :
-        rang : x-axis range of the histograms. Also define the range in which the scan wiil be performed.
+        rang : x-axis range of the histograms. Also define the range in which the scan will be performed.
         
         mode : String specifying if the algorithm must look for a excess or a deficit in the data.
                Can be either 'excess' or 'deficit'. Default to 'excess'.
@@ -123,7 +131,7 @@ class BumpHunter():
         
         width_max : Maximum value of the scan window width that should be tested (in number of bins). Can be
                     either None or a positive integer. if None, the value is set to the total number of bins
-                    of the histograms ivided by 2. Default to none.
+                    of the histograms divided by 2. Default to none.
         
         width_step : Number of bins by which the scan window width is increased at each step. Default to 1.
         
@@ -143,11 +151,11 @@ class BumpHunter():
                Default to 60.
         
         weights : Weights for the background distribution. Can be either None or a array-like of float.
-                  If array-like of floats, each background events will be acounted by its weights when making
+                  If array-like of floats, each background events will be accounted by its weights when making
                   histograms. The size of the array-like must be the same than of bkg. The same weights are
                   considered when sampling the pseudo-data.
                   If None, no weights will be considered.
-                  Default to 1.
+                  Default to None.
         
         Nworker : Number of thread to be run in parallel when scanning all the histograms (data and pseudo-data).
                   If less or equal to 1, then parallelism will be disabled.
@@ -161,7 +169,7 @@ class BumpHunter():
         
         str_step : Increase of the signal stregth to be injected in the background at each iteration. Default to 0.25.
         
-        str_scale : Specify how the signal strength should vary. If 'log', the the signal strength will vary according to
+        str_scale : Specify how the signal strength should vary. If 'log', the signal strength will vary according to
                     a log scale starting from 10**Str_min. If 'lin', the signal will vary according to a linear scale starting
                     from Str_min with a step of Str_step.
                     Default to 'lin'.
@@ -544,7 +552,7 @@ class BumpHunter():
         reach a target significance. This function use the BumpHunter algorithm in order to calculate the reached
         significance for a given signal strength.
         
-        This function share most of its parameters with the BumpHunter function.
+        This method share most of its parameters with the BumpScan method.
         
         Arguments :
             sig : Numpy array containing the simulated signal. This distribution will be used to perform the signal
@@ -565,7 +573,7 @@ class BumpHunter():
             
             sigma_ar : Numpy array containing the significance values obtained at each step.
         
-        All the result global variables of the BumpHunter function will be filled with the results of the scan permormed
+        All the result inner variables of the BumpHunter instance will be filled with the results of the scan permormed
         during the last iteration (when sigma_limit is reached).
         '''
         
@@ -756,7 +764,7 @@ class BumpHunter():
         print('   Signal strength : {0:1.4f}'.format(self.signal_ratio))
         print('')
         
-        # Save the data obtained after last injection in inner variable
+        # Save the data obtained after last injection in inner variables
         self.data_inject = data_hist
         
         # Append the last step results to the background results
@@ -780,7 +788,7 @@ class BumpHunter():
         window.
         
         Arguments :
-            data : Numpy array containing the raw unbined data.
+            data : Numpy array containing the data.
             
             is_hist : Boolean specifying if data is in histogram form or not. Default to False.
         
@@ -834,9 +842,9 @@ class BumpHunter():
         Plot the data and bakground histograms with the bump found by BumpHunter highlighted.
         
         Arguments :
-            data : Numpy array containing the raw unbined data.
+            data : Numpy array containing the data.
             
-            bkg : Numpy array containing the raw unbined background.
+            bkg : Numpy array containing the background.
             
             is_hist : Boolean specifying if data and bkg are in histogram form or not. Default to False.
             
@@ -1035,9 +1043,9 @@ class BumpHunter():
         Information are printed to stdout.
         
         Arguments :
-            data : Numpy array containing the raw unbined data.
+            data : Numpy array containing the data.
             
-            bkg : Numpy array containing the raw unbined background.
+            bkg : Numpy array containing the background.
             
             is_hist : Boolean specifying if data and bkg are in histogram form or not. Default to False.
         '''
