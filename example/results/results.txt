@@ -17,7 +17,7 @@ BUMP POSITION
    max : 6.667
    mean : 6.000
    width : 1.333
-   number of signal events : 208
+   number of signal events : 208.0
    global p-value : 0.01770
    significance = 2.10375
 
