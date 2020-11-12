@@ -11,7 +11,7 @@ import concurrent.futures as thd
 from matplotlib import gridspec as grd
 
 
-# Funtrion that perform a scan of a given data histogram and compare it to a reference background histogram.
+# Function that performs a scan of a given data histogram and compares it to a reference background histogram.
 # This function is used by the BumpHunter class methods and is not intended to be used directly.
 def scan_hist(hist,ref,w_ar,self,ih):
             '''
@@ -51,7 +51,8 @@ def scan_hist(hist,ref,w_ar,self,ih):
             
             # Create the results array
             res = np.empty(w_ar.size,dtype=np.object)
-            min_Pval,min_loc = np.empty(w_ar.size),np.empty(w_ar.size)
+            min_Pval,min_loc = np.empty(w_ar.size),np.empty(w_ar.size,dtype=int)
+            signal_eval = np.empty(w_ar.size)
             
             # Loop over all the width of the window
             i = 0
@@ -73,6 +74,7 @@ def scan_hist(hist,ref,w_ar,self,ih):
                     res[i] = np.array([1.0])
                     min_Pval[i] = 1.0
                     min_loc[i] = 0
+                    signal_eval[i] = 0
                     i+=1
                     continue
                 
@@ -89,20 +91,25 @@ def scan_hist(hist,ref,w_ar,self,ih):
                     res[i][Nhist<=Nref] = 1.0
                     res[i][Nhist>Nref] = G(Nhist[Nhist>Nref],Nref[Nhist>Nref])
                 elif(self.mode=='deficit'):
-                    res[i][Nhist<=Nref] = 1.0-G(Nhist[Nhist<=Nref]+1,Nref[Nhist<=Nref])
-                    res[i][Nhist>Nref] = 1.0
-                res[i][(Nhist==0) & (Nref==0)] = 1.0
+                    res[i][Nhist<Nref] = 1.0-G(Nhist[Nhist<Nref]+1,Nref[Nhist<Nref])
+                    res[i][Nhist>=Nref] = 1.0
                 res[i][(Nref==0) & (Nhist>0)] = 1.0 # To be consistant with c++ results
                 
                 # Get the minimum p-value and associated position for width w
                 min_Pval[i] = res[i].min()
                 min_loc[i] = pos[res[i].argmin()]
-    
+                signal_eval[i] = Nhist[min_loc[i]] - Nref[min_loc[i]]
+                
                 i += 1
             
-            # Get the minimum p-value and associated windonw among all width
+            # Get the minimum p-value and associated window among all width
             min_width = w_ar[min_Pval.argmin()]
             min_loc = min_loc[min_Pval.argmin()]
+            
+            # Evaluate the number of signal event (for data only)
+            if(ih==0):
+                self.signal_eval = signal_eval[min_Pval.argmin()]
+            
             min_Pval = min_Pval.min()
             
             # Save the results in inner variables and return
@@ -110,7 +117,7 @@ def scan_hist(hist,ref,w_ar,self,ih):
             self.min_Pval_ar[ih] = min_Pval
             self.min_loc_ar[ih] = int(min_loc)
             self.min_width_ar[ih] = int(min_width)
-            return 
+            return
 
 
 # THE super BumpHunter class
@@ -205,8 +212,10 @@ class BumpHunter():
         min_width_ar : Array containing the width of the windows for which the minimum p-value has been found for
                        the data (indice=0) and pseudo-data (indice>0).
         
+        signal_eval : Number of signal events evaluated form the last scan.
+        
         signal_min : Minimum number of signal events ones must inject in the data in order to reach the required
-                     significance.
+                     significance (might differ from signal_eval).
         
         signal_ratio : Ratio signal_min/signal_exp (signal strength).
         
@@ -260,6 +269,7 @@ class BumpHunter():
         self.min_loc_ar = []
         self.min_width_ar = []
         self.t_ar = []
+        self.signal_eval = 0
         self.signal_min = 0
         self.signal_ratio = None
         self.data_inject = []
@@ -474,6 +484,8 @@ class BumpHunter():
             
             min_width_ar : Array containing the width of the windows for which the minimum p-value has been found for
                            the data (indice=0) and pseudo-data (indice>0).
+            
+            signal_eval : Number of signal events evaluated form the last scan.
         '''
         
         # Set the seed if required (or reset it if None)
@@ -874,9 +886,9 @@ class BumpHunter():
         
         # Calculate significance for each bin
         sig = np.empty(Hbkg.size)
-        sig[(H[0]==0) & (Hbkg==0)]=1.0
-        sig[H[0]>=Hbkg] = G(H[0][H[0]>=Hbkg],Hbkg[H[0]>=Hbkg])
+        sig[H[0]>Hbkg] = G(H[0][H[0]>Hbkg],Hbkg[H[0]>Hbkg])
         sig[H[0]<Hbkg] = 1-G(H[0][H[0]<Hbkg]+1,Hbkg[H[0]<Hbkg])
+        sig[H[0]==Hbkg] = 1.0
         sig = norm.ppf(1-sig)
         sig[sig<0] = 0 # If negative, set it to 0
         np.nan_to_num(sig, posinf=0, neginf=0, nan=0, copy=False) # Avoid errors
@@ -901,7 +913,7 @@ class BumpHunter():
                          ls='',color='blue',label='data')
         
         plt.plot(np.full(2,Bmin),np.array([0,H[0][self.min_loc_ar[0]]]),'r--',label=('BUMP'))
-        plt.plot(np.full(2,Bmax),np.array([0,H[0][self.min_loc_ar[0]+self.min_width_ar[0]]]),'r--')
+        plt.plot(np.full(2,Bmax),np.array([0,H[0][self.min_loc_ar[0]+self.min_width_ar[0]-1]]),'r--')
         plt.legend(fontsize='large')
         plt.yscale('log')
         if self.rang!=None:
@@ -1065,14 +1077,12 @@ class BumpHunter():
         Bmax = H[1][self.min_loc_ar[0]+self.min_width_ar[0]]
         Bmean = (Bmax+Bmin)/2
         Bwidth = Bmax-Bmin
-        D =  H[0][self.min_loc_ar[0]:self.min_loc_ar[0]+self.min_width_ar[0]].sum()
-        B = Hb[self.min_loc_ar[0]:self.min_loc_ar[0]+self.min_width_ar[0]].sum()
         
         print('   min : {0:.3f}'.format(Bmin))
         print('   max : {0:.3f}'.format(Bmax))
         print('   mean : {0:.3f}'.format(Bmean))
         print('   width : {0:.3f}'.format(Bwidth))
-        print('   number of signal events : {}'.format(D-B))
+        print('   number of signal events : {}'.format(self.signal_eval))
         print('   global p-value : {0:1.5f}'.format(self.global_Pval))
         print('   significance = {0:1.5f}'.format(self.significance))
         print('')
