@@ -217,7 +217,7 @@ class BumpHunter():
                 continue
             
             # Initialize local p-value array for width w
-            res[i] = np.empty(pos.size)
+            res[i] = np.ones(pos.size)
             
             # Count events in all windows of width w
             #FIXME any better way to do it ?? Without loop ?? FIXME
@@ -226,12 +226,9 @@ class BumpHunter():
             
             # Calculate all local p-values for for width w
             if(self.mode=='excess'):
-                res[i][Nhist<=Nref] = 1.0
                 res[i][Nhist>Nref] = G(Nhist[Nhist>Nref],Nref[Nhist>Nref])
             elif(self.mode=='deficit'):
                 res[i][Nhist<Nref] = 1.0-G(Nhist[Nhist<Nref]+1,Nref[Nhist<Nref])
-                res[i][Nhist>=Nref] = 1.0
-            res[i][(Nref==0) & (Nhist>0)] = 1.0 # To be consistant with c++ results
             
             # Get the minimum p-value and associated position for width w
             min_Pval[i] = res[i].min()
