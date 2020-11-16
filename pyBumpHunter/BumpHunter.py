@@ -234,7 +234,7 @@ class BumpHunter():
             
             # Calculate all local p-values for for width w
             if(self.mode=='excess'):
-                res[i][Nhist>Nref] = G(Nhist[Nhist>Nref],Nref[Nhist>Nref])
+                res[i][(Nhist>Nref) & (Nref>0)] = G(Nhist[(Nhist>Nref) & (Nref>0)],Nref[(Nhist>Nref) & (Nref>0)])
             elif(self.mode=='deficit'):
                 res[i][Nhist<Nref] = 1.0-G(Nhist[Nhist<Nref]+1,Nref[Nhist<Nref])
             
@@ -328,6 +328,7 @@ class BumpHunter():
         state['min_loc_ar'] = self.min_loc_ar
         state['min_width_ar'] = self.min_width_ar
         state['t_ar'] = self.t_ar
+        state['signal_eval'] = self.signal_eval
         state['signal_min'] = self.signal_min
         state['signal_ratio'] = self.signal_ratio
         state['data_inject'] = self.data_inject
@@ -452,6 +453,8 @@ class BumpHunter():
             self.min_width_ar = state['min_width_ar']
         if 't_ar' in state.keys():
             self.t_ar = state['t_ar']
+        if 'signal_eval' in state.keys():
+            self.signal_eval = state['signal_eval']
         if 'signal_min' in state.keys():
             self.signal_min = state['signal_min']
         if 'signal_ratio' in state.keys():
@@ -902,12 +905,11 @@ class BumpHunter():
                 Hbkg = bkg * self.weights
         
         # Calculate significance for each bin
-        sig = np.empty(Hbkg.size)
-        sig[H[0]>Hbkg] = G(H[0][H[0]>Hbkg],Hbkg[H[0]>Hbkg])
+        sig = np.ones(Hbkg.size)
+        sig[(H[0]>Hbkg) & (Hbkg>0)] = G(H[0][(H[0]>Hbkg) & (Hbkg>0)],Hbkg[(H[0]>Hbkg) & (Hbkg>0)])
         sig[H[0]<Hbkg] = 1-G(H[0][H[0]<Hbkg]+1,Hbkg[H[0]<Hbkg])
-        sig[H[0]==Hbkg] = 1.0
         sig = norm.ppf(1-sig)
-        sig[sig<0] = 0 # If negative, set it to 0
+        sig[sig<0.0] = 0.0 # If negative, set it to 0
         np.nan_to_num(sig, posinf=0, neginf=0, nan=0, copy=False) # Avoid errors
         sig[H[0]<Hbkg] = -sig[H[0]<Hbkg]  # Now we can make it signed
         
