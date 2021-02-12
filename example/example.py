@@ -16,13 +16,13 @@ File = upr.open('../data/data.root')
 File.items()
 
 # Background
-bkg = File['bkg'].arrays(outputtype=np.array)
+bkg = File['bkg'].arrays(library='np')
 
 # Data
-data = File['data'].arrays(outputtype=np.array)
+data = File['data'].arrays(library='np')
 
 # Signal
-sig = File['sig'].arrays(outputtype=np.array)
+sig = File['sig'].arrays(library='np')
 
 # Position of the bump in the data
 Lth = 5.5

@@ -9,9 +9,9 @@ import numpy as np
 
 # Import the data
 File = upr.open('data/data.root')
-bkg = File['bkg'].arrays(outputtype=np.array)
-data = File['data'].arrays(outputtype=np.array)
-sig = File['sig'].arrays(outputtype=np.array)
+bkg = File['bkg'].arrays(library='np')
+data = File['data'].arrays(library='np')
+sig = File['sig'].arrays(library='np')
 
 # Create the BumpHunter instance
 BHtest = BH.BumpHunter(rang=[0,20],
