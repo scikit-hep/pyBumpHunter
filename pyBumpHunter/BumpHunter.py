@@ -191,7 +191,7 @@ class BumpHunter():
         Hinf,Hsup = min(non0),max(non0)+1
         
         # Create the results array
-        res = np.empty(w_ar.size,dtype=np.object)
+        res = np.empty(w_ar.size,dtype=object)
         min_Pval,min_loc = np.empty(w_ar.size),np.empty(w_ar.size,dtype=int)
         signal_eval = np.empty(w_ar.size)
             
@@ -537,7 +537,7 @@ class BumpHunter():
         self.min_Pval_ar = np.empty(self.Npe+1)
         self.min_loc_ar = np.empty(self.Npe+1,dtype=int)
         self.min_width_ar = np.empty(self.Npe+1,dtype=int)
-        self.res_ar = np.empty(self.Npe+1,dtype=np.object)
+        self.res_ar = np.empty(self.Npe+1,dtype=object)
         
         # Auto-adjust the value of width_max and do an array of all width
         w_ar = np.arange(self.width_min,self.width_max+1,self.width_step)
@@ -651,7 +651,7 @@ class BumpHunter():
         self.min_Pval_ar = np.empty(Nbkg)
         self.min_loc_ar = np.empty(Nbkg,dtype=int)
         self.min_width_ar = np.empty(Nbkg,dtype=int)
-        self.res_ar = np.empty(Nbkg,dtype=np.object)
+        self.res_ar = np.empty(Nbkg,dtype=object)
         
         # Auto-adjust the value of width_max and do an array of all width
         w_ar = np.arange(self.width_min,self.width_max+1,self.width_step)
@@ -743,7 +743,7 @@ class BumpHunter():
             self.min_Pval_ar = np.empty(self.Npe)
             self.min_loc_ar = np.empty(self.Npe,dtype=int)
             self.min_width_ar = np.empty(self.Npe,dtype=int)
-            self.res_ar = np.empty(self.Npe,dtype=np.object)
+            self.res_ar = np.empty(self.Npe,dtype=object)
             
             # Compute the p-value for background+signal pseudo-experiments
             # We must check if we should do it in multiple threads

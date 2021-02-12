@@ -191,8 +191,8 @@ class BumpHunter2D():
         
         
         # Create the results array
-        res = np.empty(w_ar.shape[0],dtype=np.object)
-        min_Pval, min_loc = np.empty(w_ar.shape[0]),np.empty(w_ar.shape[0],dtype=np.object)
+        res = np.empty(w_ar.shape[0],dtype=object)
+        min_Pval, min_loc = np.empty(w_ar.shape[0]),np.empty(w_ar.shape[0],dtype=object)
         signal_eval = np.empty(w_ar.shape[0])
         
         if self.useSideBand==True:
@@ -548,9 +548,9 @@ class BumpHunter2D():
         
         # Initialize all results containenrs
         self.min_Pval_ar = np.empty(self.Npe+1)
-        self.min_loc_ar = np.empty(self.Npe+1,dtype=np.object)
-        self.min_width_ar = np.empty(self.Npe+1,dtype=np.object)
-        self.res_ar = np.empty(self.Npe+1,dtype=np.object)
+        self.min_loc_ar = np.empty(self.Npe+1,dtype=object)
+        self.min_width_ar = np.empty(self.Npe+1,dtype=object)
+        self.res_ar = np.empty(self.Npe+1,dtype=object)
         
         # Auto-adjust the value of width_max and do an array of all width
         wx = np.arange(self.width_min[0],self.width_max[0]+1,self.width_step[0])
@@ -666,7 +666,7 @@ class BumpHunter2D():
         self.min_Pval_ar = np.empty(Nbkg)
         self.min_loc_ar = np.empty(Nbkg,dtype=int)
         self.min_width_ar = np.empty(Nbkg,dtype=int)
-        self.res_ar = np.empty(Nbkg,dtype=np.object)
+        self.res_ar = np.empty(Nbkg,dtype=object)
         
         # Auto-adjust the value of width_max and do an array of all width
         w_ar = np.arange(self.width_min,self.width_max+1,self.width_step)
@@ -758,7 +758,7 @@ class BumpHunter2D():
             self.min_Pval_ar = np.empty(self.Npe)
             self.min_loc_ar = np.empty(self.Npe,dtype=int)
             self.min_width_ar = np.empty(self.Npe,dtype=int)
-            self.res_ar = np.empty(self.Npe,dtype=np.object)
+            self.res_ar = np.empty(self.Npe,dtype=object)
             
             # Compute the p-value for background+signal pseudo-experiments
             # We must check if we should do it in multiple threads
