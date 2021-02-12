@@ -35,7 +35,7 @@ F = plt.figure(figsize=(12,8))
 plt.title('Test distribution')
 plt.hist((bkg,data),bins=60,histtype='step',range=rang,label=('bakground','data'),linewidth=2)
 plt.legend()
-plt.savefig('results/hist.png',bbox_inches='tight')
+plt.savefig('results/1D/hist.png',bbox_inches='tight')
 plt.close(F)
 
 
@@ -66,15 +66,15 @@ print('')
 
 
 # Get and save tomography plot
-BHtest.GetTomography(data,filename='results/tomography.png')
+BHtest.GetTomography(data,filename='results/1D/tomography.png')
 
 
 # Get and save bump plot
-BHtest.PlotBump(data,bkg,filename='results/bump.png')
+BHtest.PlotBump(data,bkg,filename='results/1D/bump.png')
 
 
 # Get and save statistics plot
-BHtest.PlotBHstat(show_Pval=True,filename='results/BH_statistics.png')
+BHtest.PlotBHstat(show_Pval=True,filename='results/1D/BH_statistics.png')
 
 print('')
 
