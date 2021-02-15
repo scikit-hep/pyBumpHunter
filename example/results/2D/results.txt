@@ -5,7 +5,7 @@ SCAN
 Global p-value : 0.0000  (0 / 8000)
 Significance = 8.20954
 
-time=0:01:33.703835
+time=0:01:30.034651
 
 BUMP WINDOW
    loc = [4, 5]

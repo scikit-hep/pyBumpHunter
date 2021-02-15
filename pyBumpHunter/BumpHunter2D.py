@@ -941,14 +941,14 @@ class BumpHunter2D():
         if(is_hist is False):
             plt.hist2d(data[:,0],data[:,1],bins=H[1],range=self.rang,norm=mcl.LogNorm())
         else:
-            plt.colormesh(H[1][0],H[1][1],H[0],norm=mcl.LogNorm())
+            plt.pcolormesh(H[1][0],H[1][1],H[0].transpose(),norm=mcl.LogNorm())
         plt.colorbar()
         plt.hlines([Bminy,Bmaxy],H[1][0][0],H[1][0][-1],linestyles='dashed',color='r')
         plt.vlines([Bminx,Bmaxx],H[1][1][0],H[1][1][-1],linestyles='dashed',color='r')
         plt.tight_layout()
         
         plt.subplot(2,1,2)
-        plt.pcolormesh(H[1][0],H[1][1],sig)
+        plt.pcolormesh(H[1][0],H[1][1],sig.transpose())
         plt.colorbar()
         plt.hlines([Bminy,Bmaxy],H[1][0][0],H[1][0][-1],linestyles='dashed',color='r')
         plt.vlines([Bminx,Bmaxx],H[1][1][0],H[1][1][-1],linestyles='dashed',color='r')
