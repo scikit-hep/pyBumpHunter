@@ -636,6 +636,12 @@ class BumpHunter():
         # Turn the background distributions into histogram
         if(is_hist is False):
             bkg_hist,bins = np.histogram(bkg,bins=self.bins,range=self.rang,weights=self.weights)
+        else:
+            if self.weights is None:
+                bkg_hist = bkg
+            else:
+                bkg_hist = bkg * self.weights
+            bins = self.bins
         
         # Generate pseudo-data by sampling background
         print('Generating background only histograms')
