@@ -59,7 +59,7 @@ class BumpHunter():
         Nworker : Number of thread to be run in parallel when scanning all the histograms (data and pseudo-data).
                   If less or equal to 1, then parallelism will be disabled.
                   Default to 4.
-    
+        
         seed : Seed for the random number generator. Default to None.
     
         useSideBand : Boolean specifying if the side-band normalization should be applied. Default to False.
@@ -878,7 +878,7 @@ class BumpHunter():
         return
     
     # Plot the data and bakground histograms with the bump found by BumpHunter highlighted
-    def PlotBump(self,data,bkg,is_hist=False,filename=None):
+    def PlotBump(self,data,bkg,is_hist=False,useSideBand=False,filename=None):
         '''
         Plot the data and bakground histograms with the bump found by BumpHunter highlighted.
         
@@ -911,6 +911,11 @@ class BumpHunter():
                 Hbkg = bkg
             else:
                 Hbkg = bkg * self.weights
+        
+        if(useSideBand):
+            scale = H[0].sum()-H[0][self.min_loc_ar[0]:self.min_loc_ar[0]+self.min_width_ar[0]].sum()
+            scale = scale / (Hbkg.sum()-Hbkg[self.min_loc_ar[0]:self.min_loc_ar[0]+self.min_width_ar[0]].sum())
+            Hbkg = Hbkg * scale
         
         # Calculate significance for each bin
         sig = np.ones(Hbkg.size)
