@@ -471,7 +471,7 @@ class BumpHunter():
     
     # Method that perform the scan on every pseudo experiment and data (in parrallel threads).
     # For each scan, the value of p-value and test statistic t is computed and stored in result array
-    def BumpScan(self,data,bkg,is_hist=False):
+    def BumpScan(self,data,bkg,is_hist=False,do_pseudo=True):
         '''    
         Function that perform the full BumpHunter algorithm presented in https://arxiv.org/pdf/1101.0390.pdf
         without sidebands. This includes the generation of pseudo-data, the calculation of the BumpHunter p-value
@@ -490,6 +490,12 @@ class BumpHunter():
                       data and bkg are histograms and the Bins argument is expected to be a array with the bound of
                       the bins and the Weights argument is expected to be a scalar scale factor or None.
                       Default to False.
+            
+            do_pseudo : Boolean specifying if pesudo data should be generated.
+                        If False, then the BumpHunter statistics distribution kept in memmory is used to compute
+                        the global p-value and significance. If there is nothing in memmory, the global p-value
+                        and significance will not be computed.
+                        Default to True.
         
         Result inner variables :
             global_Pval : Global p-value obtained from the test statistic distribution.
@@ -527,17 +533,25 @@ class BumpHunter():
             Hbins = self.bins
         
         # Generate all the pseudo-data histograms
-        pseudo_hist = np.random.poisson(lam=np.tile(bkg_hist,(self.Npe,1)).transpose(),size=(bkg_hist.size,self.Npe))
+        if(do_pseudo):
+            pseudo_hist = np.random.poisson(lam=np.tile(bkg_hist,(self.Npe,1)).transpose(),size=(bkg_hist.size,self.Npe))
         
         # Set width_max if it is given as None
         if self.width_max is None:
             self.width_max = data_hist.size // 2
         
         # Initialize all results containenrs
-        self.min_Pval_ar = np.empty(self.Npe+1)
-        self.min_loc_ar = np.empty(self.Npe+1,dtype=int)
-        self.min_width_ar = np.empty(self.Npe+1,dtype=int)
-        self.res_ar = np.empty(self.Npe+1,dtype=object)
+        if(do_pseudo):
+            self.min_Pval_ar = np.empty(self.Npe+1)
+            self.min_loc_ar = np.empty(self.Npe+1,dtype=int)
+            self.min_width_ar = np.empty(self.Npe+1,dtype=int)
+            self.res_ar = np.empty(self.Npe+1,dtype=object)
+        else:
+            if(self.res_ar==[]):
+                self.min_Pval_ar = np.empty(1)
+                self.min_loc_ar = np.empty(1,dtype=int)
+                self.min_width_ar = np.empty(1,dtype=int)
+                self.res_ar = np.empty(1,dtype=object)
         
         # Auto-adjust the value of width_max and do an array of all width
         w_ar = np.arange(self.width_min,self.width_max+1,self.width_step)
@@ -547,19 +561,22 @@ class BumpHunter():
         # Compute the p-value for data and all pseudo-experiments
         # We must check if we should do it in multiple threads
         print('SCAN')
-        if(self.Nworker>1):
-            with thd.ThreadPoolExecutor(max_workers=self.Nworker) as exe:
-                for th in range(self.Npe+1):
-                    if(th==0):
-                        exe.submit(self.__scan_hist,data_hist,bkg_hist,w_ar,th)
+        if(do_pseudo):
+            if(self.Nworker>1):
+                with thd.ThreadPoolExecutor(max_workers=self.Nworker) as exe:
+                    for th in range(self.Npe+1):
+                        if(th==0):
+                            exe.submit(self.__scan_hist,data_hist,bkg_hist,w_ar,th)
+                        else:
+                            exe.submit(self.__scan_hist,pseudo_hist[:,th-1],bkg_hist,w_ar,th)
+            else:
+                for i in range(self.Npe+1):
+                    if(i==0):
+                        self.__scan_hist(data_hist,bkg_hist,w_ar,i)
                     else:
-                        exe.submit(self.__scan_hist,pseudo_hist[:,th-1],bkg_hist,w_ar,th)
+                        self.__scan_hist(pseudo_hist[:,i-1],bkg_hist,w_ar,i)
         else:
-            for i in range(self.Npe+1):
-                if(i==0):
-                    self.__scan_hist(data_hist,bkg_hist,w_ar,i)
-                else:
-                    self.__scan_hist(pseudo_hist[:,i-1],bkg_hist,w_ar,i)
+            self.__scan_hist(data_hist,bkg_hist,w_ar,0)
         
         # Use the p-value results to compute t
         self.t_ar = -np.log(self.min_Pval_ar)

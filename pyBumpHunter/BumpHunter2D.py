@@ -576,8 +576,8 @@ class BumpHunter2D():
         
         # Compute the p-value for data and all pseudo-experiments
         # We must check if we should do it in multiple threads
+        print('SCAN')
         if(do_pseudo):
-            print('SCAN')
             if(self.Nworker>1):
                 with thd.ThreadPoolExecutor(max_workers=self.Nworker) as exe:
                     for th in range(self.Npe+1):
