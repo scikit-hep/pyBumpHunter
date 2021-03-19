@@ -954,8 +954,10 @@ class BumpHunter2D():
             useSideBand = self.useSideBand
         
         if(useSideBand):
-            scale = H[0].sum()-H[0][self.min_loc_ar[0]:self.min_loc_ar[0]+self.min_width_ar[0]].sum()
-            scale = scale / (Hbkg.sum()-Hbkg[self.min_loc_ar[0]:self.min_loc_ar[0]+self.min_width_ar[0]].sum())
+            pos = self.min_loc_ar[0]
+            width = self.min_width_ar[0]
+            scale = H[0].sum()-H[0][pos[0]:pos[0]+width[0],pos[1]:pos[1]+width[1]].sum()
+            scale = scale / (Hbkg.sum()-Hbkg[pos[0]:pos[0]+width[0],pos[1]:pos[1]+width[1]].sum())
             Hbkg = Hbkg * scale
         
         # Calculate significance for each bin
