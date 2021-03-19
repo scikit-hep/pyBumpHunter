@@ -648,9 +648,12 @@ class BumpHunter2D():
         during the last iteration (when sigma_limit is reached).
         '''
         
+        print('2D signal injection is not inplemented yet !!')
+        return
+        
         # Set the seed if required (or reset it if None)
         np.random.seed(self.seed)
-            
+        
         # Internal variables
         i = 1
         strength = 0
@@ -851,61 +854,6 @@ class BumpHunter2D():
     
     
     ## Display methods
-    
-    # Method that do the tomography plot for the data
-    def GetTomography(self,data,is_hist=False,filename=None):
-        '''
-        Function that do a tomography plot showing the local p-value for every positions and widths of the scan
-        window.
-        
-        Arguments :
-            data : Numpy array containing the data.
-            
-            is_hist : Boolean specifying if data is in histogram form or not. Default to False.
-        
-            filename : Name of the file in which the plot will be saved. If None, the plot will be just shown
-                       but not saved. Default to None.
-        '''
-        
-        # Same c++ compatibility thing
-        non0 = [i for i in range(data.size) if data[i]>0]
-        Hinf = min(non0)
-        
-        # Get real bin bounds
-        if(is_hist is False):
-            H = np.histogram(data,bins=self.bins,range=self.rang)[1]
-        else:
-            H = self.bins
-        
-        res_data = self.res_ar[0]    
-        inter = []
-        for i in range(res_data.size):
-            w = (H[1]-H[0])*(self.width_min+i*self.width_step) # bin_width * Nbins
-            
-            # Get scan step for width w
-            if(self.scan_step=='half'):
-                scan_stepp = max(1,(self.width_min+i*self.width_step)//2)
-            elif(self.scan_step=='full'):
-                scan_stepp = self.width_min+i*self.width_step
-            else:
-                scan_stepp = self.scan_step
-            
-            for j in range(len(res_data[i])):
-                loc = H[j*scan_stepp+Hinf]
-                inter.append([res_data[i][j],loc,w])
-        
-        F =plt.figure(figsize=(12,8))
-        [plt.plot([i[1],i[1]+i[2]],[i[0],i[0]],'r') for i in inter if i[0]<1.0]
-        plt.xlabel('intervals',size='large')
-        plt.ylabel('local p-value',size='large')
-        plt.yscale('log')
-        
-        if(filename is None):
-            plt.show()
-        else:
-            plt.savefig(filename,bbox_inches='tight')
-            plt.close(F)
-        return
     
     # Plot the data and bakground histograms with the bump found by BumpHunter highlighted
     def PlotBump(self,data,bkg,is_hist=False,useSideBand=None,filename=None):
