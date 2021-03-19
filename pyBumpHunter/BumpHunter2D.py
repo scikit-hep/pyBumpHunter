@@ -978,6 +978,8 @@ class BumpHunter2D():
         plt.colorbar()
         plt.hlines([Bminy,Bmaxy],H[1][0][0],H[1][0][-1],linestyles='dashed',color='r')
         plt.vlines([Bminx,Bmaxx],H[1][1][0],H[1][1][-1],linestyles='dashed',color='r')
+        plt.xticks(fontsize='large')
+        plt.yticks(fontsize='large')
         plt.tight_layout()
         
         plt.subplot(2,1,2)
@@ -986,6 +988,8 @@ class BumpHunter2D():
         plt.hlines([Bminy,Bmaxy],H[1][0][0],H[1][0][-1],linestyles='dashed',color='r')
         plt.vlines([Bminx,Bmaxx],H[1][1][0],H[1][1][-1],linestyles='dashed',color='r')
         plt.xlabel('local significance map',size='large')
+        plt.xticks(fontsize='large')
+        plt.yticks(fontsize='large')
         
         # Check if the plot should be saved or just displayed
         if(filename is None):
@@ -1025,6 +1029,8 @@ class BumpHunter2D():
         plt.legend(fontsize='large')
         plt.xlabel('BumpHunter statistic',size='large')
         plt.yscale('log')
+        plt.xticks(fontsize='large')
+        plt.yticks(fontsize='large')
         
         # Check if the plot should be saved or just displayed
         if(filename is None):
@@ -1068,6 +1074,8 @@ class BumpHunter2D():
                      linewidth=2,marker='o')
         plt.xlabel('Signal strength',size='large')
         plt.ylabel('Significance',size='large')
+        plt.xticks(fontsize='large')
+        plt.yticks(fontsize='large')
         
         if(filename is None):
             plt.show()
@@ -1088,6 +1096,8 @@ class BumpHunter2D():
             plt.xlabel('Signal strength',size='large')
             plt.ylabel('Significance',size='large')
             plt.xscale('log')
+            plt.xticks(fontsize='large')
+            plt.yticks(fontsize='large')
             
             if(filename is None):
                 plt.show()

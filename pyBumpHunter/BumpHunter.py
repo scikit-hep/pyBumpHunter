@@ -886,6 +886,8 @@ class BumpHunter():
         plt.xlabel('intervals',size='large')
         plt.ylabel('local p-value',size='large')
         plt.yscale('log')
+        plt.xticks(fontsize='large')
+        plt.yticks(fontsize='large')
         
         if(filename is None):
             plt.show()
@@ -969,14 +971,17 @@ class BumpHunter():
         plt.yscale('log')
         if self.rang!=None:
             plt.xlim(self.rang)
+        plt.xticks(fontsize='large')
+        plt.yticks(fontsize='large')
         plt.tight_layout()
         
         plt.subplot(gs[1],sharex=pl1)
         plt.hist(H[1][:-1],bins=H[1],range=self.rang,weights=sig)
         plt.plot(np.full(2,Bmin),np.array([sig.min(),sig.max()]),'r--',linewidth=2)
         plt.plot(np.full(2,Bmax),np.array([sig.min(),sig.max()]),'r--',linewidth=2)
-        plt.yticks(np.arange(np.round(sig.min()),np.round(sig.max())+1,step=1))
+        plt.yticks(np.arange(np.round(sig.min()),np.round(sig.max())+1,step=1),fontsize='large')
         plt.ylabel('significance',size='large')
+        plt.xticks(fontsize='large')
         
         # Check if the plot should be saved or just displayed
         if(filename is None):
@@ -1011,6 +1016,8 @@ class BumpHunter():
         plt.legend(fontsize='large')
         plt.xlabel('BumpHunter statistic',size='large')
         plt.yscale('log')
+        plt.xticks(fontsize='large')
+        plt.yticks(fontsize='large')
         
         # Check if the plot should be saved or just displayed
         if(filename is None):
@@ -1054,6 +1061,8 @@ class BumpHunter():
                      linewidth=2,marker='o')
         plt.xlabel('Signal strength',size='large')
         plt.ylabel('Significance',size='large')
+        plt.xticks(fontsize='large')
+        plt.yticks(fontsize='large')
         
         if(filename is None):
             plt.show()
@@ -1074,6 +1083,8 @@ class BumpHunter():
             plt.xlabel('Signal strength',size='large')
             plt.ylabel('Significance',size='large')
             plt.xscale('log')
+            plt.xticks(fontsize='large')
+            plt.yticks(fontsize='large')
             
             if(filename is None):
                 plt.show()
