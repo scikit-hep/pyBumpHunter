@@ -878,7 +878,7 @@ class BumpHunter():
         return
     
     # Plot the data and bakground histograms with the bump found by BumpHunter highlighted
-    def PlotBump(self,data,bkg,is_hist=False,useSideBand=False,filename=None):
+    def PlotBump(self,data,bkg,is_hist=False,useSideBand=None,filename=None):
         '''
         Plot the data and bakground histograms with the bump found by BumpHunter highlighted.
         
@@ -888,6 +888,10 @@ class BumpHunter():
             bkg : Numpy array containing the background.
             
             is_hist : Boolean specifying if data and bkg are in histogram form or not. Default to False.
+            
+            useSideBand : Boolean specifying if side-band normalization should be used to correct the reference background
+                          in the plot. If None, self.useSideBand is used instead.
+                          Default to None.
             
             filename : Name of the file in which the plot will be saved. If None, the plot will be just shown
                        but not saved. Default to None.
@@ -912,6 +916,10 @@ class BumpHunter():
             else:
                 Hbkg = bkg * self.weights
         
+        # Chek if we should apply sideband normalization correction
+        if(useSideBand is None):
+            useSideBand = self.useSideBand
+        
         if(useSideBand):
             scale = H[0].sum()-H[0][self.min_loc_ar[0]:self.min_loc_ar[0]+self.min_width_ar[0]].sum()
             scale = scale / (Hbkg.sum()-Hbkg[self.min_loc_ar[0]:self.min_loc_ar[0]+self.min_width_ar[0]].sum())
@@ -933,16 +941,10 @@ class BumpHunter():
         pl1 = plt.subplot(gs[0])
         plt.title('Distributions with bump')
         
-        if(is_hist is False):
-            plt.hist(bkg,bins=self.bins,histtype='step',range=self.rang,weights=self.weights,label='background',linewidth=2,color='red')
-            plt.errorbar(0.5*(H[1][1:]+H[1][:-1]),H[0],
-                         xerr=(H[1][1]-H[1][0])/2,yerr=np.sqrt(H[0]),
-                         ls='',color='blue',label='data')
-        else:
-            plt.hist(self.bins[:-1],bins=self.bins,histtype='step',range=self.rang,weights=Hbkg,label='background',linewidth=2,color='red')
-            plt.errorbar(0.5*(H[1][1:]+H[1][:-1]),H[0],
-                         xerr=(H[1][1]-H[1][0])/2,yerr=np.sqrt(H[0]),
-                         ls='',color='blue',label='data')
+        plt.hist(self.bins[:-1],bins=self.bins,histtype='step',range=self.rang,weights=Hbkg,label='background',linewidth=2,color='red')
+        plt.errorbar(0.5*(H[1][1:]+H[1][:-1]),H[0],
+                     xerr=(H[1][1]-H[1][0])/2,yerr=np.sqrt(H[0]),
+                     ls='',color='blue',label='data')
         
         plt.plot(np.full(2,Bmin),np.array([0,H[0][self.min_loc_ar[0]]]),'r--',label=('BUMP'))
         plt.plot(np.full(2,Bmax),np.array([0,H[0][self.min_loc_ar[0]+self.min_width_ar[0]-1]]),'r--')

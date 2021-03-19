@@ -908,7 +908,7 @@ class BumpHunter2D():
         return
     
     # Plot the data and bakground histograms with the bump found by BumpHunter highlighted
-    def PlotBump(self,data,bkg,is_hist=False,filename=None):
+    def PlotBump(self,data,bkg,is_hist=False,useSideBand=None,filename=None):
         '''
         Plot the data and bakground histograms with the bump found by BumpHunter highlighted.
         
@@ -918,6 +918,10 @@ class BumpHunter2D():
             bkg : Numpy array containing the background.
             
             is_hist : Boolean specifying if data and bkg are in histogram form or not. Default to False.
+            
+            useSideBand : Boolean specifying if side-band normalization should be used to correct the reference background
+                          in the plot. If None, self.useSideBand is used instead.
+                          Default to None.
             
             filename : Name of the file in which the plot will be saved. If None, the plot will be just shown
                        but not saved. Default to None.
@@ -945,6 +949,15 @@ class BumpHunter2D():
             else:
                 Hbkg = bkg * self.weights
         
+        # Chek if we should apply sideband normalization correction
+        if(useSideBand is None):
+            useSideBand = self.useSideBand
+        
+        if(useSideBand):
+            scale = H[0].sum()-H[0][self.min_loc_ar[0]:self.min_loc_ar[0]+self.min_width_ar[0]].sum()
+            scale = scale / (Hbkg.sum()-Hbkg[self.min_loc_ar[0]:self.min_loc_ar[0]+self.min_width_ar[0]].sum())
+            Hbkg = Hbkg * scale
+        
         # Calculate significance for each bin
         sig = np.ones(Hbkg.shape)
         sig[(H[0]>Hbkg) & (Hbkg>0)] = G(H[0][(H[0]>Hbkg) & (Hbkg>0)],Hbkg[(H[0]>Hbkg) & (Hbkg>0)])
@@ -959,10 +972,7 @@ class BumpHunter2D():
         
         plt.subplot(2,1,1)
         plt.title('Data distribution with bump')
-        if(is_hist is False):
-            plt.hist2d(data[:,0],data[:,1],bins=H[1],range=self.rang,norm=mcl.LogNorm())
-        else:
-            plt.pcolormesh(H[1][0],H[1][1],H[0].transpose(),norm=mcl.LogNorm())
+        plt.pcolormesh(H[1][0],H[1][1],H[0].T,norm=mcl.LogNorm())
         plt.colorbar()
         plt.hlines([Bminy,Bmaxy],H[1][0][0],H[1][0][-1],linestyles='dashed',color='r')
         plt.vlines([Bminx,Bmaxx],H[1][1][0],H[1][1][-1],linestyles='dashed',color='r')
