@@ -3,7 +3,6 @@
 # We will use histograms ranging between 0 and 20 with 60 even bins.
 
 import matplotlib
-import numpy as np
 
 matplotlib.use("Agg")
 from datetime import datetime  # # Used to compute the execution time
@@ -62,7 +61,7 @@ print("####BmupScan call####")
 begin = datetime.now()
 hunter.BumpScan(data, bkg)
 end = datetime.now()
-print("time={}".format(end - begin))
+print(f"time={end - begin}")
 print("")
 
 # Print bump
@@ -93,7 +92,7 @@ print("####SignalInject call####")
 begin = datetime.now()
 hunter.SignalInject(sig, bkg, is_hist=False)
 end = datetime.now()
-print("time={}".format(end - begin))
+print(f"time={end - begin}")
 print("")
 
 # Get and save the injection plot

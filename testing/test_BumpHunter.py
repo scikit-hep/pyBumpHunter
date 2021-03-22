@@ -89,8 +89,8 @@ def test_number_signal(bhunter, data_sig_bkg1):
         bkg, bins=bhunter.bins, range=bhunter.rang, weights=bhunter.weights
     )
     # TODO fix: this test never ran as it was named tesl_blabla...
-    D = Hdata[min_loc_ar[0]: min_loc_ar[0] + min_width_ar[0]].sum()
-    B = Hbkg[min_loc_ar[0]: min_loc_ar[0] + min_width_ar[0]].sum()
+    D = Hdata[min_loc_ar[0] : min_loc_ar[0] + min_width_ar[0]].sum()
+    B = Hbkg[min_loc_ar[0] : min_loc_ar[0] + min_width_ar[0]].sum()
     assert int(D - B) == 208
 
 

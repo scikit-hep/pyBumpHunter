@@ -120,27 +120,27 @@ class BumpHunter1D:
     # Initializer method
     @deprecated_arg("useSideBand", "use_sideband")
     def __init__(
-            self,
-            rang=None,
-            mode="excess",
-            width_min=1,
-            width_max=None,
-            width_step=1,
-            scan_step=1,
-            Npe=100,
-            bins=60,
-            weights=None,
-            nworker=4,
-            sigma_limit=5,
-            str_min=0.5,
-            str_step=0.25,
-            str_scale="lin",
-            signal_exp=None,
-            flip_sig=True,
-            seed=None,
-            use_sideband=None,
-            Nworker=None,
-            useSideBand=None,
+        self,
+        rang=None,
+        mode="excess",
+        width_min=1,
+        width_max=None,
+        width_step=1,
+        scan_step=1,
+        Npe=100,
+        bins=60,
+        weights=None,
+        nworker=4,
+        sigma_limit=5,
+        str_min=0.5,
+        str_step=0.25,
+        str_scale="lin",
+        signal_exp=None,
+        flip_sig=True,
+        seed=None,
+        use_sideband=None,
+        Nworker=None,
+        useSideBand=None,
     ):
         """
 
@@ -274,8 +274,8 @@ class BumpHunter1D:
 
             # Count events in all windows of width w
             # FIXME any better way to do it ?? Without loop ?? FIXME
-            Nref = np.array([ref[p: p + w].sum() for p in pos])
-            Nhist = np.array([hist[p: p + w].sum() for p in pos])
+            Nref = np.array([ref[p : p + w].sum() for p in pos])
+            Nhist = np.array([hist[p : p + w].sum() for p in pos])
 
             if self.use_sideband:
                 Nref *= (hist_total - Nhist) / (ref_total - Nref)
@@ -294,7 +294,7 @@ class BumpHunter1D:
             if self.use_sideband:
                 res[i][
                     res[i] < 1e-300
-                    ] = 1e-300  # prevent issue with very low p-value, sometimes induced by normalisation in the tail
+                ] = 1e-300  # prevent issue with very low p-value, sometimes induced by normalisation in the tail
 
             # Get the minimum p-value and associated position for width w
             min_Pval[i] = res[i].min()
@@ -958,7 +958,7 @@ class BumpHunter1D:
         inter = []
         for i in range(res_data.size):
             w = (H[1] - H[0]) * (
-                    self.width_min + i * self.width_step
+                self.width_min + i * self.width_step
             )  # bin_width * Nbins
 
             # Get scan step for width w
@@ -1035,16 +1035,16 @@ class BumpHunter1D:
 
         if useSideBand:
             scale = (
-                    H[0].sum()
-                    - H[0][
-                      self.min_loc_ar[0]: self.min_loc_ar[0] + self.min_width_ar[0]
-                      ].sum()
+                H[0].sum()
+                - H[0][
+                    self.min_loc_ar[0] : self.min_loc_ar[0] + self.min_width_ar[0]
+                ].sum()
             )
             scale = scale / (
-                    Hbkg.sum()
-                    - Hbkg[
-                      self.min_loc_ar[0]: self.min_loc_ar[0] + self.min_width_ar[0]
-                      ].sum()
+                Hbkg.sum()
+                - Hbkg[
+                    self.min_loc_ar[0] : self.min_loc_ar[0] + self.min_width_ar[0]
+                ].sum()
             )
             Hbkg = Hbkg * scale
 
