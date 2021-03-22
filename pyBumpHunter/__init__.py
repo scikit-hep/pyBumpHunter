@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-'''
+"""
 Python implementation of the BumpHenter algorithm used by HEP community.
 
 This package provide a BumpHunter class that allows to extract a global p-value
@@ -15,7 +15,7 @@ Basic usage :
 To create an BumpHunter class instance (valid of BumpHunter2D) :
     import pyBumpHunter as BH
     BHtest = BH.BumpHunter(...)
-    
+
 To perform a scan using BumpHnuter algorithm and compute a global p-value
 and significance (valid of BumpHunter2D) :
     BHtest.BumpScan(data,bkg)
@@ -36,15 +36,63 @@ To plot the result of the last signal injection performed :
 For more details about the BumpHunter class, please refer to its docstring.
 
 For more details on pyBumpHunter usage in general, please refer to the
-pyBumpHunter wiki page : 
+pyBumpHunter wiki page :
 https://github.com/lovaslin/pyBumpHunter/wiki
-'''
+"""
 
-from .BumpHunter import BumpHunter
-from .BumpHunter2D import BumpHunter2D
-
+from .bumphunter_1dim import BumpHunter1D
+from .bumphunter_2dim import BumpHunter2D
 
 # Automatic versioning
 from .version import version as __version__
 
+__all__ = ["BumpHunter1D", "BumpHunter2D"]
 
+
+class BumpHunter(BumpHunter1D):
+    @deprecated("Use BumpHunter1D or BumpHunter2D instead of BumpHunter.")
+    def __init__(
+            self,
+            rang=None,
+            mode="excess",
+            width_min=1,
+            width_max=None,
+            width_step=1,
+            scan_step=1,
+            Npe=100,
+            bins=60,
+            weights=None,
+            nworker=4,
+            sigma_limit=5,
+            str_min=0.5,
+            str_step=0.25,
+            str_scale="lin",
+            signal_exp=None,
+            flip_sig=True,
+            seed=None,
+            use_sideband=None,
+            Nworker=None,
+            useSideBand=None,
+    ):
+        super().__init__(
+            rang,
+            mode,
+            width_min,
+            width_max,
+            width_step,
+            scan_step,
+            Npe,
+            bins,
+            weights,
+            nworker,
+            sigma_limit,
+            str_min,
+            str_step,
+            str_scale,
+            signal_exp,
+            flip_sig,
+            seed,
+            use_sideband,
+            Nworker,
+            useSideBand,
+        )
