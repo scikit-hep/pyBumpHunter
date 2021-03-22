@@ -28,7 +28,7 @@ pyBumpHunter depends on the following python libraries :
 * scipy
 * matplotlib
 
-### [pyBumpHunter wiki](https://github.com/lovaslin/pyBumpHunter/wiki)
+### [pyBumpHunter wiki](https://github.com/scikit-hep/pyBumpHunter/wiki)
 
 ### Examples
 
@@ -58,7 +58,7 @@ You can also open the example notebook with jupyter or binder.
 <img src="./example/results/1D/BH_statistics.png" title="drawing"  width="500">
 </p>
 
-See the [wiki](https://github.com/lovaslin/pyBumpHunter/wiki) for a detailed overview of all the features offered by pyBumpHunter.
+See the [wiki](https://github.com/scikit-hep/pyBumpHunter/wiki) for a detailed overview of all the features offered by pyBumpHunter.
 
 ### To do list
 
