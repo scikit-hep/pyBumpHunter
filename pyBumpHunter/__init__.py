@@ -48,9 +48,11 @@ from .version import version as __version__
 
 __all__ = ["BumpHunter1D", "BumpHunter2D"]
 
+from .util import deprecated as _deprecated
+
 
 class BumpHunter(BumpHunter1D):
-    @deprecated("Use BumpHunter1D or BumpHunter2D instead of BumpHunter.")
+    @_deprecated("Use BumpHunter1D or BumpHunter2D instead of BumpHunter.")
     def __init__(
         self,
         rang=None,

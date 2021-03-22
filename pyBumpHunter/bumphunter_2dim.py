@@ -127,25 +127,25 @@ class BumpHunter2D(BumpHunterInterface):
 
     # Initializer method
     def __init__(
-            self,
-            rang=None,
-            mode="excess",
-            width_min=None,
-            width_max=None,
-            width_step=[1, 1],
-            scan_step=[1, 1],
-            Npe=100,
-            bins=[20, 20],
-            weights=None,
-            Nworker=4,
-            sigma_limit=5,
-            str_min=0.5,
-            str_step=0.25,
-            str_scale="lin",
-            signal_exp=None,
-            flip_sig=True,
-            seed=None,
-            useSideBand=False,
+        self,
+        rang=None,
+        mode="excess",
+        width_min=None,
+        width_max=None,
+        width_step=[1, 1],
+        scan_step=[1, 1],
+        Npe=100,
+        bins=[20, 20],
+        weights=None,
+        Nworker=4,
+        sigma_limit=5,
+        str_min=0.5,
+        str_step=0.25,
+        str_scale="lin",
+        signal_exp=None,
+        flip_sig=True,
+        seed=None,
+        useSideBand=False,
     ):
         if width_min is None:
             width_min = [1, 1]
@@ -262,10 +262,10 @@ class BumpHunter2D(BumpHunterInterface):
             # Count events in all windows of width w
             # FIXME any better way to do it ?? Without loop ?? FIXME
             Nref = np.array(
-                [ref[p[0]: p[0] + w[0], p[1]: p[1] + w[1]].sum() for p in pos]
+                [ref[p[0] : p[0] + w[0], p[1] : p[1] + w[1]].sum() for p in pos]
             )
             Nhist = np.array(
-                [hist[p[0]: p[0] + w[0], p[1]: p[1] + w[1]].sum() for p in pos]
+                [hist[p[0] : p[0] + w[0], p[1] : p[1] + w[1]].sum() for p in pos]
             )
 
             # Apply side-band normalization if required
@@ -286,7 +286,7 @@ class BumpHunter2D(BumpHunterInterface):
             if self.useSideBand == True:
                 res[i][
                     res[i] < 1e-300
-                    ] = 1e-300  # prevent issue with very low p-value, sometimes induced by normalisation in the tail
+                ] = 1e-300  # prevent issue with very low p-value, sometimes induced by normalisation in the tail
 
             # Get the minimum p-value and associated position for width w
             min_Pval[i] = res[i].min()
@@ -995,12 +995,12 @@ class BumpHunter2D(BumpHunterInterface):
             pos = self.min_loc_ar[0]
             width = self.min_width_ar[0]
             scale = (
-                    H[0].sum()
-                    - H[0][pos[0]: pos[0] + width[0], pos[1]: pos[1] + width[1]].sum()
+                H[0].sum()
+                - H[0][pos[0] : pos[0] + width[0], pos[1] : pos[1] + width[1]].sum()
             )
             scale = scale / (
-                    Hbkg.sum()
-                    - Hbkg[pos[0]: pos[0] + width[0], pos[1]: pos[1] + width[1]].sum()
+                Hbkg.sum()
+                - Hbkg[pos[0] : pos[0] + width[0], pos[1] : pos[1] + width[1]].sum()
             )
             Hbkg = Hbkg * scale
 
