@@ -4,54 +4,57 @@
 # Python version of the BupHunter algorithm as described in https://arxiv.org/pdf/1101.0390.pdf
 
 import numpy as np
+from matplotlib import colors as mcl
 import matplotlib.pyplot as plt
 from scipy.special import gammainc as G  ## Need G(a,b) for the gamma function
 from scipy.stats import norm
 import concurrent.futures as thd
-from matplotlib import gridspec as grd
+import itertools
 
 
 # THE super BumpHunter class
-class BumpHunter():
+class BumpHunter2D():
     '''
-    The BumpHunter class is the object providing all the necessary tools to "bump hunt" with ease.
+    The BumpHunter2D class provide a extension of the BumpHunter algorithm to 2d histograms.
+    Currently, only rectangular scan widows are supported.
+    Also, note that 2D signal injection is not yet implementedz
     
-    It comes with a set of methods to perform scans using the BumpHunter algorithm and to manage all
-    the parameters and results stored in the inner variables.
+    It comes with a 2D version of the methods and parameters of the one-dimentionnal BumpHunter class.
+    
     
     List of inner parameter variables :
-        rang : x-axis range of the histograms. Also define the range in which the scan will be performed.
+        rang : [x,y]-axis ranges of the histograms. Also define the ranges in which the scan will be performed.
         
         mode : String specifying if the algorithm must look for a excess or a deficit in the data.
                Can be either 'excess' or 'deficit'. Default to 'excess'.
         
-        width_min : Minimum value of the scan window width that should be tested (in number of bins).
-                    Default to 1.
+        width_min : Minimum [x,y] values of the scan window width that should be tested (in number of bins).
+                    Default to [1,1].
         
-        width_max : Maximum value of the scan window width that should be tested (in number of bins). Can be
-                    either None or a positive integer. if None, the value is set to the total number of bins
+        width_max : Maximum [x,y] values of the scan window width that should be tested (in number of bins). Can be
+                    either None or an array-like of 2 positive integers. if None, the value is set to the total number of bins
                     of the histograms divided by 2. Default to none.
         
-        width_step : Number of bins by which the scan window width is increased at each step. Default to 1.
+        width_step : Number of bins by which the scan window width is increased at each step. Default to [1,1].
         
-        scan_step : Number of bins by which the position of the scan window is shifted at each step. Can be
-                    either 'full', 'half' or a positive integer.
+        scan_step : Number of bins by which the position of the scan window is shifted at each step. Can an array-like
+                    length 2 of either 'full', 'half' or positive integers.
                     If 'full', the window will be shifted by a number of bins equal to its width.
                     If 'half', the window will be shifted by a number of bins equal to max(1,width//2).
-                    Default to 1.
+                    Default to [1,1].
         
         Npe : Number of pseudo-data distributions to be sampled from the reference background distribution.
               Default to 100.
         
-        bins : Define the bins of the histograms. Can be ether a integer of a array-like of floats.
-               If integer (N), N bins of equal width will be considered.
-               If array-like of float (a), a number of bins equal to a length-1 with the values of a as edges will
-               be considered (variable width bins allowed).
-               Default to 60.
+        bins : Define the bins of the histograms. Can be ether a [integer,integer] or a 2D array-like of floats.
+               If integer ([N,M]), N*M bins of equal width will be considered.
+               If 2D array-like of float (a), a number of bins equal to a (a.shape[0]-1)*(a.shape[1]-1) with the values of a
+               as edges will be considered (variable width bins allowed).
+               Default to [20,20].
         
         weights : Weights for the background distribution. Can be either None or a array-like of float.
                   If array-like of floats, each background events will be accounted by its weights when making
-                  histograms. The size of the array-like must be the same than of bkg. The same weights are
+                  histograms. The size of the array-like must be the same than the number of of bkg events. The same weights are
                   considered when sampling the pseudo-data.
                   If None, no weights will be considered.
                   Default to None.
@@ -59,9 +62,9 @@ class BumpHunter():
         Nworker : Number of thread to be run in parallel when scanning all the histograms (data and pseudo-data).
                   If less or equal to 1, then parallelism will be disabled.
                   Default to 4.
-        
-        seed : Seed for the random number generator. Default to None.
     
+        seed : Seed for the random number generator. Default to None.
+        
         useSideBand : Boolean specifying if the side-band normalization should be applied. Default to False.
         
         sigma_limit : The minimum significance required after injection. Deault to 5.
@@ -119,8 +122,8 @@ class BumpHunter():
     
     # Initializer method
     def __init__(self,rang=None,mode='excess',
-                 width_min=1,width_max=None,width_step=1,scan_step=1,
-                 Npe=100,bins=60,weights=None,Nworker=4,
+                 width_min=[1,1],width_max=None,width_step=[1,1],scan_step=[1,1],
+                 Npe=100,bins=[20,20],weights=None,Nworker=4,
                  sigma_limit=5,str_min=0.5,str_step=0.25,
                  str_scale='lin',
                  signal_exp=None,flip_sig=True,seed=None, useSideBand=False):
@@ -162,15 +165,15 @@ class BumpHunter():
         In order to make the function thread friendly, the results are saved through global variables.
         
         Arguments :
-            hist : The data histogram (as obtain with the numpy.histogram function).
+            hist : The data histogram (as obtain with the numpy.histogram2d function).
             
-            ref : The reference (background) histogram (as obtain with the numpy.histogram function).
+            ref : The reference (background) histogram (as obtain with the numpy.histogram2d function).
             
             w_ar : Array containing all the values of width to be tested.
             
             self : The BumpHunter instance that call the function
             
-            ih : Indice of the distribution to be scanned. ih=0 refers to the data distribution and ih>0 refers to
+            ih : Indice of the distribution to be scanned. ih==0 refers to the data distribution and ih>0 refers to
                  the ih-th pseudo-data distribution.
         
         Results stored in inner variables :
@@ -178,59 +181,67 @@ class BumpHunter():
                   scan. The numpy array as dimention (Nwidth), with Nwidth the number of window's width tested.
                   Each python list as dimension (Nstep), with Nstep the number of scan step for a given width
                   (different for every value of width).
-                  
+            
             min_Pval : Minimum p_value obtained durring the scan (float).
             
-            min_loc : Position of the window corresponding to the minimum p-value (integer).
+            min_loc : Position of the window corresponding to the minimum p-value ([integer,integer]).
             
-            min_width : Width of the window corresponding to the minimum p-value (integer).
+            min_width : Width of the window corresponding to the minimum p-value ([integer,integer]).
         '''
         
-        # Remove the first/last hist bins if empty ... just to be consistant with c++
-        non0 = [iii for iii in range(hist.size) if hist[iii]>0]
-        Hinf,Hsup = min(non0),max(non0)+1
         
         # Create the results array
-        res = np.empty(w_ar.size,dtype=object)
-        min_Pval,min_loc = np.empty(w_ar.size),np.empty(w_ar.size,dtype=int)
-        signal_eval = np.empty(w_ar.size)
-            
+        res = np.empty(w_ar.shape[0],dtype=object)
+        min_Pval, min_loc = np.empty(w_ar.shape[0]),np.empty(w_ar.shape[0],dtype=object)
+        signal_eval = np.empty(w_ar.shape[0])
+        
         if self.useSideBand==True:
-           ref_total  = ref[Hinf:Hsup].sum()
-           hist_total = hist[Hinf:Hsup].sum()
+           ref_total  = ref.sum()
+           hist_total = hist.sum()
         
         # Loop over all the width of the window
         i = 0
         for w in w_ar:
             # Auto-adjust scan step if specified
-            if(self.scan_step=='full'):
-                scan_stepp = w
-            elif(self.scan_step=='half'):
-                scan_stepp = max(1,w//2)
+            scan_stepp = [0,0]
+            if(self.scan_step[0]=='full'):
+                scan_stepp[0] = w
+            elif(self.scan_step[0]=='half'):
+                scan_stepp[0] = max(1,w//2)
             else:
-                scan_stepp = self.scan_step
+                scan_stepp[0] = self.scan_step[0]
+            
+            if(self.scan_step[1]=='full'):
+                scan_stepp[1] = w
+            elif(self.scan_step[1]=='half'):
+                scan_stepp[1] = max(1,w//2)
+            else:
+                scan_stepp[1] = self.scan_step[1]
             
             # Define possition range
-            pos = np.arange(Hinf,Hsup-w+1,scan_stepp)
+            posx = np.arange(0,ref.shape[0]-w[0]+1,scan_stepp[0])
+            posy = np.arange(0,ref.shape[1]-w[1]+1,scan_stepp[1])
+            pos = np.array([[p[0],p[1]] for p in itertools.product(posx,posy)])
             
             # Check that there is at least one interval to check for width w
             # If not, we must set dummy values in order to avoid crashes
             if(pos.size==0):
                 res[i] = np.array([1.0])
                 min_Pval[i] = 1.0
-                min_loc[i] = 0
+                min_loc[i] = [0,0]
                 signal_eval[i] = 0
                 i+=1
                 continue
             
             # Initialize local p-value array for width w
-            res[i] = np.ones(pos.size)
+            res[i] = np.ones(pos.shape[0])
             
             # Count events in all windows of width w
             #FIXME any better way to do it ?? Without loop ?? FIXME
-            Nref = np.array([ref[p:p+w].sum() for p in pos])
-            Nhist = np.array([hist[p:p+w].sum() for p in pos])
+            Nref = np.array([ref[p[0]:p[0]+w[0],p[1]:p[1]+w[1]].sum() for p in pos])
+            Nhist = np.array([hist[p[0]:p[0]+w[0],p[1]:p[1]+w[1]].sum() for p in pos])
             
+            # Apply side-band normalization if required
             if self.useSideBand==True:
                 Nref *= (hist_total-Nhist)/(ref_total-Nref)
             
@@ -242,11 +253,11 @@ class BumpHunter():
             
             if self.useSideBand==True:
                 res[i][res[i]<1e-300] = 1e-300 #prevent issue with very low p-value, sometimes induced by normalisation in the tail
-	    
+	         
             # Get the minimum p-value and associated position for width w
             min_Pval[i] = res[i].min()
             min_loc[i] = pos[res[i].argmin()]
-            signal_eval[i] = Nhist[min_loc[i]] - Nref[min_loc[i]]
+            signal_eval[i] = Nhist[res[i].argmin()] - Nref[res[i].argmin()]
             
             i += 1
         
@@ -263,8 +274,8 @@ class BumpHunter():
         # Save the results in inner variables and return
         self.res_ar[ih] = res
         self.min_Pval_ar[ih] = min_Pval
-        self.min_loc_ar[ih] = int(min_loc)
-        self.min_width_ar[ih] = int(min_width)
+        self.min_loc_ar[ih] = [int(min_loc[0]),int(min_loc[1])]
+        self.min_width_ar[ih] = [int(min_width[0]),int(min_width[1])]
         return
     
     ## Variable management methods
@@ -362,7 +373,7 @@ class BumpHunter():
         if 'bins' in state.keys():
             self.bins = state['bins']
         else:
-            self.bins = 60
+            self.bins = [20,20]
         
         if 'weights' in state.keys():
             self.rang = state['weights']
@@ -372,7 +383,7 @@ class BumpHunter():
         if 'width_min' in state.keys():
             self.width_min = state['width_min']
         else:
-            self.width_min = 2
+            self.width_min = [1,1]
         
         if 'width_max' in state.keys():
             self.width_max = state['width_max']
@@ -382,12 +393,12 @@ class BumpHunter():
         if 'width_step' in state.keys():
             self.width_step = state['width_step']
         else:
-            self.width_step = 1
+            self.width_step = [1,1]
         
         if 'scan_step' in state.keys():
             self.scan_step = state['scan_step']
         else:
-            self.scan_step = 1
+            self.scan_step = [1,1]
         
         if 'Npe' in state.keys():
             self.Npe = state['Npe']
@@ -496,6 +507,7 @@ class BumpHunter():
                         the global p-value and significance. If there is nothing in memmory, the global p-value
                         and significance will not be computed.
                         Default to True.
+                        
         
         Result inner variables :
             global_Pval : Global p-value obtained from the test statistic distribution.
@@ -522,8 +534,8 @@ class BumpHunter():
         # Generate the background and data histograms
         print('Generating histograms')
         if(is_hist is False):
-            bkg_hist,Hbin = np.histogram(bkg,bins=self.bins,weights=self.weights,range=self.rang)
-            data_hist = np.histogram(data,bins=self.bins,range=self.rang)[0]
+            bkg_hist,Hbinx,Hbiny = np.histogram2d(bkg[:,0],bkg[:,1],bins=self.bins,weights=self.weights,range=self.rang)
+            data_hist = np.histogram2d(data[:,0],data[:,1],bins=self.bins,range=self.rang)[0]
         else:
             if(self.weights is None):
                 bkg_hist = bkg
@@ -534,29 +546,33 @@ class BumpHunter():
         
         # Generate all the pseudo-data histograms
         if(do_pseudo):
-            pseudo_hist = np.random.poisson(lam=np.tile(bkg_hist,(self.Npe,1)).transpose(),size=(bkg_hist.size,self.Npe))
+            pseudo_hist = bkg_hist.flatten()
+            pseudo_hist = np.random.poisson(lam=np.tile(pseudo_hist,(self.Npe,1)).transpose(),size=(pseudo_hist.size,self.Npe))
+            pseudo_hist = np.reshape(pseudo_hist,(bkg_hist.shape[0],bkg_hist.shape[1],self.Npe))
         
         # Set width_max if it is given as None
         if self.width_max is None:
-            self.width_max = data_hist.size // 2
+            self.width_max = [data_hist.shape[0] // 2, data_hist.shape[1] // 2]
         
         # Initialize all results containenrs
         if(do_pseudo):
             self.min_Pval_ar = np.empty(self.Npe+1)
-            self.min_loc_ar = np.empty(self.Npe+1,dtype=int)
-            self.min_width_ar = np.empty(self.Npe+1,dtype=int)
+            self.min_loc_ar = np.empty(self.Npe+1,dtype=object)
+            self.min_width_ar = np.empty(self.Npe+1,dtype=object)
             self.res_ar = np.empty(self.Npe+1,dtype=object)
         else:
             if(self.res_ar==[]):
                 self.min_Pval_ar = np.empty(1)
-                self.min_loc_ar = np.empty(1,dtype=int)
-                self.min_width_ar = np.empty(1,dtype=int)
+                self.min_loc_ar = np.empty(1,dtype=object)
+                self.min_width_ar = np.empty(1,dtype=object)
                 self.res_ar = np.empty(1,dtype=object)
         
         # Auto-adjust the value of width_max and do an array of all width
-        w_ar = np.arange(self.width_min,self.width_max+1,self.width_step)
+        wx = np.arange(self.width_min[0],self.width_max[0]+1,self.width_step[0])
+        wy = np.arange(self.width_min[1],self.width_max[1]+1,self.width_step[1])
+        w_ar = np.array([[w[0],w[1]] for w in itertools.product(wx,wy)])
         width_max = w_ar[-1]
-        print('{} values of width will be tested'.format(w_ar.size))
+        print('{} values of width will be tested'.format(w_ar.shape[0]))
         
         # Compute the p-value for data and all pseudo-experiments
         # We must check if we should do it in multiple threads
@@ -568,13 +584,13 @@ class BumpHunter():
                         if(th==0):
                             exe.submit(self.__scan_hist,data_hist,bkg_hist,w_ar,th)
                         else:
-                            exe.submit(self.__scan_hist,pseudo_hist[:,th-1],bkg_hist,w_ar,th)
+                            exe.submit(self.__scan_hist,pseudo_hist[:,:,th-1],bkg_hist,w_ar,th)
             else:
                 for i in range(self.Npe+1):
                     if(i==0):
                         self.__scan_hist(data_hist,bkg_hist,w_ar,i)
                     else:
-                        self.__scan_hist(pseudo_hist[:,i-1],bkg_hist,w_ar,i)
+                        self.__scan_hist(pseudo_hist[:,:,i-1],bkg_hist,w_ar,i)
         else:
             self.__scan_hist(data_hist,bkg_hist,w_ar,0)
         
@@ -582,17 +598,20 @@ class BumpHunter():
         self.t_ar = -np.log(self.min_Pval_ar)
         
         # Compute the global p-value from the t distribution
-        tdat = self.t_ar[0]
-        S = self.t_ar[1:][self.t_ar[1:]>tdat].size
-        self.global_Pval = S/self.Npe
-        print('Global p-value : {0:1.4f}  ({1} / {2})'.format(self.global_Pval,S,self.Npe))
-        
-        # If global p-value is exactly 0, we might have trouble with the significance
-        if(self.global_Pval<0.0000000000000001):
-            self.significance = norm.ppf(1-0.0000000000000001)
+        if(self.t_ar.size>1):
+            tdat = self.t_ar[0]
+            S = self.t_ar[1:][self.t_ar[1:]>tdat].size
+            self.global_Pval = S/self.Npe
+            print('Global p-value : {0:1.4f}  ({1} / {2})'.format(self.global_Pval,S,self.Npe))
+            
+            # If global p-value is exactly 0, we might have trouble with the significance
+            if(self.global_Pval<0.0000000000000001):
+                self.significance = norm.ppf(1-0.0000000000000001)
+            else:
+                self.significance = norm.ppf(1-self.global_Pval)
+            print('Significance = {0:1.5f}'.format(self.significance))
         else:
-            self.significance = norm.ppf(1-self.global_Pval)
-        print('Significance = {0:1.5f}'.format(self.significance))
+            print("No pseudo data found : can't compute global p-value")
         print('')
         
         return
@@ -629,9 +648,12 @@ class BumpHunter():
         during the last iteration (when sigma_limit is reached).
         '''
         
+        print('2D signal injection is not inplemented yet !!')
+        return
+        
         # Set the seed if required (or reset it if None)
         np.random.seed(self.seed)
-            
+        
         # Internal variables
         i = 1
         strength = 0
@@ -653,12 +675,6 @@ class BumpHunter():
         # Turn the background distributions into histogram
         if(is_hist is False):
             bkg_hist,bins = np.histogram(bkg,bins=self.bins,range=self.rang,weights=self.weights)
-        else:
-            if self.weights is None:
-                bkg_hist = bkg
-            else:
-                bkg_hist = bkg * self.weights
-            bins = self.bins
         
         # Generate pseudo-data by sampling background
         print('Generating background only histograms')
@@ -839,63 +855,6 @@ class BumpHunter():
     
     ## Display methods
     
-    # Method that do the tomography plot for the data
-    def GetTomography(self,data,is_hist=False,filename=None):
-        '''
-        Function that do a tomography plot showing the local p-value for every positions and widths of the scan
-        window.
-        
-        Arguments :
-            data : Numpy array containing the data.
-            
-            is_hist : Boolean specifying if data is in histogram form or not. Default to False.
-        
-            filename : Name of the file in which the plot will be saved. If None, the plot will be just shown
-                       but not saved. Default to None.
-        '''
-        
-        # Same c++ compatibility thing
-        non0 = [i for i in range(data.size) if data[i]>0]
-        Hinf = min(non0)
-        
-        # Get real bin bounds
-        if(is_hist is False):
-            H = np.histogram(data,bins=self.bins,range=self.rang)[1]
-        else:
-            H = self.bins
-        
-        res_data = self.res_ar[0]    
-        inter = []
-        for i in range(res_data.size):
-            w = (H[1]-H[0])*(self.width_min+i*self.width_step) # bin_width * Nbins
-            
-            # Get scan step for width w
-            if(self.scan_step=='half'):
-                scan_stepp = max(1,(self.width_min+i*self.width_step)//2)
-            elif(self.scan_step=='full'):
-                scan_stepp = self.width_min+i*self.width_step
-            else:
-                scan_stepp = self.scan_step
-            
-            for j in range(len(res_data[i])):
-                loc = H[j*scan_stepp+Hinf]
-                inter.append([res_data[i][j],loc,w])
-        
-        F =plt.figure(figsize=(12,8))
-        [plt.plot([i[1],i[1]+i[2]],[i[0],i[0]],'r') for i in inter if i[0]<1.0]
-        plt.xlabel('intervals',size='large')
-        plt.ylabel('local p-value',size='large')
-        plt.yscale('log')
-        plt.xticks(fontsize='large')
-        plt.yticks(fontsize='large')
-        
-        if(filename is None):
-            plt.show()
-        else:
-            plt.savefig(filename,bbox_inches='tight')
-            plt.close(F)
-        return
-    
     # Plot the data and bakground histograms with the bump found by BumpHunter highlighted
     def PlotBump(self,data,bkg,is_hist=False,useSideBand=None,filename=None):
         '''
@@ -918,17 +877,20 @@ class BumpHunter():
         
         # Get the data in histogram form
         if(is_hist is False):
-            H = np.histogram(data,bins=self.bins,range=self.rang)
+            H = np.histogram2d(data[:,0],data[:,1],bins=self.bins,range=self.rang)
+            H = [H[0],[H[1],H[2]]]
         else:
             H = [data,self.bins]
         
         # Get bump min and max
-        Bmin = H[1][self.min_loc_ar[0]]
-        Bmax = H[1][self.min_loc_ar[0]+self.min_width_ar[0]]
+        Bminx = H[1][0][self.min_loc_ar[0][0]]
+        Bmaxx = H[1][0][self.min_loc_ar[0][0]+self.min_width_ar[0][0]]
+        Bminy = H[1][1][self.min_loc_ar[0][1]]
+        Bmaxy = H[1][1][self.min_loc_ar[0][1]+self.min_width_ar[0][1]]
         
         # Get the background in histogram form
         if(is_hist is False):
-            Hbkg = np.histogram(bkg,bins=self.bins,range=self.rang,weights=self.weights)[0]
+            Hbkg = np.histogram2d(bkg[:,0],bkg[:,1],bins=self.bins,range=self.rang,weights=self.weights)[0]
         else:
             if(self.weights is None):
                 Hbkg = bkg
@@ -940,12 +902,14 @@ class BumpHunter():
             useSideBand = self.useSideBand
         
         if(useSideBand):
-            scale = H[0].sum()-H[0][self.min_loc_ar[0]:self.min_loc_ar[0]+self.min_width_ar[0]].sum()
-            scale = scale / (Hbkg.sum()-Hbkg[self.min_loc_ar[0]:self.min_loc_ar[0]+self.min_width_ar[0]].sum())
+            pos = self.min_loc_ar[0]
+            width = self.min_width_ar[0]
+            scale = H[0].sum()-H[0][pos[0]:pos[0]+width[0],pos[1]:pos[1]+width[1]].sum()
+            scale = scale / (Hbkg.sum()-Hbkg[pos[0]:pos[0]+width[0],pos[1]:pos[1]+width[1]].sum())
             Hbkg = Hbkg * scale
         
         # Calculate significance for each bin
-        sig = np.ones(Hbkg.size)
+        sig = np.ones(Hbkg.shape)
         sig[(H[0]>Hbkg) & (Hbkg>0)] = G(H[0][(H[0]>Hbkg) & (Hbkg>0)],Hbkg[(H[0]>Hbkg) & (Hbkg>0)])
         sig[H[0]<Hbkg] = 1-G(H[0][H[0]<Hbkg]+1,Hbkg[H[0]<Hbkg])
         sig = norm.ppf(1-sig)
@@ -954,34 +918,26 @@ class BumpHunter():
         sig[H[0]<Hbkg] = -sig[H[0]<Hbkg]  # Now we can make it signed
         
         # Plot the test histograms with the bump found by BumpHunter plus a little significance plot
-        F = plt.figure(figsize=(12,10))
-        gs = grd.GridSpec(2, 1, height_ratios=[4, 1])
+        F = plt.figure(figsize=(12,20))
         
-        pl1 = plt.subplot(gs[0])
-        plt.title('Distributions with bump')
-        
-        plt.hist(self.bins[:-1],bins=self.bins,histtype='step',range=self.rang,weights=Hbkg,label='background',linewidth=2,color='red')
-        plt.errorbar(0.5*(H[1][1:]+H[1][:-1]),H[0],
-                     xerr=(H[1][1]-H[1][0])/2,yerr=np.sqrt(H[0]),
-                     ls='',color='blue',label='data')
-        
-        plt.plot(np.full(2,Bmin),np.array([0,H[0][self.min_loc_ar[0]]]),'r--',label=('BUMP'))
-        plt.plot(np.full(2,Bmax),np.array([0,H[0][self.min_loc_ar[0]+self.min_width_ar[0]-1]]),'r--')
-        plt.legend(fontsize='large')
-        plt.yscale('log')
-        if self.rang!=None:
-            plt.xlim(self.rang)
+        plt.subplot(2,1,1)
+        plt.title('Data distribution with bump')
+        plt.pcolormesh(H[1][0],H[1][1],H[0].T,norm=mcl.LogNorm())
+        plt.colorbar()
+        plt.hlines([Bminy,Bmaxy],H[1][0][0],H[1][0][-1],linestyles='dashed',color='r')
+        plt.vlines([Bminx,Bmaxx],H[1][1][0],H[1][1][-1],linestyles='dashed',color='r')
         plt.xticks(fontsize='large')
         plt.yticks(fontsize='large')
         plt.tight_layout()
         
-        plt.subplot(gs[1],sharex=pl1)
-        plt.hist(H[1][:-1],bins=H[1],range=self.rang,weights=sig)
-        plt.plot(np.full(2,Bmin),np.array([sig.min(),sig.max()]),'r--',linewidth=2)
-        plt.plot(np.full(2,Bmax),np.array([sig.min(),sig.max()]),'r--',linewidth=2)
-        plt.yticks(np.arange(np.round(sig.min()),np.round(sig.max())+1,step=1),fontsize='large')
-        plt.ylabel('significance',size='large')
+        plt.subplot(2,1,2)
+        plt.pcolormesh(H[1][0],H[1][1],sig.transpose())
+        plt.colorbar()
+        plt.hlines([Bminy,Bmaxy],H[1][0][0],H[1][0][-1],linestyles='dashed',color='r')
+        plt.vlines([Bminx,Bmaxx],H[1][1][0],H[1][1][-1],linestyles='dashed',color='r')
+        plt.xlabel('local significance map',size='large')
         plt.xticks(fontsize='large')
+        plt.yticks(fontsize='large')
         
         # Check if the plot should be saved or just displayed
         if(filename is None):
@@ -1004,6 +960,11 @@ class BumpHunter():
             filename : Name of the file in which the plot will be saved. If None, the plot will be just shown
                        but not saved. Default to None.
         '''
+        
+        # Check if there is a BH statistics distribution to plot.
+        if(self.t_ar.size<=1):
+            print('Nothing to plot here ...')
+            return
         
         # Plot the BumpHunter statistic distribution
         F = plt.figure(figsize=(12,8))
@@ -1127,23 +1088,27 @@ class BumpHunter():
         
         # Get the data and background in histogram form
         if(is_hist is False):
-            H = np.histogram(data,bins=self.bins,range=self.rang)
-            Hb = np.histogram(bkg,bins=self.bins,range=self.rang,weights=self.weights)[0]
+            H = np.histogram2d(data[:,0],data[:,1],bins=self.bins,range=self.rang)
+            Hb = np.histogram2d(bkg[:,0],bkg[:,1],bins=self.bins,range=self.rang,weights=self.weights)[0]
+            H = [H[0],[H[1],H[2]]]
         else:
             H = [data,self.bins]
-            Hb = bkg
+            if self.weights is None:
+                Hb = bkg
+            else:
+                Hb = bkg * self.weights
         
         # Print informations about the bump itself
         print('BUMP POSITION')
-        Bmin = H[1][self.min_loc_ar[0]]
-        Bmax = H[1][self.min_loc_ar[0]+self.min_width_ar[0]]
+        Bmin = np.array([H[1][0][self.min_loc_ar[0][0]],H[1][1][self.min_loc_ar[0][1]]])
+        Bmax = np.array([H[1][0][self.min_loc_ar[0][0]+self.min_width_ar[0][0]],H[1][1][self.min_loc_ar[0][1]+self.min_width_ar[0][1]]])
         Bmean = (Bmax+Bmin)/2
         Bwidth = Bmax-Bmin
         
-        print('   min : {0:.3f}'.format(Bmin))
-        print('   max : {0:.3f}'.format(Bmax))
-        print('   mean : {0:.3f}'.format(Bmean))
-        print('   width : {0:.3f}'.format(Bwidth))
+        print('   min : [{0:.3f}, {1:.3f}]'.format(Bmin[0],Bmin[1]))
+        print('   max : [{0:.3f}, {1:.3f}]'.format(Bmax[0],Bmax[1]))
+        print('   mean : [{0:.3f}, {1:.3f}]'.format(Bmean[0],Bmean[1]))
+        print('   width : [{0:.3f}, {1:.3f}]'.format(Bwidth[0],Bwidth[1]))
         print('   number of signal events : {}'.format(self.signal_eval))
         print('   global p-value : {0:1.5f}'.format(self.global_Pval))
         print('   significance = {0:1.5f}'.format(self.significance))
@@ -1151,4 +1116,4 @@ class BumpHunter():
         
         return
     
-    #end of BumpHunter class
+    #end of BumpHunter2D class

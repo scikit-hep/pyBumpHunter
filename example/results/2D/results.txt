@@ -1,0 +1,25 @@
+####BmupScan call####
+Generating histograms
+4 values of width will be tested
+SCAN
+Global p-value : 0.0000  (0 / 8000)
+Significance = 8.20954
+
+time=0:01:30.034651
+
+BUMP WINDOW
+   loc = [4, 5]
+   width = [2, 2]
+   local p-value | t = 1.5339109008154278e-08 | 17.99286012560459
+
+BUMP POSITION
+   min : [5.000, 6.250]
+   max : [7.500, 8.750]
+   mean : [6.250, 7.500]
+   width : [2.500, 2.500]
+   number of signal events : 201.0
+   global p-value : 0.00000
+   significance = 8.20954
+
+   mean (true) = [6.0, 7.0]
+
