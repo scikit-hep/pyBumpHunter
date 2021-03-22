@@ -119,6 +119,7 @@ class BumpHunter1D:
 
     # Initializer method
     @deprecated_arg("useSideBand", "use_sideband")
+    @deprecated_arg("Nworker", "nworker")
     def __init__(
         self,
         rang=None,
