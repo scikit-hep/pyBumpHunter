@@ -340,7 +340,9 @@ class BumpHunter1D:
 
         return
 
-    Reset = deprecated("Use `reset` instead.")(reset)
+    @deprecated("Use `reset` instead.")
+    def Reset(*args, **kwargs):
+        return self.reset(*args, **kwargs)
 
     # Export/import parameters/results
     def SaveState(self):

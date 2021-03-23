@@ -171,7 +171,7 @@ class BumpHunter2D(BumpHunterInterface):
         self.useSideBand = useSideBand
 
         # Initialize all inner result variables
-        self.Reset()
+        self.reset()
 
         return
 
@@ -334,7 +334,9 @@ class BumpHunter2D(BumpHunterInterface):
 
         return
 
-    Reset = deprecated("Use `reset` instead.")(reset)
+    @deprecated("Use `reset` instead.")
+    def Reset(*args, **kwargs):
+        return self.reset(*args, **kwargs)
 
     # Export/import parameters/results
     def SaveState(self):
@@ -487,7 +489,7 @@ class BumpHunter2D(BumpHunterInterface):
             self.sig_flip = True
 
         # Load results
-        self.Reset()
+        self.reset()
         if "global_Pval" in state.keys():
             self.global_Pval = state["global_Pval"]
         if "significance" in state.keys():
