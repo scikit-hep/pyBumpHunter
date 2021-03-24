@@ -35,7 +35,7 @@ def make_datasets(seed):
 # I prefer to keep it for now since the value I am testing are dataset specific
 def make_datasets():
     # Get path to data
-    path = Path('../data/data.root')
+    path = Path('data/data.root')
 
     # Open the file
     with upr.open(path) as f:
@@ -60,9 +60,9 @@ def bhunter():
         width_max=6,
         width_step=1,
         scan_step=1,
-        Npe=10000,
+        npe=10000,
         nworker=1,
-        seed=666,
+        seed=666
     )
 
 

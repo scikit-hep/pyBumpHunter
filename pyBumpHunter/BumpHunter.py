@@ -40,7 +40,7 @@ class BumpHunter1D:
                     If 'half', the window will be shifted by a number of bins equal to max(1,width//2).
                     Default to 1.
 
-        Npe : Number of pseudo-data distributions to be sampled from the reference background distribution.
+        npe : Number of pseudo-data distributions to be sampled from the reference background distribution.
               Default to 100.
 
         bins : Define the bins of the histograms. Can be ether a integer of a array-like of floats.
@@ -56,13 +56,13 @@ class BumpHunter1D:
                   If None, no weights will be considered.
                   Default to None.
 
-        Nworker : Number of thread to be run in parallel when scanning all the histograms (data and pseudo-data).
+        nworker : Number of thread to be run in parallel when scanning all the histograms (data and pseudo-data).
                   If less or equal to 1, then parallelism will be disabled.
                   Default to 4.
 
         seed : Seed for the random number generator. Default to None.
 
-        useSideBand : Boolean specifying if the side-band normalization should be applied. Default to False.
+        use_sideBand : Boolean specifying if the side-band normalization should be applied. Default to False.
 
         sigma_limit : The minimum significance required after injection. Deault to 5.
 
@@ -120,6 +120,7 @@ class BumpHunter1D:
     # Initializer method
     @deprecated_arg("useSideBand", "use_sideband")
     @deprecated_arg("Nworker", "nworker")
+    @deprecated_arg("Npe", "npe")
     def __init__(
         self,
         rang=None,
@@ -128,7 +129,7 @@ class BumpHunter1D:
         width_max=None,
         width_step=1,
         scan_step=1,
-        Npe=100,
+        npe=100,
         bins=60,
         weights=None,
         nworker=4,
@@ -139,9 +140,10 @@ class BumpHunter1D:
         signal_exp=None,
         flip_sig=True,
         seed=None,
-        use_sideband=None,
+        use_sideband=False,
         Nworker=None,
         useSideBand=None,
+        Npe=None,
     ):
         """
 
@@ -171,9 +173,8 @@ class BumpHunter1D:
             use_sideband = useSideBand
         if Nworker is not None:
             nworker = Nworker
-
-        if use_sideband is None:
-            use_sideband = False
+        if Npe is not None:
+            npe = Npe
 
         # Initilize all inner parameter variables
         self.rang = rang
@@ -182,10 +183,10 @@ class BumpHunter1D:
         self.width_max = width_max
         self.width_step = width_step
         self.scan_step = scan_step
-        self.Npe = Npe
+        self.npe = npe
         self.bins = bins
         self.weights = weights
-        self.Nworker = nworker
+        self.nworker = nworker
         self.sigma_limit = sigma_limit
         self.str_min = str_min
         self.str_step = str_step
@@ -366,8 +367,8 @@ class BumpHunter1D:
         state["width_max"] = self.width_max
         state["width_step"] = self.width_step
         state["scan_step"] = self.scan_step
-        state["Npe"] = self.Npe
-        state["Nworker"] = self.Nworker
+        state["npe"] = self.npe
+        state["nworker"] = self.nworker
         state["seed"] = self.seed
         state["sigma_limit"] = self.sigma_limit
         state["str_min"] = self.str_min
@@ -375,7 +376,7 @@ class BumpHunter1D:
         state["str_scale"] = self.str_scale
         state["signal_exp"] = self.signal_exp
         state["sig_flip"] = self.flip_sig
-        state["useSideBand"] = self.use_sideband
+        state["use_sideband"] = self.use_sideband
 
         # Save results
         state["global_Pval"] = self.global_Pval
@@ -446,23 +447,23 @@ class BumpHunter1D:
         else:
             self.scan_step = 1
 
-        if "Npe" in state.keys():
-            self.Npe = state["Npe"]
+        if "npe" in state.keys():
+            self.npe = state["npe"]
         else:
-            self.Npe = 100
+            self.npe = 100
 
-        if "Nworker" in state.keys():
-            self.Nworker = state["Nworker"]
+        if "nworker" in state.keys():
+            self.nworker = state["nworker"]
         else:
-            self.Nworker = 4
+            self.nworker = 4
 
         if "seed" in state.keys():
             self.seed = state["seed"]
         else:
             self.seed = None
 
-        if "useSideBand" in state.keys():
-            self.use_sideband = state["useSideBand"]
+        if "use_sideband" in state.keys():
+            self.use_sideband = state["use_sideband"]
         else:
             self.use_sideband = False
 
@@ -597,8 +598,8 @@ class BumpHunter1D:
         # Generate all the pseudo-data histograms
         if do_pseudo:
             pseudo_hist = np.random.poisson(
-                lam=np.tile(bkg_hist, (self.Npe, 1)).transpose(),
-                size=(bkg_hist.size, self.Npe),
+                lam=np.tile(bkg_hist, (self.npe, 1)).transpose(),
+                size=(bkg_hist.size, self.npe),
             )
 
         # Set width_max if it is given as None
@@ -607,10 +608,10 @@ class BumpHunter1D:
 
         # Initialize all results containenrs
         if do_pseudo:
-            self.min_Pval_ar = np.empty(self.Npe + 1)
-            self.min_loc_ar = np.empty(self.Npe + 1, dtype=int)
-            self.min_width_ar = np.empty(self.Npe + 1, dtype=int)
-            self.res_ar = np.empty(self.Npe + 1, dtype=object)
+            self.min_Pval_ar = np.empty(self.npe + 1)
+            self.min_loc_ar = np.empty(self.npe + 1, dtype=int)
+            self.min_width_ar = np.empty(self.npe + 1, dtype=int)
+            self.res_ar = np.empty(self.npe + 1, dtype=object)
         else:
             if self.res_ar == []:
                 self.min_Pval_ar = np.empty(1)
@@ -627,9 +628,9 @@ class BumpHunter1D:
         # We must check if we should do it in multiple threads
         print("SCAN")
         if do_pseudo:
-            if self.Nworker > 1:
-                with thd.ThreadPoolExecutor(max_workers=self.Nworker) as exe:
-                    for th in range(self.Npe + 1):
+            if self.nworker > 1:
+                with thd.ThreadPoolExecutor(max_workers=self.nworker) as exe:
+                    for th in range(self.nnpe + 1):
                         if th == 0:
                             exe.submit(self._scan_hist, data_hist, bkg_hist, w_ar, th)
                         else:
@@ -641,7 +642,7 @@ class BumpHunter1D:
                                 th,
                             )
             else:
-                for i in range(self.Npe + 1):
+                for i in range(self.npe + 1):
                     if i == 0:
                         self._scan_hist(data_hist, bkg_hist, w_ar, i)
                     else:
@@ -655,8 +656,8 @@ class BumpHunter1D:
         # Compute the global p-value from the t distribution
         tdat = self.t_ar[0]
         S = self.t_ar[1:][self.t_ar[1:] > tdat].size
-        self.global_Pval = S / self.Npe
-        print(f"Global p-value : {self.global_Pval:1.4f}  ({S} / {self.Npe})")
+        self.global_Pval = S / self.npe
+        print(f"Global p-value : {self.global_Pval:1.4f}  ({S} / {self.npe})")
 
         # If global p-value is exactly 0, we might have trouble with the significance
         if self.global_Pval < 1e-15:
@@ -763,8 +764,8 @@ class BumpHunter1D:
         # Compute the p-value for background only pseudo-experiments
         # We must check if we should do it in multiple threads
         print("BACKGROUND ONLY SCAN")
-        if self.Nworker > 1:
-            with thd.ThreadPoolExecutor(max_workers=self.Nworker) as exe:
+        if self.nworker > 1:
+            with thd.ThreadPoolExecutor(max_workers=self.nworker) as exe:
                 for th in range(Nbkg):
                     exe.submit(self._scan_hist, pseudo_bkg[:, th], bkg_hist, w_ar, th)
         else:
@@ -840,27 +841,27 @@ class BumpHunter1D:
             print("Generating background+signal histograms")
             data_hist = bkg_hist + sig_hist
             pseudo_data = np.random.poisson(
-                lam=np.tile(data_hist, (self.Npe, 1)).transpose(),
-                size=(data_hist.size, self.Npe),
+                lam=np.tile(data_hist, (self.npe, 1)).transpose(),
+                size=(data_hist.size, self.npe),
             )
 
             # Initialize all results containenrs
-            self.min_Pval_ar = np.empty(self.Npe)
-            self.min_loc_ar = np.empty(self.Npe, dtype=int)
-            self.min_width_ar = np.empty(self.Npe, dtype=int)
-            self.res_ar = np.empty(self.Npe, dtype=object)
+            self.min_Pval_ar = np.empty(self.npe)
+            self.min_loc_ar = np.empty(self.npe, dtype=int)
+            self.min_width_ar = np.empty(self.npe, dtype=int)
+            self.res_ar = np.empty(self.npe, dtype=object)
 
             # Compute the p-value for background+signal pseudo-experiments
             # We must check if we should do it in multiple threads
             print("BACKGROUND+SIGNAL SCAN")
-            if self.Nworker > 1:
-                with thd.ThreadPoolExecutor(max_workers=self.Nworker) as exe:
-                    for th in range(self.Npe):
+            if self.nworker > 1:
+                with thd.ThreadPoolExecutor(max_workers=self.nworker) as exe:
+                    for th in range(self.npe):
                         exe.submit(
                             self._scan_hist, pseudo_data[:, th], bkg_hist, w_ar, th
                         )
             else:
-                for th in range(self.Npe):
+                for th in range(self.npe):
                     self._scan_hist(pseudo_data[:, th], bkg_hist, w_ar, th)
 
             # Use the p-value results to compute t
@@ -875,11 +876,11 @@ class BumpHunter1D:
             S = t_ar_bkg[t_ar_bkg > tdat].size
             Sinf = t_ar_bkg[t_ar_bkg > tinf].size
             Ssup = t_ar_bkg[t_ar_bkg > tsup].size
-            self.global_Pval = S / self.Npe
-            global_inf = Sinf / self.Npe
-            global_sup = Ssup / self.Npe
+            self.global_Pval = S / self.npe
+            global_inf = Sinf / self.npe
+            global_sup = Ssup / self.npe
             print(
-                f"Global p-value : {self.global_Pval:1.4f}  ({S} / {self.Npe})   {global_inf:1.4f}  ({Sinf})   {global_sup:1.4f}  ({Ssup})"
+                f"Global p-value : {self.global_Pval:1.4f}  ({S} / {self.npe})   {global_inf:1.4f}  ({Sinf})   {global_sup:1.4f}  ({Ssup})"
             )
 
             # If global p-value is exactly 0, we might have trouble with the significance
@@ -1004,7 +1005,8 @@ class BumpHunter1D:
         return self.plot_tomography(*args, **kwargs)
 
     # Plot the data and bakground histograms with the bump found by BumpHunter highlighted
-    def PlotBump(self, data, bkg, is_hist=False, useSideBand=None, filename=None):
+    @deprecated_arg("useSideBand", "use_sideband")
+    def PlotBump(self, data, bkg, is_hist=False, use_sideband=None, filename=None, useSideBand=None):
         """
         Plot the data and bakground histograms with the bump found by BumpHunter highlighted.
 
@@ -1015,13 +1017,17 @@ class BumpHunter1D:
 
             is_hist : Boolean specifying if data and bkg are in histogram form or not. Default to False.
 
-            useSideBand : Boolean specifying if side-band normalization should be used to correct the reference background
-                          in the plot. If None, self.useSideBand is used instead.
+            use_sideband : Boolean specifying if side-band normalization should be used to correct the reference background
+                          in the plot. If None, self.use_sideband is used instead.
                           Default to None.
 
             filename : Name of the file in which the plot will be saved. If None, the plot will be just shown
                        but not saved. Default to None.
         """
+
+        # legacy deprecation
+        if useSideBand is not None:
+            use_sideband = useSideBand
 
         # Get the data in histogram form
         if is_hist is False:
@@ -1045,10 +1051,10 @@ class BumpHunter1D:
                 Hbkg = bkg * self.weights
 
         # Chek if we should apply sideband normalization correction
-        if useSideBand is None:
-            useSideBand = self.use_sideband
+        if use_sideband is None:
+            use_sideband = self.use_sideband
 
-        if useSideBand:
+        if use_sideband:
             scale = (
                 H[0].sum()
                 - H[0][
