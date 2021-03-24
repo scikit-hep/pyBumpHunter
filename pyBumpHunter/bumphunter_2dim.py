@@ -12,7 +12,7 @@ from matplotlib import colors as mcl
 from scipy.special import gammainc as G  # # Need G(a,b) for the gamma function
 from scipy.stats import norm
 
-from pyBumpHunter.BumpHunter import BumpHunterInterface
+from pyBumpHunter.bumphunter_1dim import BumpHunterInterface
 
 from .util import deprecated
 

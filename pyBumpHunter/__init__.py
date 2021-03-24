@@ -40,7 +40,7 @@ pyBumpHunter wiki page :
 https://github.com/lovaslin/pyBumpHunter/wiki
 """
 
-from .BumpHunter import BumpHunter1D
+from .bumphunter_1dim import BumpHunter1D
 from .bumphunter_2dim import BumpHunter2D
 
 # Automatic versioning

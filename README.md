@@ -15,7 +15,7 @@ The BumpHunter algorithm can also perform signal injection tests where more and 
 * pyBumpHunter : The pyBumpHunter package
 * example : Folder containing a set of example scripts and notebooks
 * example/results : Folder containing the outputs of example scripts
-* testing : Folder containing the testing scripts (based on pytest)
+* test : Folder containing the testing scripts (based on pytest)
 * data/data.root  : Toy data used in the examples and tests
 * data/gen_data.C : Code used to generate the toy data with ROOT
 

@@ -1,7 +1,7 @@
 graft pyBumpHunter
 graft data
 graft example
-graft testing
+graft test
 
 global-exclude .git*
 prune .github
