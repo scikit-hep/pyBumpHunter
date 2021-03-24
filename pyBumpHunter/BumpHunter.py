@@ -345,7 +345,7 @@ class BumpHunter1D:
         return self.reset(*args, **kwargs)
 
     # Export/import parameters/results
-    def SaveState(self):
+    def save_state(self):
         """
         Save the current state (all parameters and results) of a BupHunter instance into a
         dict variable.
@@ -392,7 +392,11 @@ class BumpHunter1D:
 
         return state
 
-    def LoadState(self, state):
+    @deprecated("Use `save_state` instead.")
+    def SaveState(*args, **kwargs):
+        return self.save_state(*args, **kwargs)
+
+    def load_state(self, state):
         """
         Load all the parameters and results of a previous BumpHunter intance that were saved
         using the SaveState method.
@@ -519,11 +523,15 @@ class BumpHunter1D:
 
         return
 
+    @deprecated("Use `load_state` instead.")
+    def LoadState(*args, **kwargs):
+        return self.load_state(*args, **kwargs)
+
     ## Scan methods
 
     # Method that perform the scan on every pseudo experiment and data (in parrallel threads).
     # For each scan, the value of p-value and test statistic t is computed and stored in result array
-    def BumpScan(self, data, bkg, is_hist=False, do_pseudo=True):
+    def bump_scan(self, data, bkg, is_hist=False, do_pseudo=True):
         """
         Function that perform the full BumpHunter algorithm presented in https://arxiv.org/pdf/1101.0390.pdf
         without sidebands. This includes the generation of pseudo-data, the calculation of the BumpHunter p-value
@@ -660,8 +668,12 @@ class BumpHunter1D:
 
         return
 
+    @deprecated("Use `bump_scan` instead.")
+    def BumpScacn(*args, **kwargs):
+        return self.bump_scan(*args, **kwargs)
+
     # Perform signal injection on background and determine the minimum aount of signal required for observation
-    def SignalInject(self, sig, bkg, is_hist=False):
+    def signal_inject(self, sig, bkg, is_hist=False):
         """
         Function that perform a signal injection test in order to determine the minimum signal strength required to
         reach a target significance. This function use the BumpHunter algorithm in order to calculate the reached
@@ -922,10 +934,14 @@ class BumpHunter1D:
 
         return
 
+    @deprecated("Use `signal_inject` instead.")
+    def SignalInject(*args, **kwargs):
+        return self.signal_inject(*args, **kwargs)
+
     ## Display methods
 
     # Method that do the tomography plot for the data
-    def GetTomography(self, data, is_hist=False, filename=None):
+    def plot_tomography(self, data, is_hist=False, filename=None):
         """
         Function that do a tomography plot showing the local p-value for every positions and widths of the scan
         window.
@@ -982,6 +998,10 @@ class BumpHunter1D:
             plt.savefig(filename, bbox_inches="tight")
             plt.close(F)
         return
+
+    @deprecated("Use `plot_tomography` instead.")
+    def GetTomography(*args, **kwargs):
+        return self.plot_tomography(*args, **kwargs)
 
     # Plot the data and bakground histograms with the bump found by BumpHunter highlighted
     def PlotBump(self, data, bkg, is_hist=False, useSideBand=None, filename=None):
@@ -1120,8 +1140,12 @@ class BumpHunter1D:
 
         return
 
+    @deprecated("Use `plot_bump` instead.")
+    def PlotBump(*args, **kwargs):
+        return self.plot_bump(*args, **kwargs)
+
     # Plot the Bumpunter test statistic distribution with the result for data
-    def PlotBHstat(self, show_Pval=False, filename=None):
+    def plot_stat(self, show_Pval=False, filename=None):
         """
         Plot the Bumphunter statistic distribution together with the observed value with the data.
 
@@ -1166,8 +1190,12 @@ class BumpHunter1D:
 
         return
 
+    @deprecated("Use `plot_stat` instead.")
+    def PlotBHstat(*args, **kwargs):
+        return self.plot_stat(*args, **kwargs)
+
     # Method to plot the signal injection result
-    def PlotInject(self, filename=None):
+    def plot_inject(self, filename=None):
         """
         Function that uses the global parameters str_min and str_step as well as the global results sigma_ar to
         generate a plot.
@@ -1253,8 +1281,12 @@ class BumpHunter1D:
 
         return
 
+    @deprecated("Use `plot_inject` instead.")
+    def PlotInject(*args, **kwargs):
+        return self.plot_inject(*args, **kwargs)
+
     # Method that print the local infomation about the most significante bump in data
-    def PrintBumpInfo(self):
+    def print_bump_info(self):
         """
         Function that print the local infomation about the most significante bump in data. Information are
         printed to stdout.
@@ -1271,8 +1303,12 @@ class BumpHunter1D:
 
         return
 
+    @deprecated("Use `print_bump_info` instead.")
+    def PrintBumpInfo(*args, **kwargs):
+        return self.print_bump_info(*args, **kwargs)
+
     # Function that print the global infomation about the most significante bump in data
-    def PrintBumpTrue(self, data, bkg, is_hist=False):
+    def print_bump_true(self, data, bkg, is_hist=False):
         """
         Print the global informations about the most significante bump in data in real scale.
         Information are printed to stdout.
@@ -1312,6 +1348,10 @@ class BumpHunter1D:
         print("")
 
         return
+
+    @deprecated("Use `print_bump_true` instead.")
+    def PrintBumpTrue(*args, **kwargs):
+        return self.print_bump_true(*args, **kwargs)
 
     # end of BumpHunter class
 
