@@ -5,6 +5,8 @@
 import os
 
 import numpy as np
+import uproot as upr
+from pathlib import Path
 import pytest
 
 import pyBumpHunter as BH
@@ -13,7 +15,9 @@ import pyBumpHunter as BH
 
 here = os.path.dirname(os.path.realpath(__file__))
 
-
+'''
+# Generate a dataset with numpy
+# Migth be use latter
 def make_datasets(seed):
     np.random.seed(seed)
     bkg = np.random.exponential(2, size=100000)
@@ -25,15 +29,31 @@ def make_datasets(seed):
 
     all = [ar[ar < 20] for ar in (data, sig, bkg)]
     return all
+'''
 
+# Get the dataset from the ROOT file
+# I prefer to keep it for now since the value I am testing are dataset specific
+def make_datasets():
+    # Get path to data
+    path = Path('../data/data.root')
+
+    # Open the file
+    with upr.open(path) as f:
+        # Get the trees
+        bkg = f['bkg'].arrays(library='np')['bkg']
+        data = f['data'].arrays(library='np')['data']
+        sig = f['sig'].arrays(library='np')['sig']
+
+    all = [data,sig,bkg]
+    return all 
 
 @pytest.fixture
 def data_sig_bkg1():
-    return make_datasets(seed=534)
-
+    #return make_datasets(seed=534)
+    return make_datasets()
 
 @pytest.fixture
-def bhunter_noscan():
+def bhunter():
     return BH.BumpHunter1D(
         rang=[0, 20],
         width_min=2,
@@ -46,18 +66,13 @@ def bhunter_noscan():
     )
 
 
-@pytest.fixture
-def bhunter(bhunter_noscan, data_sig_bkg1):
+# Test if the the bump_scan method runs
+def test_scan_run(data_sig_bkg1, bhunter):
+    # Get the data
     data, _, bkg = data_sig_bkg1
-    bhunter_noscan.BumpScan(data, bkg)
-    return bhunter_noscan
 
-
-# Test if the the BumpScan method runs
-def test_scan_run(data_sig_bkg1, bhunter_noscan):
-    data, _, bkg = data_sig_bkg1
-    bhunter_noscan.BumpScan(data, bkg)
-    bhunter = bhunter_noscan
+    # Run the bump_scan method
+    bhunter.bump_scan(data, bkg)
 
     # Test if the position of the Bump is correct w.r.t. the expected value
     assert bhunter.min_loc_ar[0] == 16  # 16th bin
@@ -71,38 +86,34 @@ def test_scan_run(data_sig_bkg1, bhunter_noscan):
     # Test if the global p-value is correct w.r.t. the expected value (up to 5 digit)
     assert f"{bhunter.global_Pval:.5f}" == "0.01770"
 
-
-# Test if the number of tested intervals is correct w.r.t. the expected value
-def test_number_interval(bhunter):
+    # Test if the number of tested intervals is correct w.r.t. the expected value
     N = 0
     for res in bhunter.res_ar:
         for r in res:
             N += r.size
     assert N == 2811150
 
-
-# Test if the evaluated number of signal event is correct w.r.t. the expected value
-def test_number_signal(bhunter, data_sig_bkg1):
-    data, _, bkg = data_sig_bkg1
-    Hdata, _ = np.histogram(data, bins=bhunter.bins, range=bhunter.rang)
-    Hbkg, _ = np.histogram(
-        bkg, bins=bhunter.bins, range=bhunter.rang, weights=bhunter.weights
-    )
-    # TODO fix: this test never ran as it was named tesl_blabla...
-    D = Hdata[min_loc_ar[0] : min_loc_ar[0] + min_width_ar[0]].sum()
-    B = Hbkg[min_loc_ar[0] : min_loc_ar[0] + min_width_ar[0]].sum()
-    assert int(D - B) == 208
+    # Test if the evaluated number of signal event is correct w.r.t. the expected value
+    assert bhunter.signal_eval == 208
 
 
-# Test if the SignalInject method runs
+# Test if the signal_inject method runs
 def test_inject_run(bhunter, data_sig_bkg1):
+    # Get the data
     _, sig, bkg = data_sig_bkg1
+
+    # Set the injection parametters
     bhunter.sigma_limit = 5
     bhunter.str_min = -1  # if str_scale='log', the real starting value is 10**str_min
     bhunter.str_scale = "log"
     bhunter.signal_exp = 150  # Correspond the the real number of signal events generated when making the data
 
-    bhunter.SignalInject(sig, bkg)
+    # Run the signal_inject method
+    bhunter.signal_inject(sig, bkg)
 
+    # Test if the final number of injected signal event is correct w.r.t. the expected value
     assert int(bhunter.signal_min) == 300
+    
+    # Test if the final signal ratio is correct w.r.t. the expected value
     assert f"{bhunter.signal_ratio:.2f}" == "2.00"
+
