@@ -145,7 +145,7 @@ class BumpHunter1D:
     ):
         """
 
-        Args:
+        Arguments:
             rang ():
             mode ():
             width_min ():
@@ -648,18 +648,14 @@ class BumpHunter1D:
         tdat = self.t_ar[0]
         S = self.t_ar[1:][self.t_ar[1:] > tdat].size
         self.global_Pval = S / self.Npe
-        print(
-            f"Global p-value : {0:1.4f}  ({1} / {2})".format(
-                self.global_Pval, S, self.Npe
-            )
-        )
+        print(f"Global p-value : {self.global_Pval:1.4f}  ({S} / {self.Npe})")
 
         # If global p-value is exactly 0, we might have trouble with the significance
-        if self.global_Pval < 0.0000000000000001:
-            self.significance = norm.ppf(1 - 0.0000000000000001)
+        if self.global_Pval < 1e-15:
+            self.significance = norm.ppf(1 - 1e-15)
         else:
             self.significance = norm.ppf(1 - self.global_Pval)
-        print(f"Significance = {0:1.5f}".format(self.significance))
+        print(f"Significance = {self.significance:1.5f}")
         print("")
 
         return
@@ -871,30 +867,26 @@ class BumpHunter1D:
             global_inf = Sinf / self.Npe
             global_sup = Ssup / self.Npe
             print(
-                "Global p-value : {:1.4f}  ({} / {})   {:1.4f}  ({})   {:1.4f}  ({})".format(
-                    self.global_Pval, S, self.Npe, global_inf, Sinf, global_sup, Ssup
-                )
+                f"Global p-value : {self.global_Pval:1.4f}  ({S} / {self.Npe})   {global_inf:1.4f}  ({Sinf})   {global_sup:1.4f}  ({Ssup})"
             )
 
             # If global p-value is exactly 0, we might have trouble with the significance
-            if self.global_Pval < 0.0000000000000001:
-                self.significance = norm.ppf(1 - 0.0000000000000001)
+            if self.global_Pval < 1e-15:
+                self.significance = norm.ppf(1 - 1e-15)
             else:
                 self.significance = norm.ppf(1 - self.global_Pval)
 
-            if global_inf < 0.0000000000000001:
-                sigma_inf = norm.ppf(1 - 0.0000000000000001)
+            if global_inf < 1e-15:
+                sigma_inf = norm.ppf(1 - 1e-15)
             else:
                 sigma_inf = norm.ppf(1 - global_inf)
 
-            if global_sup < 0.0000000000000001:
-                sigma_sup = norm.ppf(1 - 0.0000000000000001)
+            if global_sup < 1e-15:
+                sigma_sup = norm.ppf(1 - 1e-15)
             else:
                 sigma_sup = norm.ppf(1 - global_sup)
             print(
-                "Significance = {:1.5f} ({:1.5f}  {:1.5f})".format(
-                    self.significance, sigma_inf, sigma_sup
-                )
+                f"Significance = {self.significance:1.5f} ({sigma_inf:1.5f}  {sigma_sup:1.5f})"
             )
             print("")
 
@@ -1145,9 +1137,7 @@ class BumpHunter1D:
         F = plt.figure(figsize=(12, 8))
         if show_Pval:
             plt.title(
-                "BumpHunter statistics distribution      global p-value = {:1.4f}".format(
-                    self.global_Pval
-                )
+                f"BumpHunter statistics distribution      global p-value = {self.global_Pval:1.4f}"
             )
         else:
             plt.title("BumpHunter statistics distribution")
@@ -1272,10 +1262,10 @@ class BumpHunter1D:
 
         # Print stuff
         print("BUMP WINDOW")
-        print("   loc = {}".format(self.min_loc_ar[0]))
-        print("   width = {}".format(self.min_width_ar[0]))
+        print(f"   loc = {self.min_loc_ar[0]}")
+        print(f"   width = {self.min_width_ar[0]}")
         print(
-            "   local p-value | t = {} | {}".format(self.min_Pval_ar[0], self.t_ar[0])
+            f"   local p-value | t = {self.min_Pval_ar[0]:.5f} | {self.t_ar[0]:.5f}"
         )
         print("")
 

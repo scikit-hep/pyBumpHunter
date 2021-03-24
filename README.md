@@ -1,6 +1,6 @@
 # pyBumpHunter
 
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/lovaslin/pyBumpHunter/master)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/scikit-hep/pyBumpHunter/master)
 [![Test](https://github.com/scikit-hep/pyBumpHunter/workflows/automated_testing/badge.svg)](https://github.com/lovaslin/pyBumpHunter/actions)
 [![PyPI](https://img.shields.io/pypi/v/pyBumpHunter)](https://pypi.org/project/pyBumpHunter/)
 
