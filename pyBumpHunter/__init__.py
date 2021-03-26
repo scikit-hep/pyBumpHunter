@@ -61,7 +61,7 @@ class BumpHunter(BumpHunter1D):
         width_max=None,
         width_step=1,
         scan_step=1,
-        Npe=100,
+        npe=100,
         bins=60,
         weights=None,
         nworker=4,
@@ -73,6 +73,7 @@ class BumpHunter(BumpHunter1D):
         flip_sig=True,
         seed=None,
         use_sideband=None,
+        Npe = None,
         Nworker=None,
         useSideBand=None,
     ):

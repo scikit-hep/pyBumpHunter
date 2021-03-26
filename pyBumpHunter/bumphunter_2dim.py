@@ -14,7 +14,7 @@ from scipy.stats import norm
 
 from pyBumpHunter.bumphunter_1dim import BumpHunterInterface
 
-from .util import deprecated
+from .util import deprecated, deprecated_arg
 
 
 # THE super BumpHunter class
@@ -48,12 +48,12 @@ class BumpHunter2D(BumpHunterInterface):
                     If 'half', the window will be shifted by a number of bins equal to max(1,width//2).
                     Default to [1,1].
 
-        Npe : Number of pseudo-data distributions to be sampled from the reference background distribution.
+        npe : Number of pseudo-data distributions to be sampled from the reference background distribution.
               Default to 100.
 
         bins : Define the bins of the histograms. Can be ether a [integer,integer] or a 2D array-like of floats.
                If integer ([N,M]), N*M bins of equal width will be considered.
-               If 2D array-like of float (a), a number of bins equal to a (a.shape[0]-1)*(a.shape[1]-1) with the values of a
+               If 2D array-like of float (a), a number of bins equal to (a.shape[0]-1)*(a.shape[1]-1) with the values of a
                as edges will be considered (variable width bins allowed).
                Default to [20,20].
 
@@ -64,13 +64,13 @@ class BumpHunter2D(BumpHunterInterface):
                   If None, no weights will be considered.
                   Default to None.
 
-        Nworker : Number of thread to be run in parallel when scanning all the histograms (data and pseudo-data).
+        nworker : Number of thread to be run in parallel when scanning all the histograms (data and pseudo-data).
                   If less or equal to 1, then parallelism will be disabled.
                   Default to 4.
 
         seed : Seed for the random number generator. Default to None.
 
-        useSideBand : Boolean specifying if the side-band normalization should be applied. Default to False.
+        use_sideband : Boolean specifying if the side-band normalization should be applied. Default to False.
 
         sigma_limit : The minimum significance required after injection. Deault to 5.
 
@@ -126,6 +126,9 @@ class BumpHunter2D(BumpHunterInterface):
     """
 
     # Initializer method
+    @deprecated_arg("useSideBand", "use_sideband")
+    @deprecated_arg("Nworker", "nworker")
+    @deprecated_arg("Npe", "npe")
     def __init__(
         self,
         rang=None,
@@ -134,10 +137,10 @@ class BumpHunter2D(BumpHunterInterface):
         width_max=None,
         width_step=[1, 1],
         scan_step=[1, 1],
-        Npe=100,
+        npe=100,
         bins=[20, 20],
         weights=None,
-        Nworker=4,
+        nworker=4,
         sigma_limit=5,
         str_min=0.5,
         str_step=0.25,
@@ -145,8 +148,90 @@ class BumpHunter2D(BumpHunterInterface):
         signal_exp=None,
         flip_sig=True,
         seed=None,
-        useSideBand=False,
+        use_sideband=False,
+        Npe=None,
+        Nworker=None,
+        useSideBand=None,
     ):
+        """
+        Arguments:
+            rang : [x,y]-axis ranges of the histograms. Also define the ranges in which the scan will be performed.
+            
+            mode : String specifying if the algorithm must look for a excess or a deficit in the data.
+                   Can be either 'excess' or 'deficit'. Default to 'excess'.
+            
+            width_min : Minimum [x,y] values of the scan window width that should be tested (in number of bins).
+                        If None, it will be set to [1,1].
+                        Default to None.
+            
+            width_max : Maximum [x,y] values of the scan window width that should be tested (in number of bins). Can be
+                        either None or an array-like of 2 positive integers. if None, the value is set to the total number of bins
+                        of the histograms divided by 2. Default to none.
+            
+            width_step : Number of bins by which the scan window width is increased at each step. Default to [1,1].
+            
+            scan_step : Number of bins by which the position of the scan window is shifted at each step. Can an array-like
+                        length 2 of either 'full', 'half' or positive integers.
+                        If 'full', the window will be shifted by a number of bins equal to its width.
+                        If 'half', the window will be shifted by a number of bins equal to max(1,width//2).
+                        Default to [1,1].
+            
+            npe : Number of pseudo-data distributions to be sampled from the reference background distribution.
+                  Default to 100.
+
+            bins : bins : Define the bins of the histograms. Can be ether a [integer,integer] or a 2D array-like of floats.
+                   If integer ([N,M]), N*M bins of equal width will be considered.
+                   If 2D array-like of float (a), a number of bins equal to (a.shape[0]-1)*(a.shape[1]-1) with the values of a
+                   as edges will be considered (variable width bins allowed).
+                   Default to [20,20].
+    
+            weights : Weights for the background distribution. Can be either None or a array-like of float.
+                      If array-like of floats, each background events will be accounted by its weights when making
+                      histograms. The size of the array-like must be the same than of bkg. The same weights are
+                      considered when sampling the pseudo-data.
+                      If None, no weights will be considered.
+                      Default to None.
+    
+            nworker : Number of thread to be run in parallel when scanning all the histograms (data and pseudo-data).
+                      If less or equal to 1, then parallelism will be disabled.
+                      Default to 4.
+
+            sigma_limit : The minimum significance required after injection. Deault to 5.
+
+            str_min : The minimum number signal stregth to inject in background (first iteration). Default to 0.5.
+    
+            str_step : Increase of the signal stregth to be injected in the background at each iteration. Default to 0.25.
+    
+            str_scale : Specify how the signal strength should vary. If 'log', the signal strength will vary according to
+                        a log scale starting from 10**Str_min. If 'lin', the signal will vary according to a linear scale starting
+                        from Str_min with a step of Str_step.
+                        Default to 'lin'.
+    
+            signal_exp : Expected number of signal used to compute the signal strength. If None, the signal strength is not
+                         computed. Default to None.
+    
+            flip_sig : Boolean specifying if the signal should be fliped when running in deficit mode.
+                       Ignored in excess mode. Default to True.
+                
+            seed : Seed for the random number generator. Default to None. 
+            
+            use_sideband : Boolean specifying if the side-band normalization should be applied. Default to False.
+            
+            Npe : Same as npe. This argument is deprecated and will be removed in future versions.
+            
+            Nworker : Same as nworker. This argument is deprecated and will be removed in future versions.
+            
+            useSideBand : Same as use_sideband. This argument is deprecated and will be removed in future versions.
+        """
+
+        # legacy deprecation
+        if useSideBand is not None:
+            use_sideband = useSideBand
+        if Nworker is not None:
+            nworker = Nworker
+        if Npe is not None:
+            npe = Npe
+
         if width_min is None:
             width_min = [1, 1]
 
@@ -157,10 +242,10 @@ class BumpHunter2D(BumpHunterInterface):
         self.width_max = width_max
         self.width_step = width_step
         self.scan_step = scan_step
-        self.Npe = Npe
+        self.npe = npe
         self.bins = bins
         self.weights = weights
-        self.Nworker = Nworker
+        self.nworker = nworker
         self.sigma_limit = sigma_limit
         self.str_min = str_min
         self.str_step = str_step
@@ -168,7 +253,7 @@ class BumpHunter2D(BumpHunterInterface):
         self.signal_exp = signal_exp
         self.flip_sig = flip_sig
         self.seed = seed
-        self.useSideBand = useSideBand
+        self.use_sideband = use_sideband
 
         # Initialize all inner result variables
         self.reset()
@@ -218,7 +303,7 @@ class BumpHunter2D(BumpHunterInterface):
         )
         signal_eval = np.empty(w_ar.shape[0])
 
-        if self.useSideBand:
+        if self.use_sideband:
             ref_total = ref.sum()
             hist_total = hist.sum()
 
@@ -269,7 +354,7 @@ class BumpHunter2D(BumpHunterInterface):
             )
 
             # Apply side-band normalization if required
-            if self.useSideBand == True:
+            if self.use_sideband == True:
                 Nref *= (hist_total - Nhist) / (ref_total - Nref)
 
             # Calculate all local p-values for for width w
@@ -283,7 +368,7 @@ class BumpHunter2D(BumpHunterInterface):
                     Nhist[Nhist < Nref] + 1, Nref[Nhist < Nref]
                 )
 
-            if self.useSideBand == True:
+            if self.use_sideband == True:
                 res[i][
                     res[i] < 1e-300
                 ] = 1e-300  # prevent issue with very low p-value, sometimes induced by normalisation in the tail
@@ -335,7 +420,7 @@ class BumpHunter2D(BumpHunterInterface):
         return
 
     @deprecated("Use `reset` instead.")
-    def Reset(*args, **kwargs):
+    def Reset(self, *args, **kwargs):
         return self.reset(*args, **kwargs)
 
     # Export/import parameters/results
@@ -360,8 +445,8 @@ class BumpHunter2D(BumpHunterInterface):
         state["width_max"] = self.width_max
         state["width_step"] = self.width_step
         state["scan_step"] = self.scan_step
-        state["Npe"] = self.Npe
-        state["Nworker"] = self.Nworker
+        state["npe"] = self.npe
+        state["nworker"] = self.nworker
         state["seed"] = self.seed
         state["sigma_limit"] = self.sigma_limit
         state["str_min"] = self.str_min
@@ -369,7 +454,7 @@ class BumpHunter2D(BumpHunterInterface):
         state["str_scale"] = self.str_scale
         state["signal_exp"] = self.signal_exp
         state["sig_flip"] = self.flip_sig
-        state["useSideBand"] = self.useSideBand
+        state["use_sideband"] = self.use_sideband
 
         # Save results
         state["global_Pval"] = self.global_Pval
@@ -387,7 +472,7 @@ class BumpHunter2D(BumpHunterInterface):
         return state
 
     @deprecated("Use `save_state` instead.")
-    def SaveState(*args, **kwargs):
+    def SaveState(self, *args, **kwargs):
         return self.save_state(*args, **kwargs)
 
     def load_state(self, state):
@@ -442,25 +527,25 @@ class BumpHunter2D(BumpHunterInterface):
         else:
             self.scan_step = [1, 1]
 
-        if "Npe" in state.keys():
-            self.Npe = state["Npe"]
+        if "npe" in state.keys():
+            self.npe = state["npe"]
         else:
-            self.Npe = 100
+            self.npe = 100
 
-        if "Nworker" in state.keys():
-            self.Nworker = state["Nworker"]
+        if "nworker" in state.keys():
+            self.nworker = state["nworker"]
         else:
-            self.Nworker = 4
+            self.nworker = 4
 
         if "seed" in state.keys():
             self.seed = state["seed"]
         else:
             self.seed = None
 
-        if "useSideBand" in state.keys():
-            self.useSideBand = state["useSideBand"]
+        if "use_sideband" in state.keys():
+            self.use_sideband = state["use_sideband"]
         else:
-            self.useSideBand = False
+            self.use_sideband = False
 
         if "sigma_limit" in state.keys():
             self.sigma_limit = state["sigma_limit"]
@@ -520,7 +605,7 @@ class BumpHunter2D(BumpHunterInterface):
         return
 
     @deprecated("Use `load_state` instead.")
-    def LoadState(*args, **kwargs):
+    def LoadState(self, *args, **kwargs):
         return self.load_state(*args, **kwargs)
 
     ## Scan methods
@@ -578,7 +663,7 @@ class BumpHunter2D(BumpHunterInterface):
 
         # Generate the background and data histograms
         print("Generating histograms")
-        if is_hist is False:
+        if not is_hist:
             bkg_hist, Hbinx, Hbiny = np.histogram2d(
                 bkg[:, 0],
                 bkg[:, 1],
@@ -601,11 +686,11 @@ class BumpHunter2D(BumpHunterInterface):
         if do_pseudo:
             pseudo_hist = bkg_hist.flatten()
             pseudo_hist = np.random.poisson(
-                lam=np.tile(pseudo_hist, (self.Npe, 1)).transpose(),
-                size=(pseudo_hist.size, self.Npe),
+                lam=np.tile(pseudo_hist, (self.npe, 1)).transpose(),
+                size=(pseudo_hist.size, self.npe),
             )
             pseudo_hist = np.reshape(
-                pseudo_hist, (bkg_hist.shape[0], bkg_hist.shape[1], self.Npe)
+                pseudo_hist, (bkg_hist.shape[0], bkg_hist.shape[1], self.npe)
             )
 
         # Set width_max if it is given as None
@@ -614,10 +699,10 @@ class BumpHunter2D(BumpHunterInterface):
 
         # Initialize all results containenrs
         if do_pseudo:
-            self.min_Pval_ar = np.empty(self.Npe + 1)
-            self.min_loc_ar = np.empty(self.Npe + 1, dtype=object)
-            self.min_width_ar = np.empty(self.Npe + 1, dtype=object)
-            self.res_ar = np.empty(self.Npe + 1, dtype=object)
+            self.min_Pval_ar = np.empty(self.npe + 1)
+            self.min_loc_ar = np.empty(self.npe + 1, dtype=object)
+            self.min_width_ar = np.empty(self.npe + 1, dtype=object)
+            self.res_ar = np.empty(self.npe + 1, dtype=object)
         else:
             if self.res_ar == []:
                 self.min_Pval_ar = np.empty(1)
@@ -636,9 +721,9 @@ class BumpHunter2D(BumpHunterInterface):
         # We must check if we should do it in multiple threads
         print("SCAN")
         if do_pseudo:
-            if self.Nworker > 1:
-                with thd.ThreadPoolExecutor(max_workers=self.Nworker) as exe:
-                    for th in range(self.Npe + 1):
+            if self.nworker > 1:
+                with thd.ThreadPoolExecutor(max_workers=self.nworker) as exe:
+                    for th in range(self.npe + 1):
                         if th == 0:
                             exe.submit(self._scan_hist, data_hist, bkg_hist, w_ar, th)
                         else:
@@ -650,7 +735,7 @@ class BumpHunter2D(BumpHunterInterface):
                                 th,
                             )
             else:
-                for i in range(self.Npe + 1):
+                for i in range(self.npe + 1):
                     if i == 0:
                         self._scan_hist(data_hist, bkg_hist, w_ar, i)
                     else:
@@ -665,9 +750,9 @@ class BumpHunter2D(BumpHunterInterface):
         if self.t_ar.size > 1:
             tdat = self.t_ar[0]
             S = self.t_ar[1:][self.t_ar[1:] > tdat].size
-            self.global_Pval = S / self.Npe
+            self.global_Pval = S / self.npe
             print(
-                f"Global p-value : {self.global_Pval:1.4f}  ({S} / {self.Npe})"
+                f"Global p-value : {self.global_Pval:1.4f}  ({S} / {self.npe})"
             )
 
             # If global p-value is exactly 0, we might have trouble with the significance
@@ -683,7 +768,7 @@ class BumpHunter2D(BumpHunterInterface):
         return
 
     @deprecated("Use `bump_scan` instead.")
-    def BumpScan(*args, **kwargs):
+    def BumpScan(self, *args, **kwargs):
         return self.bump_scan(*args, **kwargs)
 
     # Perform signal injection on background and determine the minimum aount of signal required for observation
@@ -737,13 +822,13 @@ class BumpHunter2D(BumpHunterInterface):
 
         # Check the expected number of signal event
         if self.signal_exp is None:
-            if is_hist is False:
+            if not is_hist:
                 self.signal_exp = sig.size
             else:
                 self.signal_exp = sig.sum()
 
         # Turn the background distributions into histogram
-        if is_hist is False:
+        if not is_hist:
             bkg_hist, bins = np.histogram(
                 bkg, bins=self.bins, range=self.rang, weights=self.weights
             )
@@ -774,8 +859,8 @@ class BumpHunter2D(BumpHunterInterface):
         # Compute the p-value for background only pseudo-experiments
         # We must check if we should do it in multiple threads
         print("BACKGROUND ONLY SCAN")
-        if self.Nworker > 1:
-            with thd.ThreadPoolExecutor(max_workers=self.Nworker) as exe:
+        if self.nworker > 1:
+            with thd.ThreadPoolExecutor(max_workers=self.nworker) as exe:
                 for th in range(Nbkg):
                     exe.submit(self._scan_hist, pseudo_bkg[:, th], bkg_hist, w_ar, th)
         else:
@@ -835,7 +920,7 @@ class BumpHunter2D(BumpHunterInterface):
                 self.signal_min = -self.signal_min
 
             # Check if the signal is alredy in histogram form or not
-            if is_hist is False:
+            if not is_hist:
                 sig_hist = np.histogram(sig, bins=self.bins, range=self.rang)[0]
                 sig_hist = sig_hist * strength * (self.signal_exp / sig.size)
             else:
@@ -844,34 +929,34 @@ class BumpHunter2D(BumpHunterInterface):
 
             # Check if sig_hist should be fliped in deficit mode
             if self.mode == "deficit":
-                if self.flip_sig is True:
+                if self.flip_sig:
                     sig_hist = -sig_hist
 
             # Inject the signal and do some poissonian fluctuation
             print("Generating background+signal histograms")
             data_hist = bkg_hist + sig_hist
             pseudo_data = np.random.poisson(
-                lam=np.tile(data_hist, (self.Npe, 1)).transpose(),
-                size=(data_hist.size, self.Npe),
+                lam=np.tile(data_hist, (self.npe, 1)).transpose(),
+                size=(data_hist.size, self.npe),
             )
 
             # Initialize all results containenrs
-            self.min_Pval_ar = np.empty(self.Npe)
-            self.min_loc_ar = np.empty(self.Npe, dtype=int)
-            self.min_width_ar = np.empty(self.Npe, dtype=int)
-            self.res_ar = np.empty(self.Npe, dtype=object)
+            self.min_Pval_ar = np.empty(self.npe)
+            self.min_loc_ar = np.empty(self.npe, dtype=int)
+            self.min_width_ar = np.empty(self.npe, dtype=int)
+            self.res_ar = np.empty(self.npe, dtype=object)
 
             # Compute the p-value for background+signal pseudo-experiments
             # We must check if we should do it in multiple threads
             print("BACKGROUND+SIGNAL SCAN")
-            if self.Nworker > 1:
-                with thd.ThreadPoolExecutor(max_workers=self.Nworker) as exe:
-                    for th in range(self.Npe):
+            if self.nworker > 1:
+                with thd.ThreadPoolExecutor(max_workers=self.nworker) as exe:
+                    for th in range(self.npe):
                         exe.submit(
                             self._scan_hist, pseudo_data[:, th], bkg_hist, w_ar, th
                         )
             else:
-                for th in range(self.Npe):
+                for th in range(self.npe):
                     self._scan_hist(pseudo_data[:, th], bkg_hist, w_ar, th)
 
             # Use the p-value results to compute t
@@ -886,11 +971,11 @@ class BumpHunter2D(BumpHunterInterface):
             S = t_ar_bkg[t_ar_bkg > tdat].size
             Sinf = t_ar_bkg[t_ar_bkg > tinf].size
             Ssup = t_ar_bkg[t_ar_bkg > tsup].size
-            self.global_Pval = S / self.Npe
-            global_inf = Sinf / self.Npe
-            global_sup = Ssup / self.Npe
+            self.global_Pval = S / self.npe
+            global_inf = Sinf / self.npe
+            global_sup = Ssup / self.npe
             print(
-                f"Global p-value : {self.global_Pval:1.4f}  ({S} / {self.Npe})   {global_inf:1.4f}  ({Sinf})   {global_sup:1.4f}  ({Ssup})"
+                f"Global p-value : {self.global_Pval:1.4f}  ({S} / {self.npe})   {global_inf:1.4f}  ({Sinf})   {global_sup:1.4f}  ({Ssup})"
             )
 
             # If global p-value is exactly 0, we might have trouble with the significance
@@ -946,13 +1031,14 @@ class BumpHunter2D(BumpHunterInterface):
         return
 
     @deprecated("Use `signal_inject` instead.")
-    def SignalInject(*args, **kwargs):
+    def SignalInject(self, *args, **kwargs):
         return self.signal_inject(*args, **kwargs)
 
     ## Display methods
 
     # Plot the data and bakground histograms with the bump found by BumpHunter highlighted
-    def plot_bump(self, data, bkg, is_hist=False, useSideBand=None, filename=None):
+    @deprecated_arg("useSideBand", "use_sideband")
+    def plot_bump(self, data, bkg, is_hist=False, use_sideband=None, filename=None, useSideBand=None):
         """
         Plot the data and bakground histograms with the bump found by BumpHunter highlighted.
 
@@ -963,16 +1049,22 @@ class BumpHunter2D(BumpHunterInterface):
 
             is_hist : Boolean specifying if data and bkg are in histogram form or not. Default to False.
 
-            useSideBand : Boolean specifying if side-band normalization should be used to correct the reference background
-                          in the plot. If None, self.useSideBand is used instead.
+            use_sideband : Boolean specifying if side-band normalization should be used to correct the reference background
+                          in the plot. If None, self.use_sideband is used instead.
                           Default to None.
 
             filename : Name of the file in which the plot will be saved. If None, the plot will be just shown
                        but not saved. Default to None.
+
+            useSideBand : Same as use_sideband. This argument is deprecated and will be removed in a future version.
         """
 
+        # legacy deprecation
+        if useSideBand is not None:
+            use_sideband = useSideBand
+
         # Get the data in histogram form
-        if is_hist is False:
+        if not is_hist:
             H = np.histogram2d(data[:, 0], data[:, 1], bins=self.bins, range=self.rang)
             H = [H[0], [H[1], H[2]]]
         else:
@@ -985,7 +1077,7 @@ class BumpHunter2D(BumpHunterInterface):
         Bmaxy = H[1][1][self.min_loc_ar[0][1] + self.min_width_ar[0][1]]
 
         # Get the background in histogram form
-        if is_hist is False:
+        if not is_hist:
             Hbkg = np.histogram2d(
                 bkg[:, 0],
                 bkg[:, 1],
@@ -1000,10 +1092,10 @@ class BumpHunter2D(BumpHunterInterface):
                 Hbkg = bkg * self.weights
 
         # Chek if we should apply sideband normalization correction
-        if useSideBand is None:
-            useSideBand = self.useSideBand
+        if use_sideband is None:
+            use_sideband = self.use_sideband
 
-        if useSideBand:
+        if use_sideband:
             pos = self.min_loc_ar[0]
             width = self.min_width_ar[0]
             scale = (
@@ -1067,7 +1159,7 @@ class BumpHunter2D(BumpHunterInterface):
         return
 
     @deprecated("Use `plot_bump` instead.")
-    def PlotBump(*args, **kwargs):
+    def PlotBump(self, *args, **kwargs):
         return self.plot_bump(*args, **kwargs)
 
     # Plot the Bumpunter test statistic distribution with the result for data
@@ -1122,7 +1214,7 @@ class BumpHunter2D(BumpHunterInterface):
         return
 
     @deprecated("Use `plot_stat` instead.")
-    def PlotBHstat(*args, **kwargs):
+    def PlotBHstat(self, *args, **kwargs):
         return self.plot_stat(*args, **kwargs)
 
     # Method to plot the signal injection result
@@ -1179,7 +1271,7 @@ class BumpHunter2D(BumpHunterInterface):
         if filename is None:
             plt.show()
         else:
-            if self.str_scale == "log" and nolog is False:
+            if self.str_scale == "log" and not nolog:
                 plt.savefig(filename[0], bbox_inches="tight")
             else:
                 plt.savefig(filename, bbox_inches="tight")
@@ -1206,12 +1298,12 @@ class BumpHunter2D(BumpHunterInterface):
             if filename is None:
                 plt.show()
             else:
-                if nolog is False:
+                if not nolog:
                     plt.savefig(filename[1], bbox_inches="tight")
                 plt.close(F)
 
     @deprecated("Use `plot_inject` instead.")
-    def PlotInject(*args, **kwargs):
+    def PlotInject(self, *args, **kwargs):
         return self.plot_inject(*args, **kwargs)
 
     # Method that print the local infomation about the most significante bump in data
@@ -1233,7 +1325,7 @@ class BumpHunter2D(BumpHunterInterface):
         return
 
     @deprecated("Use `print_bump_info` instead.")
-    def PrintBumpInfo(*args, **kwargs):
+    def PrintBumpInfo(self, *args, **kwargs):
         return self.print_bump_info(*args, **kwargs)
 
     # Function that print the global infomation about the most significante bump in data
@@ -1251,7 +1343,7 @@ class BumpHunter2D(BumpHunterInterface):
         """
 
         # Get the data and background in histogram form
-        if is_hist is False:
+        if not is_hist:
             H = np.histogram2d(data[:, 0], data[:, 1], bins=self.bins, range=self.rang)
             Hb = np.histogram2d(
                 bkg[:, 0],
@@ -1294,7 +1386,7 @@ class BumpHunter2D(BumpHunterInterface):
         return
 
     @deprecated("Use `print_bump_true` instead.")
-    def PrintBumpTrue(*args, **kwargs):
+    def PrintBumpTrue(self, *args, **kwargs):
         return self.print_bump_true(*args, **kwargs)
 
     # end of BumpHunter2D class

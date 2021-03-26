@@ -146,27 +146,73 @@ class BumpHunter1D:
         Npe=None,
     ):
         """
-
         Arguments:
-            rang ():
-            mode ():
-            width_min ():
-            width_max ():
-            width_step ():
-            scan_step ():
-            Npe ():
-            bins ():
-            weights ():
-            nworker ():
-            sigma_limit ():
-            str_min ():
-            str_step ():
-            str_scale ():
-            signal_exp ():
-            flip_sig ():
-            seed ():
-            use_sideband ():
-            useSideBand ():
+            rang : x-axis range of the histograms. Also define the range in which the scan will be performed.
+            
+            mode : String specifying if the algorithm must look for a excess or a deficit in the data.
+                   Can be either 'excess' or 'deficit'. Default to 'excess'.
+            
+            width_min : Minimum value of the scan window width that should be tested (in number of bins).
+                        Default to 1.
+            
+            width_max : Maximum value of the scan window width that should be tested (in number of bins). Can be
+                        either None or a positive integer. if None, the value is set to the total number of bins
+                        of the histograms divided by 2. Default to none.
+            
+            width_step : Number of bins by which the scan window width is increased at each step. Default to 1.
+            
+            scan_step : Number of bins by which the position of the scan window is shifted at each step. Can be
+                        either 'full', 'half' or a positive integer.
+                        If 'full', the window will be shifted by a number of bins equal to its width.
+                        If 'half', the window will be shifted by a number of bins equal to max(1,width//2).
+                        Default to 1.
+            
+            npe : Number of pseudo-data distributions to be sampled from the reference background distribution.
+                  Default to 100.
+
+            bins : Define the bins of the histograms. Can be ether a integer of a array-like of floats.
+                   If integer (N), N bins of equal width will be considered.
+                   If array-like of float (a), a number of bins equal to a length-1 with the values of a as edges will
+                   be considered (variable width bins allowed).
+                   Default to 60.
+    
+            weights : Weights for the background distribution. Can be either None or a array-like of float.
+                      If array-like of floats, each background events will be accounted by its weights when making
+                      histograms. The size of the array-like must be the same than of bkg. The same weights are
+                      considered when sampling the pseudo-data.
+                      If None, no weights will be considered.
+                      Default to None.
+    
+            nworker : Number of thread to be run in parallel when scanning all the histograms (data and pseudo-data).
+                      If less or equal to 1, then parallelism will be disabled.
+                      Default to 4.
+
+            sigma_limit : The minimum significance required after injection. Deault to 5.
+
+            str_min : The minimum number signal stregth to inject in background (first iteration). Default to 0.5.
+    
+            str_step : Increase of the signal stregth to be injected in the background at each iteration. Default to 0.25.
+    
+            str_scale : Specify how the signal strength should vary. If 'log', the signal strength will vary according to
+                        a log scale starting from 10**Str_min. If 'lin', the signal will vary according to a linear scale starting
+                        from Str_min with a step of Str_step.
+                        Default to 'lin'.
+    
+            signal_exp : Expected number of signal used to compute the signal strength. If None, the signal strength is not
+                         computed. Default to None.
+    
+            flip_sig : Boolean specifying if the signal should be fliped when running in deficit mode.
+                       Ignored in excess mode. Default to True.
+                
+            seed : Seed for the random number generator. Default to None. 
+            
+            use_sideband : Boolean specifying if the side-band normalization should be applied. Default to False.
+            
+            Npe : Same as npe. This argument is deprecated and will be removed in future versions.
+            
+            Nworker : Same as Nworker. This argument is deprecated and will be removed in future versions.
+            
+            useSideBand : Same as useSideBand. This argument is deprecated and will be removed in future versions.
         """
         # legacy deprecation
         if useSideBand is not None:
@@ -342,7 +388,7 @@ class BumpHunter1D:
         return
 
     @deprecated("Use `reset` instead.")
-    def Reset(*args, **kwargs):
+    def Reset(self, *args, **kwargs):
         return self.reset(*args, **kwargs)
 
     # Export/import parameters/results
@@ -394,7 +440,7 @@ class BumpHunter1D:
         return state
 
     @deprecated("Use `save_state` instead.")
-    def SaveState(*args, **kwargs):
+    def SaveState(self, *args, **kwargs):
         return self.save_state(*args, **kwargs)
 
     def load_state(self, state):
@@ -525,7 +571,7 @@ class BumpHunter1D:
         return
 
     @deprecated("Use `load_state` instead.")
-    def LoadState(*args, **kwargs):
+    def LoadState(self, *args, **kwargs):
         return self.load_state(*args, **kwargs)
 
     ## Scan methods
@@ -582,7 +628,7 @@ class BumpHunter1D:
 
         # Generate the background and data histograms
         print("Generating histograms")
-        if is_hist is False:
+        if not is_hist:
             bkg_hist, Hbin = np.histogram(
                 bkg, bins=self.bins, weights=self.weights, range=self.rang
             )
@@ -670,7 +716,7 @@ class BumpHunter1D:
         return
 
     @deprecated("Use `bump_scan` instead.")
-    def BumpScacn(*args, **kwargs):
+    def BumpScacn(self, *args, **kwargs):
         return self.bump_scan(*args, **kwargs)
 
     # Perform signal injection on background and determine the minimum aount of signal required for observation
@@ -721,13 +767,13 @@ class BumpHunter1D:
 
         # Check the expected number of signal event
         if self.signal_exp is None:
-            if is_hist is False:
+            if not is_hist:
                 self.signal_exp = sig.size
             else:
                 self.signal_exp = sig.sum()
 
         # Turn the background distributions into histogram
-        if is_hist is False:
+        if not is_hist:
             bkg_hist, bins = np.histogram(
                 bkg, bins=self.bins, range=self.rang, weights=self.weights
             )
@@ -825,7 +871,7 @@ class BumpHunter1D:
                 self.signal_min = -self.signal_min
 
             # Check if the signal is alredy in histogram form or not
-            if is_hist is False:
+            if not is_hist:
                 sig_hist = np.histogram(sig, bins=self.bins, range=self.rang)[0]
                 sig_hist = sig_hist * strength * (self.signal_exp / sig.size)
             else:
@@ -834,7 +880,7 @@ class BumpHunter1D:
 
             # Check if sig_hist should be fliped in deficit mode
             if self.mode == "deficit":
-                if self.flip_sig is True:
+                if self.flip_sig:
                     sig_hist = -sig_hist
 
             # Inject the signal and do some poissonian fluctuation
@@ -936,7 +982,7 @@ class BumpHunter1D:
         return
 
     @deprecated("Use `signal_inject` instead.")
-    def SignalInject(*args, **kwargs):
+    def SignalInject(self, *args, **kwargs):
         return self.signal_inject(*args, **kwargs)
 
     ## Display methods
@@ -961,7 +1007,7 @@ class BumpHunter1D:
         Hinf = min(non0)
 
         # Get real bin bounds
-        if is_hist is False:
+        if not is_hist:
             H = np.histogram(data, bins=self.bins, range=self.rang)[1]
         else:
             H = self.bins
@@ -1001,12 +1047,12 @@ class BumpHunter1D:
         return
 
     @deprecated("Use `plot_tomography` instead.")
-    def GetTomography(*args, **kwargs):
+    def GetTomography(self, *args, **kwargs):
         return self.plot_tomography(*args, **kwargs)
 
     # Plot the data and bakground histograms with the bump found by BumpHunter highlighted
     @deprecated_arg("useSideBand", "use_sideband")
-    def PlotBump(self, data, bkg, is_hist=False, use_sideband=None, filename=None, useSideBand=None):
+    def plot_bump(self, data, bkg, is_hist=False, use_sideband=None, filename=None, useSideBand=None):
         """
         Plot the data and bakground histograms with the bump found by BumpHunter highlighted.
 
@@ -1023,6 +1069,8 @@ class BumpHunter1D:
 
             filename : Name of the file in which the plot will be saved. If None, the plot will be just shown
                        but not saved. Default to None.
+
+            useSideBand : Same as use_sideband. This argument is deprecated and will be removed in a future version.
         """
 
         # legacy deprecation
@@ -1030,7 +1078,7 @@ class BumpHunter1D:
             use_sideband = useSideBand
 
         # Get the data in histogram form
-        if is_hist is False:
+        if not is_hist:
             H = np.histogram(data, bins=self.bins, range=self.rang)
         else:
             H = [data, self.bins]
@@ -1040,7 +1088,7 @@ class BumpHunter1D:
         Bmax = H[1][self.min_loc_ar[0] + self.min_width_ar[0]]
 
         # Get the background in histogram form
-        if is_hist is False:
+        if not is_hist:
             Hbkg = np.histogram(
                 bkg, bins=self.bins, range=self.rang, weights=self.weights
             )[0]
@@ -1147,7 +1195,7 @@ class BumpHunter1D:
         return
 
     @deprecated("Use `plot_bump` instead.")
-    def PlotBump(*args, **kwargs):
+    def PlotBump(self, *args, **kwargs):
         return self.plot_bump(*args, **kwargs)
 
     # Plot the Bumpunter test statistic distribution with the result for data
@@ -1197,7 +1245,7 @@ class BumpHunter1D:
         return
 
     @deprecated("Use `plot_stat` instead.")
-    def PlotBHstat(*args, **kwargs):
+    def PlotBHstat(self, *args, **kwargs):
         return self.plot_stat(*args, **kwargs)
 
     # Method to plot the signal injection result
@@ -1254,7 +1302,7 @@ class BumpHunter1D:
         if filename is None:
             plt.show()
         else:
-            if self.str_scale == "log" and nolog is False:
+            if self.str_scale == "log" and not nolog:
                 plt.savefig(filename[0], bbox_inches="tight")
             else:
                 plt.savefig(filename, bbox_inches="tight")
@@ -1281,14 +1329,14 @@ class BumpHunter1D:
             if filename is None:
                 plt.show()
             else:
-                if nolog is False:
+                if not nolog:
                     plt.savefig(filename[1], bbox_inches="tight")
                 plt.close(F)
 
         return
 
     @deprecated("Use `plot_inject` instead.")
-    def PlotInject(*args, **kwargs):
+    def PlotInject(self, *args, **kwargs):
         return self.plot_inject(*args, **kwargs)
 
     # Method that print the local infomation about the most significante bump in data
@@ -1310,7 +1358,7 @@ class BumpHunter1D:
         return
 
     @deprecated("Use `print_bump_info` instead.")
-    def PrintBumpInfo(*args, **kwargs):
+    def PrintBumpInfo(self, *args, **kwargs):
         return self.print_bump_info(*args, **kwargs)
 
     # Function that print the global infomation about the most significante bump in data
@@ -1328,7 +1376,7 @@ class BumpHunter1D:
         """
 
         # Get the data and background in histogram form
-        if is_hist is False:
+        if not is_hist:
             H = np.histogram(data, bins=self.bins, range=self.rang)
             Hb = np.histogram(
                 bkg, bins=self.bins, range=self.rang, weights=self.weights
@@ -1356,7 +1404,7 @@ class BumpHunter1D:
         return
 
     @deprecated("Use `print_bump_true` instead.")
-    def PrintBumpTrue(*args, **kwargs):
+    def PrintBumpTrue(self, *args, **kwargs):
         return self.print_bump_true(*args, **kwargs)
 
     # end of BumpHunter class
@@ -1372,7 +1420,7 @@ class BumpHunterInterface(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def SaveState(self):
+    def save_state(self):
         """
         Save the current state (all parameters and results) of a BupHunter instance into a
         dict variable.
@@ -1385,7 +1433,7 @@ class BumpHunterInterface(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def LoadState(self, state):
+    def load_state(self, state):
         """
         Load all the parameters and results of a previous BumpHunter intance that were saved
         using the SaveState method.
@@ -1398,7 +1446,7 @@ class BumpHunterInterface(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def BumpScan(self, data, bkg, is_hist, do_pseudo):
+    def bump_scan(self, data, bkg, is_hist, do_pseudo):
         """
         Function that perform the full BumpHunter algorithm presented in https://arxiv.org/pdf/1101.0390.pdf
         without sidebands. This includes the generation of pseudo-data, the calculation of the BumpHunter p-value
@@ -1446,7 +1494,7 @@ class BumpHunterInterface(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def SignalInject(self, sig, bkg, is_hist):
+    def signal_inject(self, sig, bkg, is_hist):
         """
         Function that perform a signal injection test in order to determine the minimum signal strength required to
         reach a target significance. This function use the BumpHunter algorithm in order to calculate the reached
