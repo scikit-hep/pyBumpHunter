@@ -22,7 +22,7 @@ def deprecated_arg(oldarg: str, newarg: str, comment: Optional[str] = None):
     def decorator(func):
         @functools.wraps(func)
         def wrapped_func(*args, **kwargs):
-            if oldarg not in warned_args[func]:
+            if oldarg in kwargs and oldarg not in warned_args[func]:
                 warnings.warn(
                     f"The argument {oldarg} in function {func} is deprecated and will be removed"
                     f" in a future release. Use {newarg} instead. {comment}",
