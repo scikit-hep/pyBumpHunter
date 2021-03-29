@@ -1195,8 +1195,8 @@ class BumpHunter1D:
         plt.title("Distributions with bump")
 
         plt.hist(
-            self.bins[:-1],
-            bins=self.bins,
+            H[1][:-1],
+            bins=H[1],
             histtype="step",
             range=self.rang,
             weights=Hbkg,

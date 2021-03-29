@@ -44,40 +44,40 @@ plt.legend()
 plt.savefig("results/1D/hist.png", bbox_inches="tight")
 plt.close(F)
 
-# Create a BumpHunter class instance
-hunter = BH.BumpHunter(
+# Create a BumpHunter1D class instance
+hunter = BH.BumpHunter1D(
     rang=rang,
     width_min=2,
     width_max=6,
     width_step=1,
     scan_step=1,
-    Npe=10000,
-    Nworker=1,
+    npe=10000,
+    nworker=1,
     seed=666,
 )
 
-# Call the BumpScan method
-print("####BmupScan call####")
+# Call the bump_scan method
+print("####bump_scan call####")
 begin = datetime.now()
-hunter.BumpScan(data, bkg)
+hunter.bump_scan(data, bkg)
 end = datetime.now()
 print(f"time={end - begin}")
 print("")
 
 # Print bump
-hunter.PrintBumpInfo()
-hunter.PrintBumpTrue(data, bkg)
+hunter.print_bump_info()
+hunter.print_bump_true(data, bkg)
 print(f"   mean (true) = {Lth}")
 print("")
 
 # Get and save tomography plot
-hunter.GetTomography(data, filename="results/1D/tomography.png")
+hunter.plot_tomography(data, filename="results/1D/tomography.png")
 
 # Get and save bump plot
-hunter.PlotBump(data, bkg, filename="results/1D/bump.png")
+hunter.plot_bump(data, bkg, filename="results/1D/bump.png")
 
 # Get and save statistics plot
-hunter.PlotBHstat(show_Pval=True, filename="results/1D/BH_statistics.png")
+hunter.plot_stat(show_Pval=True, filename="results/1D/BH_statistics.png")
 
 print("")
 
@@ -88,12 +88,14 @@ hunter.str_min = -1  # if str_scale='log', the real starting value is 10**str_mi
 hunter.str_scale = "log"
 hunter.signal_exp = 150  # Correspond the the real number of signal events generated when making the data
 
-print("####SignalInject call####")
+print("####singal_inject call####")
 begin = datetime.now()
-hunter.SignalInject(sig, bkg, is_hist=False)
+hunter.signal_inject(sig, bkg, is_hist=False)
 end = datetime.now()
 print(f"time={end - begin}")
 print("")
 
 # Get and save the injection plot
-hunter.PlotInject(filename=("results/SignalInject.png", "results/SignalInject_log.png"))
+hunter.plot_inject(filename=("results/1D/SignalInject.png", "results/1D/SignalInject_log.png"))
+
+

@@ -57,61 +57,58 @@ plt.colorbar()
 plt.savefig("results/2D/hist_data.png", bbox_inches="tight")
 plt.close(F)
 
-# Create a BumpHunter class instance
-BHtest = BH.BumpHunter2D(
+# Create a BumpHunter2D class instance
+hunter = BH.BumpHunter2D(
     rang=rang,
     width_min=[2, 2],
     width_max=[3, 3],
     width_step=[1, 1],
     scan_step=[1, 1],
     bins=[20, 20],
-    Npe=8000,
-    Nworker=1,
+    npe=8000,
+    nworker=1,
     seed=666,
 )
 
-# Call the BumpScan method
-print("####BumpScan call####")
+# Call the bump_scan method
+print("####bump_scan call####")
 begin = datetime.now()
-BHtest.BumpScan(data, bkg)
+hunter.bump_scan(data, bkg)
 end = datetime.now()
-print("time={}".format(end - begin))
+print(f"time={end - begin}")
 print("")
 
 # Print bump
-BHtest.PrintBumpInfo()
-BHtest.PrintBumpTrue(data, bkg)
+hunter.print_bump_info()
+hunter.print_bump_true(data, bkg)
 print(f"   mean (true) = {Lth}")
 print("")
 
-# Get and save tomography plot
-# BHtest.GetTomography(data,filename='results/tomography.png')
-
 
 # Get and save bump plot
-BHtest.PlotBump(data, bkg, filename="results/2D/bump.png")
+hunter.plot_bump(data, bkg, filename="results/2D/bump.png")
 
 # Get and save statistics plot
-BHtest.PlotBHstat(show_Pval=True, filename="results/2D/BH_statistics.png")
+hunter.plot_stat(show_Pval=True, filename="results/2D/BH_statistics.png")
 
 """  2D signal injection is not implemeted yet
 print('')
 
 # We have to set additionnal parameters specific to the signal injection.
 # All the parameters defined previously are kept.
-BHtest.sigma_limit = 5
-BHtest.str_min = -1 # if str_scale='log', the real starting value is 10**str_min
-BHtest.str_scale = 'log'
-BHtest.signal_exp = 150 # Correspond the the real number of signal events generated when making the data
+hunter.sigma_limit = 5
+hunter.str_min = -1 # if str_scale='log', the real starting value is 10**str_min
+hunter.str_scale = 'log'
+hunter.signal_exp = 150 # Correspond the the real number of signal events generated when making the data
 
 print('####SignalInject call####')
 begin = datetime.now()
-BHtest.SignalInject(sig,bkg,is_hist=False)
+hunter.signal_inject(sig,bkg,is_hist=False)
 end = datetime.now()
-print('time={}'.format(end-begin))
+print(f'time={end - begin}')
 print('')
 
 
 # Get and save the injection plot
-BHtest.PlotInject(filename=('results/SignalInject.png','results/SignalInject_log.png'))
+BHtest.PlotInject(filename=('results/2D/SignalInject.png','results/SignalInject_log.png'))
 """
