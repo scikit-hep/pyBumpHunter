@@ -20,101 +20,116 @@ class BumpHunter1D:
     the parameters and results stored in the inner variables.
 
     List of inner parameter variables :
-        rang : x-axis range of the histograms. Also define the range in which the scan will be performed.
+        rang :
+            x-axis range of the histograms. Also define the range in which the scan will be performed.
+            
 
-        mode : String specifying if the algorithm must look for a excess or a deficit in the data.
-               Can be either 'excess' or 'deficit'. Default to 'excess'.
+        mode :
+            String specifying if the algorithm must look for a excess or a deficit in the data.
+            Can be either 'excess' or 'deficit'.
 
-        width_min : Minimum value of the scan window width that should be tested (in number of bins).
-                    Default to 1.
+        width_min : 
+            Minimum value of the scan window width that should be tested (in number of bins).
 
-        width_max : Maximum value of the scan window width that should be tested (in number of bins). Can be
-                    either None or a positive integer. if None, the value is set to the total number of bins
-                    of the histograms divided by 2. Default to none.
+        width_max :
+            Maximum value of the scan window width that should be tested (in number of bins).
+            Can be either None or a positive integer.
+            If None, the value is set to the total number of bins of the histograms divided by 2.
 
-        width_step : Number of bins by which the scan window width is increased at each step. Default to 1.
+        width_step :
+            Number of bins by which the scan window width is increased at each step.
 
-        scan_step : Number of bins by which the position of the scan window is shifted at each step. Can be
-                    either 'full', 'half' or a positive integer.
-                    If 'full', the window will be shifted by a number of bins equal to its width.
-                    If 'half', the window will be shifted by a number of bins equal to max(1,width//2).
-                    Default to 1.
+        scan_step :
+            Number of bins by which the position of the scan window is shifted at each step.
+            Can be either 'full', 'half' or a positive integer.
+            If 'full', the window will be shifted by a number of bins equal to its width.
+            If 'half', the window will be shifted by a number of bins equal to max(1,width//2).
 
-        npe : Number of pseudo-data distributions to be sampled from the reference background distribution.
-              Default to 100.
+        npe :
+            Number of pseudo-data distributions to be sampled from the reference background distribution.
 
-        bins : Define the bins of the histograms. Can be ether a integer of a array-like of floats.
-               If integer (N), N bins of equal width will be considered.
-               If array-like of float (a), a number of bins equal to a length-1 with the values of a as edges will
-               be considered (variable width bins allowed).
-               Default to 60.
+        bins :
+            Define the bins of the histograms. Can be ether a integer of a array-like of floats.
+            If integer (N), N bins of equal width will be considered.
+            If array-like of float (a), a number of bins equal to a length-1 with the values of a as edges will be considered (variable width bins allowed).
 
-        weights : Weights for the background distribution. Can be either None or a array-like of float.
-                  If array-like of floats, each background events will be accounted by its weights when making
-                  histograms. The size of the array-like must be the same than of bkg. The same weights are
-                  considered when sampling the pseudo-data.
-                  If None, no weights will be considered.
-                  Default to None.
+        weights :
+            Weights for the background distribution.
+            Can be either None or a array-like of float.
+            If array-like of floats, each background events will be accounted by its weights when making histograms.
+            The size of the array-like must be the same than of bkg.
+            If None, no weights will be considered.
 
-        nworker : Number of thread to be run in parallel when scanning all the histograms (data and pseudo-data).
-                  If less or equal to 1, then parallelism will be disabled.
-                  Default to 4.
+        nworker :
+            Number of thread to be run in parallel when scanning all the histograms (data and pseudo-data).
+            If less or equal to 1, then parallelism will be disabled.
 
-        seed : Seed for the random number generator. Default to None.
+        seed :
+            Seed for the random number generator.
 
-        use_sideBand : Boolean specifying if the side-band normalization should be applied. Default to False.
+        use_sideBand :
+            Boolean specifying if side-band normalization should be applied when computing p-values.
 
-        sigma_limit : The minimum significance required after injection. Deault to 5.
+        sigma_limit :
+            The minimum significance required after injection.
 
-        str_min : The minimum number signal stregth to inject in background (first iteration). Default to 0.5.
+        str_min :
+            The minimum number signal stregth to inject in background (first iteration).
 
-        str_step : Increase of the signal stregth to be injected in the background at each iteration. Default to 0.25.
+        str_step :
+            Increase of the signal stregth to be injected in the background at each iteration.
 
-        str_scale : Specify how the signal strength should vary. If 'log', the signal strength will vary according to
-                    a log scale starting from 10**Str_min. If 'lin', the signal will vary according to a linear scale starting
-                    from Str_min with a step of Str_step.
-                    Default to 'lin'.
+        str_scale :
+            Specify how the signal strength should vary.
+            If 'log', the signal strength will vary according to a log scale starting from 10**str_min.
+            If 'lin', the signal will vary according to a linear scale starting from str_min with a step of str_step.
 
-        signal_exp : Expected number of signal used to compute the signal strength. If None, the signal strength is not
-                     computed. Default to None.
+        signal_exp :
+            Expected number of signal used to compute the signal strength.
+            If None, the signal strength is not computed.
 
-        flip_sig : Boolean specifying if the signal should be fliped when running in deficit mode.
-                   Ignored in excess mode. Default to True.
+        flip_sig :
+            Boolean specifying if the signal should be fliped when running in deficit mode.
+            Ignored in excess mode.
 
     List of inner results variables :
-        global_Pval : Global p-value obtained from the test statistic distribution.
+        global_Pval :
+            Global p-value obtained from the test statistic distribution.
 
-        significance : Significance corresponding to the globbal p-value from the test statistic distribution.
+        significance :
+            Significance corresponding to the globbal p-value from the test statistic distribution.
 
-        res_ar : Array-like container containing all the local p-values calculated during the last BumpHnter scan.
-                 The indice 0 (res_ar[0]) correspond to the sacn of the data and the other indices correspond to the
-                 the pseudo-data.
-                 For each indices, there is a Numpy array of python list containing all the p-values of all windows obtained
-                 for a given distribution. The numpy array has dimention (Nwidth), with Nwidth the number of window's width
-                 tested.
-                 Each python list as dimension (Nstep), with Nstep the number of scan step for a given width
-                 (different for every value of width).
+        res_ar :
+            Array-like container containing all the local p-values calculated during the last BumpHnter scan.
+            The indice 0 (res_ar[0]) correspond to the sacn of the data and the other indices correspond to the the pseudo-data.
+            For each indices, there is a Numpy array of python list containing all the p-values of all windows obtained for a given distribution.
+            The numpy array has dimention (Nwidth), with Nwidth the number of window's width tested.
+            Each python list as dimension (Nstep), with Nstep the number of scan step for a given width (different for every value of width).
 
 
-        min_Pval_ar : Array containing the minimum p-values obtained for the data (indice=0) and and the pseudo-
-                      data (indice>0).
+        min_Pval_ar :
+            Array containing the minimum p-values obtained for the data (indice=0) and and the pseudo-data (indice>0).
 
-        min_loc_ar : Array containing the positions of the windows for which the minimum p-value has been found
-                     for the data (indice=0) and pseudo-data (indice>0).
+        min_loc_ar : 
+            Array containing the positions of the windows for which the minimum p-value has been found for the data (indice=0) and pseudo-data (indice>0).
 
-        min_width_ar : Array containing the width of the windows for which the minimum p-value has been found for
-                       the data (indice=0) and pseudo-data (indice>0).
+        min_width_ar :
+            Array containing the width of the windows for which the minimum p-value has been found for the data (indice=0) and pseudo-data (indice>0).
 
-        signal_eval : Number of signal events evaluated form the last scan.
+        signal_eval :
+            Number of signal events evaluated form the last scan.
 
-        signal_min : Minimum number of signal events ones must inject in the data in order to reach the required
-                     significance (might differ from signal_eval).
+        signal_min :
+            Minimum number of signal events ones must inject in the data in order to reach the required significance (might differ from signal_eval).
 
-        signal_ratio : Ratio signal_min/signal_exp (signal strength).
+        signal_ratio :
+            Ratio signal_min/signal_exp (signal strength).
 
-        data_inject : Data obtained after injecting signal events in the backgound.
+        data_inject :
+            Data obtained after injecting signal events in the backgound.
 
-        sigma_ar : Numpy array containing the significance values obtained at each step.
+        sigma_ar :
+            Numpy array containing the significance values obtained at each step.
     """
 
     # Initializer method
@@ -147,72 +162,101 @@ class BumpHunter1D:
     ):
         """
         Arguments:
-            rang : x-axis range of the histograms. Also define the range in which the scan will be performed.
+            rang :
+                x-axis range of the histograms. Also define the range in which the scan will be performed.
+                Can be either None or a array-like of float with shape (2,2).
+                If None, the range is set automatically to include all the data given.
+                Default to None.
             
-            mode : String specifying if the algorithm must look for a excess or a deficit in the data.
-                   Can be either 'excess' or 'deficit'. Default to 'excess'.
+            mode :
+                String specifying if the algorithm must look for a excess or a deficit in the data.
+                Can be either 'excess' or 'deficit'.
+                Default to 'excess'.
             
-            width_min : Minimum value of the scan window width that should be tested (in number of bins).
-                        Default to 1.
+            width_min :
+                Minimum value of the scan window width that should be tested (in number of bins).
+                Default to 1.
             
-            width_max : Maximum value of the scan window width that should be tested (in number of bins). Can be
-                        either None or a positive integer. if None, the value is set to the total number of bins
-                        of the histograms divided by 2. Default to none.
+            width_max :
+                Maximum value of the scan window width that should be tested (in number of bins).
+                Can be either None or a positive integer. if None, the value is set to the total number of bins of the histograms divided by 2.
+                Default to none.
             
-            width_step : Number of bins by which the scan window width is increased at each step. Default to 1.
+            width_step :
+                Number of bins by which the scan window width is increased at each step.
+                Default to 1.
             
-            scan_step : Number of bins by which the position of the scan window is shifted at each step. Can be
-                        either 'full', 'half' or a positive integer.
-                        If 'full', the window will be shifted by a number of bins equal to its width.
-                        If 'half', the window will be shifted by a number of bins equal to max(1,width//2).
-                        Default to 1.
+            scan_step :
+                Number of bins by which the position of the scan window is shifted at each step.
+                Can be either 'full', 'half' or a positive integer.
+                If 'full', the window will be shifted by a number of bins equal to its width.
+                If 'half', the window will be shifted by a number of bins equal to max(1,width//2).
+                Default to 1.
             
-            npe : Number of pseudo-data distributions to be sampled from the reference background distribution.
-                  Default to 100.
+            npe :
+                Number of pseudo-data distributions to be sampled from the reference background distribution.
+                Default to 100.
 
-            bins : Define the bins of the histograms. Can be ether a integer of a array-like of floats.
-                   If integer (N), N bins of equal width will be considered.
-                   If array-like of float (a), a number of bins equal to a length-1 with the values of a as edges will
-                   be considered (variable width bins allowed).
-                   Default to 60.
+            bins :
+                Define the bins of the histograms. Can be ether a integer of a array-like of floats.
+                If integer (N), N bins of equal width will be considered.
+                If array-like of float (a), a number of bins equal to a length-1 with the values of a as edges will be considered (variable width bins allowed).
+                Default to 60.
     
-            weights : Weights for the background distribution. Can be either None or a array-like of float.
-                      If array-like of floats, each background events will be accounted by its weights when making
-                      histograms. The size of the array-like must be the same than of bkg. The same weights are
-                      considered when sampling the pseudo-data.
-                      If None, no weights will be considered.
-                      Default to None.
+            weights :
+                Weights for the background distribution. Can be either None or a array-like of float.
+                If array-like of floats, each background events will be accounted by its weights when making histograms.
+                The size of the array-like must be the same than of bkg.
+                If None, no weights will be considered.
+                Default to None.
     
-            nworker : Number of thread to be run in parallel when scanning all the histograms (data and pseudo-data).
-                      If less or equal to 1, then parallelism will be disabled.
-                      Default to 4.
+            nworker : 
+                Number of thread to be run in parallel when scanning all the histograms (data and pseudo-data).
+                If less or equal to 1, then parallelism will be disabled.
+                Default to 4.
 
-            sigma_limit : The minimum significance required after injection. Deault to 5.
+            sigma_limit :
+                The minimum significance required after injection.
+                Deault to 5.
 
-            str_min : The minimum number signal stregth to inject in background (first iteration). Default to 0.5.
+            str_min :
+                The minimum number signal stregth to inject in background (first iteration).
+                Default to 0.5.
     
-            str_step : Increase of the signal stregth to be injected in the background at each iteration. Default to 0.25.
+            str_step :
+                Increase of the signal stregth to be injected in the background at each iteration.
+                Default to 0.25.
     
-            str_scale : Specify how the signal strength should vary. If 'log', the signal strength will vary according to
-                        a log scale starting from 10**Str_min. If 'lin', the signal will vary according to a linear scale starting
-                        from Str_min with a step of Str_step.
-                        Default to 'lin'.
+            str_scale :
+                Specify how the signal strength should vary.
+                If 'log', the signal strength will vary according to a log scale starting from 10**str_min.
+                If 'lin', the signal will vary according to a linear scale starting from str_min with a step of str_step.
+                Default to 'lin'.
     
-            signal_exp : Expected number of signal used to compute the signal strength. If None, the signal strength is not
-                         computed. Default to None.
+            signal_exp :
+                Expected number of signal used to compute the signal strength.
+                If None, the signal strength is not computed. Default to None.
     
-            flip_sig : Boolean specifying if the signal should be fliped when running in deficit mode.
-                       Ignored in excess mode. Default to True.
+            flip_sig :
+                Boolean specifying if the signal should be fliped when running in deficit mode.
+                Ignored in excess mode. Default to True.
                 
-            seed : Seed for the random number generator. Default to None. 
+            seed :
+                Seed for the random number generator.
+                Default to None. 
             
-            use_sideband : Boolean specifying if the side-band normalization should be applied. Default to False.
+            use_sideband :
+                Boolean specifying if the side-band normalization should be applied.
+                Default to False.
             
-            Npe : Same as npe. This argument is deprecated and will be removed in future versions.
+            Npe : *Deprecated*
+                Same as npe. This argument is deprecated and will be removed in future versions.
             
-            Nworker : Same as Nworker. This argument is deprecated and will be removed in future versions.
+            Nworker : *Deprecated*
+                Same as Nworker. This argument is deprecated and will be removed in future versions.
             
-            useSideBand : Same as useSideBand. This argument is deprecated and will be removed in future versions.
+            useSideBand : *Deprecated*
+                Same as useSideBand. This argument is deprecated and will be removed in future versions.
         """
         # legacy deprecation
         if useSideBand is not None:
@@ -250,36 +294,41 @@ class BumpHunter1D:
     # Method that performs a scan of a given data histogram and compares it to a reference background histogram.
     # This method is used by the BumpHunter class methods and is not intended to be used directly.
     def _scan_hist(self, hist, ref, w_ar, ih):
-        """Scancan a distribution and compute the p-value associated to every scan window.
+        """Scan a distribution and compute the p-value associated to every scan window.
 
-        The algorithm follows the
-        BumpHunter algorithm. Compute also the significance for the data histogram.
-
-        In order to make the function thread friendly, the results are saved through global variables.
+        The algorithm follows the BumpHunter algorithm. Compute also the significance for the data histogram.
 
         Arguments :
-            hist : The data histogram (as obtain with the numpy.histogram function).
+            hist :
+                The data histogram (as obtain with the numpy.histogram function).
 
-            ref : The reference (background) histogram (as obtain with the numpy.histogram function).
+            ref :
+                The reference (background) histogram (as obtain with the numpy.histogram function).
 
-            w_ar : Array containing all the values of width to be tested.
+            w_ar :
+                Array containing all the values of width to be tested.
 
-            self : The BumpHunter instance that call the function
+            self :
+                The BumpHunter instance that call the function
 
-            ih : Indice of the distribution to be scanned. ih=0 refers to the data distribution and ih>0 refers to
-                 the ih-th pseudo-data distribution.
+            ih :
+                Indice of the distribution to be scanned.
+                ih=0 refers to the data distribution and ih>0 refers to the ih-th pseudo-data distribution.
 
         Results stored in inner variables :
-            res : Numpy array of python list containing all the p-values of all windows computed durring the
-                  scan. The numpy array as dimention (Nwidth), with Nwidth the number of window's width tested.
-                  Each python list as dimension (Nstep), with Nstep the number of scan step for a given width
-                  (different for every value of width).
+            res :
+                Numpy array of python list containing all the p-values of all windows computed durring the scan.
+                The numpy array as dimention (Nwidth), with Nwidth the number of window's width tested.
+                Each python list as dimension (Nstep), with Nstep the number of scan step for a given width (different for every value of width).
 
-            min_Pval : Minimum p_value obtained durring the scan (float).
+            min_Pval :
+                Minimum p_value obtained durring the scan (float).
 
-            min_loc : Position of the window corresponding to the minimum p-value (integer).
+            min_loc :
+                Position of the window corresponding to the minimum p-value (integer).
 
-            min_width : Width of the window corresponding to the minimum p-value (integer).
+            min_width :
+                Width of the window corresponding to the minimum p-value (integer).
         """
 
         # Remove the first/last hist bins if empty ... just to be consistant with c++
@@ -394,13 +443,12 @@ class BumpHunter1D:
     # Export/import parameters/results
     def save_state(self):
         """
-        Save the current state (all parameters and results) of a BupHunter instance into a
-        dict variable.
+        Save the current state (all parameters and results) of a BupHunter instance into a dict variable.
 
         Ruturns:
-            state : The dict containing all the parameters and results of this BumpHunter instance.
-                    The keys of the dict entries correspond the name of their associated
-                    parameters/results as defined in the BumpHunter class.
+            state :
+                The dict containing all the parameters and results of this BumpHunter instance.
+                The keys of the dict entries correspond the name of their associated parameters/results as defined in the BumpHunter class.
         """
         state = dict()
 
@@ -445,13 +493,12 @@ class BumpHunter1D:
 
     def load_state(self, state):
         """
-        Load all the parameters and results of a previous BumpHunter intance that were saved
-        using the SaveState method.
+        Load all the parameters and results of a previous BumpHunter intance that were saved using the SaveState method.
 
         Arguments :
-            state : A dict containing all the parameters/results of a previous BumpHunter instance.
-                    If a parameter or a result field is missing, it will be set to its default
-                    value.
+            state :
+                A dict containing all the parameters/results of a previous BumpHunter instance.
+                If a parameter or a result field is missing, it will be set to its default value.
         """
 
         # Load parameters
@@ -580,47 +627,50 @@ class BumpHunter1D:
     # For each scan, the value of p-value and test statistic t is computed and stored in result array
     def bump_scan(self, data, bkg, is_hist=False, do_pseudo=True):
         """
-        Function that perform the full BumpHunter algorithm presented in https://arxiv.org/pdf/1101.0390.pdf
-        without sidebands. This includes the generation of pseudo-data, the calculation of the BumpHunter p-value
-        associated to data and to all pseudo experiment as well as the calculation of the test satistic t.
+        Function that perform the full BumpHunter algorithm presented in https://arxiv.org/pdf/1101.0390.pdf without sidebands.
+        This includes the generation of pseudo-data, the calculation of the BumpHunter p-value associated to data and to all pseudo experiment as well as the calculation of the test satistic t.
 
         The results are stored in the inner result variables of this BumpHunter instance.
 
         Arguments :
-            data : Numpy array containing the data distribution. This distribution will be transformed into a binned
-                   histogram and the algorithm will look for the most significant excess.
+            data :
+                Numpy array containing the data distribution.
+                This distribution will be transformed into a binned histogram and the algorithm will look for the most significant excess.
 
-            bkg : Numpy array containing the background reference distribution. This distribution will be transformed
-                  into a binned histogram and the algorithm will compare it to data while looking for a bump.
+            bkg :
+                Numpy array containing the background reference distribution.
+                This distribution will be transformed into a binned histogram and the algorithm will compare it to data while looking for a bump.
 
-            is_hist : Boolean that specify if the given data and background are already in histogram form. If true,
-                      data and bkg are histograms and the Bins argument is expected to be a array with the bound of
-                      the bins and the Weights argument is expected to be a scalar scale factor or None.
-                      Default to False.
+            is_hist :
+                Boolean that specify if the given data and background are already in histogram form.
+                If true, the data and backgrouns are considered as already 'histogramed'.
+                Default to False.
 
-            do_pseudo : Boolean specifying if pesudo data should be generated.
-                        If False, then the BumpHunter statistics distribution kept in memmory is used to compute
-                        the global p-value and significance. If there is nothing in memmory, the global p-value
-                        and significance will not be computed.
-                        Default to True.
+            do_pseudo :
+                Boolean specifying if pesudo data should be generated.
+                If False, then the BumpHunter statistics distribution kept in memory is used to compute the global p-value and significance.
+                If there is nothing in memory, the global p-value and significance will not be computed.
+                Default to True.
 
         Result inner variables :
-            global_Pval : Global p-value obtained from the test statistic distribution.
+            global_Pval :
+                Global p-value obtained from the test statistic distribution.
 
-            res_ar : Array of containers containing all the p-value calculated durring the scan of the data (indice=0)
-                     and of the pseudo-data (indice>0). For more detail about how the p-values are sorted in the
-                     containers, please reffer the the doc of the function scan_hist.
+            res_ar :
+                Array of containers containing all the p-value calculated durring the scan of the data (indice=0) and of the pseudo-data (indice>0).
+                For more detail about how the p-values are sorted in the containers, please reffer the the doc of the function _scan_hist.
 
-            min_Pval_ar : Array containing the minimum p-values obtained for the data (indice=0) and and the pseudo-
-                          data (indice>0).
+            min_Pval_ar :
+                Array containing the minimum p-values obtained for the data (indice=0) and and the pseudo-data (indice>0).
 
-            min_loc_ar : Array containing the positions of the windows for which the minimum p-value has been found
-                         for the data (indice=0) and pseudo-data (indice>0).
+            min_loc_ar :
+                Array containing the positions of the windows for which the minimum p-value has been found for the data (indice=0) and pseudo-data (indice>0).
 
-            min_width_ar : Array containing the width of the windows for which the minimum p-value has been found for
-                           the data (indice=0) and pseudo-data (indice>0).
+            min_width_ar :
+                Array containing the width of the windows for which the minimum p-value has been found for the data (indice=0) and pseudo-data (indice>0).
 
-            signal_eval : Number of signal events evaluated form the last scan.
+            signal_eval :
+                Number of signal events evaluated form the last scan.
         """
 
         # Set the seed if required (or reset it if None)
@@ -722,30 +772,33 @@ class BumpHunter1D:
     # Perform signal injection on background and determine the minimum aount of signal required for observation
     def signal_inject(self, sig, bkg, is_hist=False):
         """
-        Function that perform a signal injection test in order to determine the minimum signal strength required to
-        reach a target significance. This function use the BumpHunter algorithm in order to calculate the reached
-        significance for a given signal strength.
+        Function that perform a signal injection test in order to determine the minimum signal strength required to reach a target significance.
+        This function use the BumpHunter algorithm in order to calculate the reached significance for a given signal strength.
 
         This method share most of its parameters with the BumpScan method.
 
         Arguments :
-            sig : Numpy array containing the simulated signal. This distribution will be used to perform the signal
-                  injection.
+            sig :
+                Numpy array containing the simulated signal. This distribution will be used to perform the signal injection.
 
-            bkg : Numpy array containing the expected background. This distribution will be used to build the data in
-                  which signal will be injected.
+            bkg :
+                Numpy array containing the expected background. This distribution will be used to build the data in which signal will be injected.
 
-            is_hist : Boolean that specify if the given signal and background are already in histogram form. If true,
-                      data and bkg are histograms and the Bins argument is expected to be a array with the bound of
-                      the bins and the Weights argument is expected to be a scalar scale factor or None.
-                      Default to False.
+            is_hist :
+                Boolean that specify if the given data and background are already in histogram form.
+                If true, the data and backgrouns are considered as already 'histogramed'.
+                Default to False.
 
         Result inner variables :
-            signal_ratio : Ratio signal_min/signal_exp (signal strength). If signal_exp is not specified, default to None.
+            signal_ratio :
+                Ratio signal_min/signal_exp (signal strength).
+                If signal_exp is not specified, default to None.
 
-            data_inject : Data obtained after injecting signal events in the backgound.
+            data_inject :
+                Data obtained after injecting signal events in the backgound.
 
-            sigma_ar : Numpy array containing the significance values obtained at each step.
+            sigma_ar :
+                Numpy array containing the significance values obtained at each step.
 
         All the result inner variables of the BumpHunter instance will be filled with the results of the scan permormed
         during the last iteration (when sigma_limit is reached).
@@ -1057,20 +1110,28 @@ class BumpHunter1D:
         Plot the data and bakground histograms with the bump found by BumpHunter highlighted.
 
         Arguments :
-            data : Numpy array containing the data.
+            data :
+                Numpy array containing the data.
 
-            bkg : Numpy array containing the background.
+            bkg :
+                Numpy array containing the background.
 
-            is_hist : Boolean specifying if data and bkg are in histogram form or not. Default to False.
+            is_hist : 
+                Boolean specifying if data and bkg are given in histogram form or not.
+                Default to False.
 
-            use_sideband : Boolean specifying if side-band normalization should be used to correct the reference background
-                          in the plot. If None, self.use_sideband is used instead.
-                          Default to None.
+            use_sideband :
+                Boolean specifying if side-band normalization should be used to correct the reference background in the plot.
+                If None, self.use_sideband is used instead.
+                Default to None.
 
-            filename : Name of the file in which the plot will be saved. If None, the plot will be just shown
-                       but not saved. Default to None.
+            filename :
+                Name of the file in which the plot will be saved.
+                If None, the plot will be just shown but not saved.
+                Default to None.
 
-            useSideBand : Same as use_sideband. This argument is deprecated and will be removed in a future version.
+            useSideBand : *Deprecated*
+                Same as use_sideband. This argument is deprecated and will be removed in a future version.
         """
 
         # legacy deprecation
@@ -1204,11 +1265,14 @@ class BumpHunter1D:
         Plot the Bumphunter statistic distribution together with the observed value with the data.
 
         Arguments :
-            show_Pval : Boolean specifying if you want the value of global p-value printed on the plot.
-                        Default to False.
+            show_Pval :
+                Boolean specifying if you want the value of global p-value printed on the plot.
+                Default to False.
 
-            filename : Name of the file in which the plot will be saved. If None, the plot will be just shown
-                       but not saved. Default to None.
+            filename :
+                Name of the file in which the plot will be saved.
+                If None, the plot will be just shown but not saved.
+                Default to None.
         """
 
         # Plot the BumpHunter statistic distribution
@@ -1251,12 +1315,13 @@ class BumpHunter1D:
     # Method to plot the signal injection result
     def plot_inject(self, filename=None):
         """
-        Function that uses the global parameters str_min and str_step as well as the global results sigma_ar to
-        generate a plot.
+        Function that uses the parameters str_min and str_step as well as the result sigma_ar to generate a plot.
 
         Argument :
-            fliename : Name of the file in which the plot will be saved. If None, the plot will be just shown
-                       but not saved. Default to None.
+            fliename :
+                Name of the file in which the plot will be saved.
+                If None, the plot will be just shown but not saved.
+                Default to None.
         """
 
         # Get the x-values (signal strength)
@@ -1342,8 +1407,8 @@ class BumpHunter1D:
     # Method that print the local infomation about the most significante bump in data
     def print_bump_info(self):
         """
-        Function that print the local infomation about the most significante bump in data. Information are
-        printed to stdout.
+        Function that print the local infomation about the most significante bump in data.
+        Information are printed to stdout.
         """
 
         # Print stuff
@@ -1368,11 +1433,15 @@ class BumpHunter1D:
         Information are printed to stdout.
 
         Arguments :
-            data : Numpy array containing the data.
+            data :
+                Numpy array containing the data.
 
-            bkg : Numpy array containing the background.
+            bkg :
+                Numpy array containing the background.
 
-            is_hist : Boolean specifying if data and bkg are in histogram form or not. Default to False.
+            is_hist :
+                Boolean specifying if data and bkg are given in histogram form or not.
+                Default to False.
         """
 
         # Get the data and background in histogram form
@@ -1422,106 +1491,113 @@ class BumpHunterInterface(metaclass=ABCMeta):
     @abstractmethod
     def save_state(self):
         """
-        Save the current state (all parameters and results) of a BupHunter instance into a
-        dict variable.
+        Save the current state (all parameters and results) of a BupHunter instance into a dict variable.
 
         Ruturns:
-            state : The dict containing all the parameters and results of this BumpHunter instance.
-                    The keys of the dict entries correspond the name of their associated
-                    parameters/results as defined in the BumpHunter class.
+            state : 
+                The dict containing all the parameters and results of this BumpHunter instance.
+                The keys of the dict entries correspond the name of their associated parameters/results as defined in the BumpHunter class.d
         """
         pass
 
     @abstractmethod
     def load_state(self, state):
         """
-        Load all the parameters and results of a previous BumpHunter intance that were saved
-        using the SaveState method.
+        Load all the parameters and results of a previous BumpHunter intance that were saved using the SaveState method.
 
         Arguments :
-            state : A dict containing all the parameters/results of a previous BumpHunter instance.
-                    If a parameter or a result field is missing, it will be set to its default
-                    value.
+            state :
+                A dict containing all the parameters/results of a previous BumpHunter instance.
+                If a parameter or a result field is missing, it will be set to its default value.
         """
         pass
 
     @abstractmethod
     def bump_scan(self, data, bkg, is_hist, do_pseudo):
         """
-        Function that perform the full BumpHunter algorithm presented in https://arxiv.org/pdf/1101.0390.pdf
-        without sidebands. This includes the generation of pseudo-data, the calculation of the BumpHunter p-value
-        associated to data and to all pseudo experiment as well as the calculation of the test satistic t.
+        Function that perform the full BumpHunter algorithm presented in https://arxiv.org/pdf/1101.0390.pdf without sidebands.
+        This includes the generation of pseudo-data, the calculation of the BumpHunter p-value associated to data and to all pseudo experiment as well as the calculation of the test satistic t.
 
         The results are stored in the inner result variables of this BumpHunter instance.
 
         Arguments :
-            data : Numpy array containing the data distribution. This distribution will be transformed into a binned
-                   histogram and the algorithm will look for the most significant excess.
+            data : 
+                Numpy array containing the data distribution.
+                This distribution will be transformed into a binned histogram and the algorithm will look for the most significant excess.
 
-            bkg : Numpy array containing the background reference distribution. This distribution will be transformed
-                  into a binned histogram and the algorithm will compare it to data while looking for a bump.
+            bkg :
+                Numpy array containing the background reference distribution.
+                This distribution will be transformed into a binned histogram and the algorithm will compare it to data while looking for a bump.
 
-            is_hist : Boolean that specify if the given data and background are already in histogram form. If true,
-                      data and bkg are histograms and the Bins argument is expected to be a array with the bound of
-                      the bins and the Weights argument is expected to be a scalar scale factor or None.
-                      Default to False.
+            is_hist :
+                Boolean that specify if the given data and background are already in histogram form.
+                If true, the data and backgrouns are considered as already 'histogramed'.
+                Default to False.
 
-            do_pseudo : Boolean specifying if pesudo data should be generated.
-                        If False, then the BumpHunter statistics distribution kept in memmory is used to compute
-                        the global p-value and significance. If there is nothing in memmory, the global p-value
-                        and significance will not be computed.
-                        Default to True.
+            do_pseudo :
+                Boolean specifying if pesudo data should be generated.
+                If False, then the BumpHunter statistics distribution kept in memmory is used to compute the global p-value and significance.
+                If there is nothing in memmory, the global p-value and significance will not be computed.
+                Default to True.
 
 
         Result inner variables :
-            global_Pval : Global p-value obtained from the test statistic distribution.
+            global_Pval :
+                Global p-value obtained from the test statistic distribution.
 
-            res_ar : Array of containers containing all the p-value calculated durring the scan of the data (indice=0)
-                     and of the pseudo-data (indice>0). For more detail about how the p-values are sorted in the
-                     containers, please reffer the the doc of the function scan_hist.
+            res_ar :
+                 Array of containers containing all the p-value calculated durring the scan of the data (indice=0) and of the pseudo-data (indice>0).
+                 For more detail about how the p-values are sorted in the containers, please reffer the the doc of the function scan_hist.
 
-            min_Pval_ar : Array containing the minimum p-values obtained for the data (indice=0) and and the pseudo-
-                          data (indice>0).
+            min_Pval_ar :
+                Array containing the minimum p-values obtained for the data (indice=0) and and the pseudo-data (indice>0).
 
-            min_loc_ar : Array containing the positions of the windows for which the minimum p-value has been found
-                         for the data (indice=0) and pseudo-data (indice>0).
+            min_loc_ar :
+                Array containing the positions of the windows for which the minimum p-value has been found for the data (indice=0) and pseudo-data (indice>0).
 
-            min_width_ar : Array containing the width of the windows for which the minimum p-value has been found for
-                           the data (indice=0) and pseudo-data (indice>0).
+            min_width_ar : 
+                Array containing the width of the windows for which the minimum p-value has been found for the data (indice=0) and pseudo-data (indice>0).
 
-            signal_eval : Number of signal events evaluated form the last scan.
+            signal_eval :
+                Number of signal events evaluated form the last scan.
         """
         pass
 
     @abstractmethod
     def signal_inject(self, sig, bkg, is_hist):
         """
-        Function that perform a signal injection test in order to determine the minimum signal strength required to
-        reach a target significance. This function use the BumpHunter algorithm in order to calculate the reached
-        significance for a given signal strength.
+        Function that perform a signal injection test in order to determine the minimum signal strength required to reach a target significance.
+        This function use the BumpHunter algorithm in order to calculate the reached significance for a given signal strength.
 
         This method share most of its parameters with the BumpScan method.
 
         Arguments :
-            sig : Numpy array containing the simulated signal. This distribution will be used to perform the signal
-                  injection.
+            sig : 
+                Numpy array containing the simulated signal. This distribution will be used to perform the signal injection.
 
-            bkg : Numpy array containing the expected background. This distribution will be used to build the data in
-                  which signal will be injected.
+            bkg :
+                Numpy array containing the expected background.
+                This distribution will be used to build the data in which signal will be injected.
 
-            is_hist : Boolean that specify if the given signal and background are already in histogram form. If true,
-                      data and bkg are histograms and the Bins argument is expected to be a array with the bound of
-                      the bins and the Weights argument is expected to be a scalar scale factor or None.
-                      Default to False.
+            is_hist :
+                Boolean that specify if the given data and background are already in histogram form.
+                If true, the data and backgrouns are considered as already 'histogramed'.
+                Default to False.
 
         Result inner variables :
-            signal_ratio : Ratio signal_min/signal_exp (signal strength). If signal_exp is not specified, default to None.
+            signal_ratio :
+                Ratio signal_min/signal_exp (signal strength).
+                If signal_exp is not specified, default to None.
 
-            data_inject : Data obtained after injecting signal events in the backgound.
+            data_inject :
+                Data obtained after injecting signal events in the backgound.
 
-            sigma_ar : Numpy array containing the significance values obtained at each step.
+            sigma_ar :
+                Numpy array containing the significance values obtained at each step.
 
         All the result inner variables of the BumpHunter instance will be filled with the results of the scan permormed
         during the last iteration (when sigma_limit is reached).
         """
         pass
+
+
