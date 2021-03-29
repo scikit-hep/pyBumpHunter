@@ -139,23 +139,23 @@ class BumpHunter1D:
     def __init__(
         self,
         rang=None,
-        mode="excess",
-        width_min=1,
+        mode: str="excess",
+        width_min: int=1,
         width_max=None,
-        width_step=1,
-        scan_step=1,
-        npe=100,
-        bins=60,
+        width_step: int=1,
+        scan_step: int=1,
+        npe: int=100,
+        bins: int=60,
         weights=None,
-        nworker=4,
-        sigma_limit=5,
-        str_min=0.5,
-        str_step=0.25,
-        str_scale="lin",
+        nworker: int=4,
+        sigma_limit: float=5,
+        str_min: float=0.5,
+        str_step: float=0.25,
+        str_scale: str="lin",
         signal_exp=None,
-        flip_sig=True,
+        flip_sig: bool=True,
         seed=None,
-        use_sideband=False,
+        use_sideband: bool=False,
         Nworker=None,
         useSideBand=None,
         Npe=None,
@@ -179,7 +179,8 @@ class BumpHunter1D:
             
             width_max :
                 Maximum value of the scan window width that should be tested (in number of bins).
-                Can be either None or a positive integer. if None, the value is set to the total number of bins of the histograms divided by 2.
+                Can be either None or a positive integer.
+                If None, the value is set to the total number of bins of the histograms divided by 2.
                 Default to none.
             
             width_step :
@@ -293,7 +294,7 @@ class BumpHunter1D:
 
     # Method that performs a scan of a given data histogram and compares it to a reference background histogram.
     # This method is used by the BumpHunter class methods and is not intended to be used directly.
-    def _scan_hist(self, hist, ref, w_ar, ih):
+    def _scan_hist(self, hist, ref, w_ar, ih: int):
         """Scan a distribution and compute the p-value associated to every scan window.
 
         The algorithm follows the BumpHunter algorithm. Compute also the significance for the data histogram.
@@ -307,9 +308,6 @@ class BumpHunter1D:
 
             w_ar :
                 Array containing all the values of width to be tested.
-
-            self :
-                The BumpHunter instance that call the function
 
             ih :
                 Indice of the distribution to be scanned.
@@ -491,7 +489,7 @@ class BumpHunter1D:
     def SaveState(self, *args, **kwargs):
         return self.save_state(*args, **kwargs)
 
-    def load_state(self, state):
+    def load_state(self, state: dict):
         """
         Load all the parameters and results of a previous BumpHunter intance that were saved using the SaveState method.
 
@@ -625,7 +623,7 @@ class BumpHunter1D:
 
     # Method that perform the scan on every pseudo experiment and data (in parrallel threads).
     # For each scan, the value of p-value and test statistic t is computed and stored in result array
-    def bump_scan(self, data, bkg, is_hist=False, do_pseudo=True):
+    def bump_scan(self, data, bkg, is_hist: bool=False, do_pseudo: bool=True):
         """
         Function that perform the full BumpHunter algorithm presented in https://arxiv.org/pdf/1101.0390.pdf without sidebands.
         This includes the generation of pseudo-data, the calculation of the BumpHunter p-value associated to data and to all pseudo experiment as well as the calculation of the test satistic t.
@@ -770,7 +768,7 @@ class BumpHunter1D:
         return self.bump_scan(*args, **kwargs)
 
     # Perform signal injection on background and determine the minimum aount of signal required for observation
-    def signal_inject(self, sig, bkg, is_hist=False):
+    def signal_inject(self, sig, bkg, is_hist: bool=False):
         """
         Function that perform a signal injection test in order to determine the minimum signal strength required to reach a target significance.
         This function use the BumpHunter algorithm in order to calculate the reached significance for a given signal strength.
@@ -1041,7 +1039,7 @@ class BumpHunter1D:
     ## Display methods
 
     # Method that do the tomography plot for the data
-    def plot_tomography(self, data, is_hist=False, filename=None):
+    def plot_tomography(self, data, is_hist: bool=False, filename=None):
         """
         Function that do a tomography plot showing the local p-value for every positions and widths of the scan
         window.
@@ -1105,7 +1103,7 @@ class BumpHunter1D:
 
     # Plot the data and bakground histograms with the bump found by BumpHunter highlighted
     @deprecated_arg("useSideBand", "use_sideband")
-    def plot_bump(self, data, bkg, is_hist=False, use_sideband=None, filename=None, useSideBand=None):
+    def plot_bump(self, data, bkg, is_hist: bool=False, use_sideband=None, filename=None, useSideBand=None):
         """
         Plot the data and bakground histograms with the bump found by BumpHunter highlighted.
 
@@ -1260,7 +1258,7 @@ class BumpHunter1D:
         return self.plot_bump(*args, **kwargs)
 
     # Plot the Bumpunter test statistic distribution with the result for data
-    def plot_stat(self, show_Pval=False, filename=None):
+    def plot_stat(self, show_Pval: bool=False, filename=None):
         """
         Plot the Bumphunter statistic distribution together with the observed value with the data.
 
@@ -1427,7 +1425,7 @@ class BumpHunter1D:
         return self.print_bump_info(*args, **kwargs)
 
     # Function that print the global infomation about the most significante bump in data
-    def print_bump_true(self, data, bkg, is_hist=False):
+    def print_bump_true(self, data, bkg, is_hist: bool=False):
         """
         Print the global informations about the most significante bump in data in real scale.
         Information are printed to stdout.
