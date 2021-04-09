@@ -1,16 +1,16 @@
-####BmupHunter call####
+####bump_scan call####
 Generating histograms
 5 values of width will be tested
 SCAN
 Global p-value : 0.0177  (177 / 10000)
 Significance = 2.10375
 
-time=0:00:14.325635
+time=0:00:15.948676
 
 BUMP WINDOW
    loc = 16
    width = 4
-   local p-value | t = 0.00017341067835451395 | 8.659847913307976
+   local p-value | t = 0.00017 | 8.65985
 
 BUMP POSITION
    min : 5.333
@@ -24,7 +24,7 @@ BUMP POSITION
    mean (true) = 5.5
 
 
-####SignalInject call####
+####singal_inject call####
 Generating background only histograms
 5 values of width will be tested
 BACKGROUND ONLY SCAN
@@ -93,11 +93,11 @@ Significance = 2.20864 (1.64388  3.01145)
 Generating background+signal histograms
 BACKGROUND+SIGNAL SCAN
 Global p-value : 0.0000  (0 / 10000)   0.0008  (8)   0.0000  (0)
-Significance = 8.20954 (3.15591  8.20954)
+Significance = 7.94144 (3.15591  7.94144)
 
 REACHED SIGMA LIMIT
    Number of signal event injected : 300.0
    Signal strength : 2.0000
 
-time=0:02:36.267526
+time=0:02:57.387793
 

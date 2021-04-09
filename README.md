@@ -1,6 +1,6 @@
 # pyBumpHunter
 
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/lovaslin/pyBumpHunter/master)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/scikit-hep/pyBumpHunter/master)
 [![Test](https://github.com/scikit-hep/pyBumpHunter/workflows/automated_testing/badge.svg)](https://github.com/lovaslin/pyBumpHunter/actions)
 [![PyPI](https://img.shields.io/pypi/v/pyBumpHunter)](https://pypi.org/project/pyBumpHunter/)
 
@@ -15,14 +15,15 @@ The BumpHunter algorithm can also perform signal injection tests where more and 
 * pyBumpHunter : The pyBumpHunter package
 * example : Folder containing a set of example scripts and notebooks
 * example/results : Folder containing the outputs of example scripts
-* testing : Folder containing the testing scripts (based on pytest)
+* test : Folder containing the testing scripts (based on pytest)
 * data/data.root  : Toy data used in the examples and tests
 * data/gen_data.C : Code used to generate the toy data with ROOT
 
-### python dependancies
+### Dependencies
 
-Requires python >= 3.6  
-pyBumpHunter depends on the following python libraries :
+Requires python >= 3.6 py
+
+BumpHunter depends on the following python libraries :
 
 * numpy
 * scipy
@@ -32,7 +33,8 @@ pyBumpHunter depends on the following python libraries :
 
 ### Examples
 
-The examples provided in example.py and test.ipynb require the [uproot](https://github.com/scikit-hep/uproot) package in order to read the data from a [ROOT software](https://root.cern.ch/) file.
+The examples provided in example.py and test.ipynb require the [uproot](https://github.com/scikit-hep/uproot) package in
+order to read the data from a [ROOT software](https://root.cern.ch/) file.
 
 The data provided in the example consists of three histograms: a steeply falling 'background' distribution in a [0,20] x-axis range, a 'signal' gaussian shape centered on a value of 5.5, and a 'data' distribution sampled from background and signal distributions, with a signal fraction of 0.15%. The data file is produced by running gen_data.C in ROOT.
 
