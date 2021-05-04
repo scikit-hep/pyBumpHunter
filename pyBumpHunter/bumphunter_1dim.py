@@ -677,7 +677,7 @@ class BumpHunter1D:
         # Generate the background and data histograms
         print("Generating histograms")
         if not is_hist:
-            bkg_hist, Hbin = np.histogram(
+            bkg_hist, _ = np.histogram(
                 bkg, bins=self.bins, weights=self.weights, range=self.rang
             )
             data_hist = np.histogram(data, bins=self.bins, range=self.rang)[0]
@@ -687,7 +687,6 @@ class BumpHunter1D:
             else:
                 bkg_hist = bkg * self.weights
             data_hist = data
-            Hbins = self.bins
 
         # Generate all the pseudo-data histograms
         if do_pseudo:
