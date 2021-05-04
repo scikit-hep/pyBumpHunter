@@ -317,7 +317,7 @@ class BumpHunter1D:
             res :
                 Numpy array of python list containing all the p-values of all windows computed durring the scan.
                 The numpy array as dimention (Nwidth), with Nwidth the number of window's width tested.
-                Each python list as dimension (Nstep), with Nstep the number of scan step for a given width (different for every value of width).
+                Each python list as dimension (Nstep), with Nstep the number of scan step for a givenon0 = [iii for iii in range(ref.size) if ref[iii] > 0] n width (different for every value of width).
 
             min_Pval :
                 Minimum p_value obtained durring the scan (float).
@@ -330,7 +330,7 @@ class BumpHunter1D:
         """
 
         # Remove the first/last hist bins if empty ... just to be consistant with c++
-        non0 = [iii for iii in range(hist.size) if hist[iii] > 0]
+        non0 = [iii for iii in range(hist.size) if hist[iii] > 0 and ref[iii] > 0]
         Hinf, Hsup = min(non0), max(non0) + 1
 
         # Create the results array
