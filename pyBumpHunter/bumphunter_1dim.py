@@ -394,7 +394,7 @@ class BumpHunter1D:
             # Get the minimum p-value and associated position for width w
             min_Pval[i] = res[i].min()
             min_loc[i] = pos[res[i].argmin()]
-            signal_eval[i] = Nhistres[i].argmin()] - Nref[res[i].argmin()]
+            signal_eval[i] = Nhist[res[i].argmin()] - Nref[res[i].argmin()]
 
         # Get the minimum p-value and associated window among all width
         min_width = w_ar[min_Pval.argmin()]

@@ -355,8 +355,7 @@ class BumpHunter2D(BumpHunterInterface):
             hist_total = hist.sum()
 
         # Loop over all the width of the window
-        i = 0
-        for w in w_ar:
+        for i, w in enumerate(w_ar):
             # Auto-adjust scan step if specified
             scan_stepp = [0, 0]
             if self.scan_step[0] == "full":
@@ -385,7 +384,6 @@ class BumpHunter2D(BumpHunterInterface):
                 min_Pval[i] = 1.0
                 min_loc[i] = [0, 0]
                 signal_eval[i] = 0
-                i += 1
                 continue
 
             # Initialize local p-value array for width w
@@ -424,8 +422,6 @@ class BumpHunter2D(BumpHunterInterface):
             min_Pval[i] = res[i].min()
             min_loc[i] = pos[res[i].argmin()]
             signal_eval[i] = Nhist[res[i].argmin()] - Nref[res[i].argmin()]
-
-            i += 1
 
         # Get the minimum p-value and associated window among all width
         min_width = w_ar[min_Pval.argmin()]
