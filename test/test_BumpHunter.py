@@ -91,7 +91,7 @@ def test_scan_run(data_sig_bkg1, bhunter):
     for res in bhunter.res_ar:
         for r in res:
             N += r.size
-    assert N == 2811145
+    assert N == 2850285
 
     # Test if the evaluated number of signal event is correct w.r.t. the expected value
     assert bhunter.signal_eval == 208

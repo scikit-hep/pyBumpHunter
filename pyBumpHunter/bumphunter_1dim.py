@@ -330,7 +330,7 @@ class BumpHunter1D:
         """
 
         # Remove the first/last hist bins if empty ... just to be consistant with c++
-        non0 = [iii for iii in range(hist.size) if hist[iii] > 0 and ref[iii] > 0]
+        non0 = [iii for iii in range(hist.size) if ref[iii] > 0]
         Hinf, Hsup = min(non0), max(non0) + 1
 
         # Create the results array
