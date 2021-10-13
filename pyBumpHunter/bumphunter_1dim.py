@@ -202,6 +202,8 @@ class BumpHunter1D:
                 Define the bins of the histograms. Can be ether a integer of a array-like of floats.
                 If integer (N), N bins of equal width will be considered.
                 If array-like of float (a), a number of bins equal to a length-1 with the values of a as edges will be considered (variable width bins allowed).
+                If you want to consider multiple channels with different binning, you can also give a list of array containing the bin edges of each channels.
+                In case bins is a list and multi_chan is true, the algorithm will consider that binning is different for each channel.
                 Default to 60.
     
             weights :
@@ -315,9 +317,9 @@ class BumpHunter1D:
 
         Results stored in inner variables :
             res :
-                Numpy array of python list containing all the p-values of all windows computed durring the scan.
+                Numpy array of arrays containing all the p-values of all windows computed durring the scan.
                 The numpy array as dimention (Nwidth), with Nwidth the number of window's width tested.
-                Each python list as dimension (Nstep), with Nstep the number of scan step for a given width (different for every value of width).
+                Each array has dimension (Nstep), with Nstep the number of scan step for a given width (different for every value of width).
 
             min_Pval :
                 Minimum p_value obtained durring the scan (float).
@@ -406,12 +408,201 @@ class BumpHunter1D:
 
         min_Pval = min_Pval.min()
 
-        # Save the results in inner variables and return
+        # Save the other results in inner variables and return
         if ih == 0:
             self.res_ar = res
         self.min_Pval_ar[ih] = min_Pval
         self.min_loc_ar[ih] = int(min_loc)
         self.min_width_ar[ih] = int(min_width)
+
+    # Extention of the _scan_hist method to multi-channel data.
+    def _scan_hist_multi(self, hist, ref, w_ar, ih: int):
+        """
+        Scan a distribution in multiple channel and compute the p-value associated to every scan window.
+
+        The algorithm follows the BumpHunter algorithm extended to multiple channels.
+
+        Arguments :
+            hist :
+                The list of data histogram (as obtain with the numpy.histogram function).
+
+            ref :
+                The list of reference (background) histogram (as obtain with the numpy.histogram function).
+
+            w_ar :
+                Array containing all the values of width to be tested.
+
+            ih :
+                Indice of the distribution to be scanned.
+                ih=0 refers to the data distribution and ih>0 refers to the ih-th pseudo-data distribution.
+
+        Results stored in inner variables :
+            res :
+                Numpy array of arrays containing all the p-values of all windows computed durring the scan.
+                The numpy array as dimention (Nchan, Nwidth), with Nchan the number of channels and Nwidth the number of window's width tested.
+                Each array has dimension (Nstep), with Nstep the number of scan step for a given width (different for every value of width).
+
+            min_Pval :
+                Minimum p_value obtained durring the scan (float).
+
+            min_loc :
+                Position of the window corresponding to the minimum p-value (integer).
+
+            min_width :
+                Width of the window corresponding to the minimum p-value (integer).
+        """
+
+        # Remove the first/last hist bins if empty ... just to be consistant with c++
+        # Different Hinf and Hsup for each channel
+        Hinf = []
+        Hsup = []
+        for ch in range(len(hist)):
+            non0 = [iii for iii in range(0,ref[ch].size) if ref[ch][iii] > 0]
+            Hinf.append(min(non0))
+            Hsup.append(max(non0) + 1)
+        Hinf = np.array(Hinf)
+        Hsup = np.array(Hsup)
+
+        # Initialize the global results for all channels
+        min_loc_all = Hinf
+        min_width_all = Hsup
+        min_Pval_all = np.full(len(hist), 1.0, dtype=float)
+        signal_eval_all = np.full(len(hist), 0.0)
+
+        # Compute the total number of event for sideband normalization
+        if self.use_sideband:
+            ref_total = []
+            hist_total = []
+            for ch in range(len(hist)):
+                ref_total.append(ref[ch][Hinf[ch]:Hsup[ch]].sum())
+                hist_total.append(hist[ch][Hinf[ch]:Hsup[ch]].sum())
+
+        # Compute scan_stepp for all width
+        if self.scan_step == "full":
+            scan_stepp = w_ar
+        elif self.scan_step == "half":
+            scan_stepp = [max(1, w // 2) for w in w_ar]
+        else:
+            scan_stepp = np.full(w_ar.size, self.scan_step)
+
+        # Compute pos for all width
+        pos = []
+        for ch in range(len(hist)):
+            pos.append([
+                np.arange(Hinf[ch], Hsup[ch] - w + 1, scan_stepp[i])
+                for i, w in enumerate(w_ar)
+            ])
+
+        # Initialize p-value container for all channels, width and pos
+        res_all = np.empty((len(hist), w_ar.size), dtype=object)
+
+        # Loop over channels
+        for ch in range(len(hist)):
+            # Initialize results containers for all width
+            min_Pval_current = np.empty(w_ar.size)
+            min_loc_current = np.empty(w_ar.size, dtype=int)
+
+            # Loop over widths
+            for i, w in enumerate(w_ar):
+                # Check that there is at least one interval to check for width w
+                # If not, we must set dummy values in order to avoid crashes
+                if pos[ch][i].size == 0:
+                    res_all[ch, i] = np.array([1.0])
+                    min_Pval_current[i] = 1.0
+                    min_loc_current[i] = Hinf
+                    continue
+
+                # Count events in all intervals for channel ch and width w
+                Nref = np.array([ref[ch][p : p + w].sum() for p in pos[ch][i]])
+                Nhist = np.array([hist[ch][p : p + w].sum() for p in pos[ch][i]])
+
+                # Apply sideband normalization if required
+                if self.use_sideband:
+                    Nref *= (hist_total[ch] - Nhist) / (ref_total[ch] - Nref)
+
+                # Initialize a p-value container for this channel and width
+                res = np.ones(Nref.size)
+
+                # Compute all p-values
+                if self.mode == "excess":
+                    res[(Nhist > Nref) & (Nref > 0)] = G(
+                        Nhist[(Nhist > Nref) & (Nref > 0)],
+                        Nref[(Nhist > Nref) & (Nref > 0)],
+                    )
+                elif self.mode == "deficit":
+                    res[Nhist < Nref] = 1.0 - G(
+                        Nhist[Nhist < Nref] + 1, Nref[Nhist < Nref]
+                    )
+
+                # Prevent issue with very low p-value, sometimes induced by normalisation in the tail
+                if self.use_sideband:
+                    res[res < 1e-300] = 1e-300
+
+                # Save all local p-values for this channel and width
+                res_all[ch, i] = res
+
+                # Save/update results for width w
+                min_Pval_current[i] = res.min()
+                min_loc_current[i] = pos[ch][i][res.argmin()]
+
+            # Get the best interval for channel ch
+            min_loc_current = min_loc_current[min_Pval_current.argmin()]
+            min_width_current = w_ar[min_Pval_current.argmin()]
+            min_Pval_current = min_Pval_current.min()
+
+            # Define the combination
+            if ch == 0:
+                min_Pval_all[ch] = min_Pval_current
+                min_loc_all[ch] = min_loc_current
+                min_width_all[ch] = min_width_current
+            else:
+                # Get the right limit of the bump
+                loc_right = min_loc_current + min_width_current
+                loc_right_prev = min_loc_all[ch-1] + min_width_all[ch-1]
+
+                # Check for overlap
+                if self.bins[ch][loc_right] <= self.bins[ch-1][min_loc_all[ch-1]] \
+                or self.bins[ch][min_loc_current] >= self.bins[ch-1][loc_right_prev]:
+                    # No overlap, we can break the loop
+                    min_Pval_all = np.full(len(ref), 1)
+                    min_loc_all = Hinf
+                    min_width_all = Hsup
+                    signal_eval_all = np.full(len(ref), 0)
+                    break
+                else:
+                    # There is an overlap, we can update the global results
+                    min_Pval_all[ch] = min_Pval_current
+
+                    # Compute overlap interval (check left bound)
+                    if self.bins[ch][min_loc_current] < self.bins[ch-1][min_loc_all[ch-1]]:
+                        while self.bins[ch][min_loc_current] < self.bins[ch-1][min_loc_all[ch-1]]:
+                            min_loc_current += 1
+                        min_loc_current -= min_loc_current - 1
+                    # Check right bound
+                    if self.bins[ch][loc_right] > self.bins[ch-1][loc_right_prev]:
+                        while self.bins[ch][loc_right] > self.bins[ch-1][loc_right_prev]:
+                            loc_right -= 1
+                        loc_right +=1
+                    min_loc_all[ch] = min_loc_current
+                    min_width_all[ch] = loc_right - min_loc_all[ch]
+
+        # Use best inverval position and width to compute signal_eval_all
+        if ih == 0 and min_Pval_all[-1] < 1:
+            signal_eval_all = np.array([
+                hist[ch][min_loc_all[ch] : min_loc_all[ch] + min_width_all[ch]].sum() \
+                - ref[ch][min_loc_all[ch] : min_loc_all[ch]  + min_width_all[ch]].sum()
+                for ch in range(len(hist))
+            ])
+
+        # Save the results in inner variables and return
+        if ih == 0:
+            self.res_ar = res_all
+            self.signal_eval = signal_eval_all
+        self.min_Pval_ar[ih] = min_Pval_all
+        self.min_loc_ar[ih] = np.array(min_loc_all, dtype=int)
+        self.min_width_ar[ih] = np.array(min_width_all, dtype=int)
+        self.t_ar[ih] = -np.log(min_Pval_all.prod())
+
 
     # Variable management methods
 
@@ -624,7 +815,7 @@ class BumpHunter1D:
 
     # Method that perform the scan on every pseudo experiment and data (in parrallel threads).
     # For each scan, the value of p-value and test statistic t is computed and stored in result array
-    def bump_scan(self, data, bkg, is_hist: bool=False, do_pseudo: bool=True):
+    def bump_scan(self, data, bkg, is_hist: bool=False, do_pseudo: bool=True, multi_chan: bool=False):
         """
         Function that perform the full BumpHunter algorithm presented in https://arxiv.org/pdf/1101.0390.pdf without sidebands.
         This includes the generation of pseudo-data, the calculation of the BumpHunter p-value associated to data and to all pseudo experiment as well as the calculation of the test satistic t.
@@ -633,12 +824,16 @@ class BumpHunter1D:
 
         Arguments :
             data :
-                Numpy array containing the data distribution.
-                This distribution will be transformed into a binned histogram and the algorithm will look for the most significant excess.
+                The data distribution.
+                If there is only one channel, it should be a numpy array containing the data distribution.
+                Otherwise, it should be a list of numpy arrays (one per channels).
+                The distribution(s) will be transformed into a binned histogram and the algorithm will look for the most significant excess.
 
             bkg :
-                Numpy array containing the background reference distribution.
-                This distribution will be transformed into a binned histogram and the algorithm will compare it to data while looking for a bump.
+                The reference background distribution.
+                If there is only one channel, it should be a numpy array containing the reference background distribution.
+                Otherwise, it should be a list of numpy arrays (one per channels).
+                The distribution(s) will be transformed into a binned histogram and the algorithm will compare it to data while looking for a bump.
 
             is_hist :
                 Boolean that specify if the given data and background are already in histogram form.
@@ -651,12 +846,16 @@ class BumpHunter1D:
                 If there is nothing in memory, the global p-value and significance will not be computed.
                 Default to True.
 
+            multi_chan :
+                Boolean specifying if there are multiple channels.
+                Default to False.
+
         Result inner variables :
             global_Pval :
                 Global p-value obtained from the test statistic distribution.
 
             res_ar :
-                Array of containers containing all the p-value calculated durring the scan of the data (indice=0) and of the pseudo-data (indice>0).
+                Array of containers containing all the p-value calculated durring the scan of the data.
                 For more detail about how the p-values are sorted in the containers, please reffer the the doc of the function _scan_hist.
 
             min_Pval_ar :
@@ -675,43 +874,113 @@ class BumpHunter1D:
         # Set the seed if required (or reset it if None)
         np.random.seed(self.seed)
 
+        # If we are in multi channel, we must check if bins is given separately for each channel
+        if multi_chan:
+            if type(self.bins) != type(list()):
+                self.bins = [self.bins for ch in range(len(data))]
+
         # Generate the background and data histograms
         print("Generating histograms")
-        if not is_hist:
-            bkg_hist, _ = np.histogram(
-                bkg, bins=self.bins, weights=self.weights, range=self.rang
-            )
-            data_hist = np.histogram(data, bins=self.bins, range=self.rang)[0]
+        if multi_chan:
+            data_hist = []
+            bkg_hist = []
+            bins = []
+            for ch in range(len(data)):
+                if not is_hist:
+                    bkg_hist.append(np.histogram(
+                        bkg[ch],
+                        bins=self.bins[ch],
+                        weights=self.weights,
+                        range=self.rang
+                    )[0])
+                    bins.append(np.histogram_bin_edges(
+                        bkg[ch],
+                        bins=self.bins[ch],
+                        weights=self.weights,
+                        range=self.rang
+                    ))
+                    data_hist.append(
+                        np.histogram(data[ch],
+                        bins=bins[ch],
+                        range=self.rang
+                    )[0])
+                else:
+                    if self.weights is None:
+                        bkg_hist.append(bkg[ch])
+                    else:
+                        bkg_hist.append(bkg[ch] * self.weights[ch])
+                    data_hist.append(data[ch])
         else:
-            if self.weights is None:
-                bkg_hist = bkg
+            if not is_hist:
+                bkg_hist, bins = np.histogram(bkg, bins=self.bins, weights=self.weights, range=self.rang)
+                data_hist = np.histogram(data, bins=bins, range=self.rang)[0]
             else:
-                bkg_hist = bkg * self.weights
-            data_hist = data
+                if self.weights is None:
+                    bkg_hist = bkg
+                else:
+                    bkg_hist = bkg * self.weights
+                data_hist = data
+
+        # If data/bkg is not given as binned histogram, we must set self.bins to bin edges
+        if not is_hist:
+            self.bins = bins
+            del bins
 
         # Generate all the pseudo-data histograms
         if do_pseudo:
-            pseudo_hist = np.random.poisson(
-                lam=np.tile(bkg_hist, (self.npe, 1)).transpose(),
-                size=(bkg_hist.size, self.npe),
-            )
+            # Check if we have multiple channels
+            if multi_chan:
+                # loop over channels
+                pseudo_hist = []
+                for ch in range(len(data)):
+                    pseudo_hist.append(
+                            np.random.poisson(
+                            lam=np.tile(bkg_hist[ch], (self.npe, 1)).transpose(),
+                            size=(bkg_hist[ch].size, self.npe),
+                        )
+                    )
+                # Convert the list into a 3D numpy array
+                #pseudo_hist = np.array(pseudo_hist)
+                
+
+            else:
+                pseudo_hist = np.random.poisson(
+                    lam=np.tile(bkg_hist, (self.npe, 1)).transpose(),
+                    size=(bkg_hist.size, self.npe),
+                )
 
         # Set width_max if it is given as None
         if self.width_max is None:
-            self.width_max = data_hist.size // 2
+            if multi_chan:
+                self.width_max = data_hist[0].size // 2
+            else:
+                self.width_max = data_hist.size // 2
 
         # Initialize all results containenrs
-        if do_pseudo:
-            self.min_Pval_ar = np.empty(self.npe + 1)
-            self.min_loc_ar = np.empty(self.npe + 1, dtype=int)
-            self.min_width_ar = np.empty(self.npe + 1, dtype=int)
-            self.t_ar = np.empty(self.npe + 1)
+        if multi_chan:
+            if do_pseudo:
+                self.min_Pval_ar = np.empty(self.npe + 1, dtype=object)
+                self.min_loc_ar = np.empty(self.npe + 1, dtype=object)
+                self.min_width_ar = np.empty(self.npe + 1, dtype=object)
+                self.t_ar = np.empty(self.npe + 1)
+            else:
+                if self.min_Pval_ar == []:
+                    self.min_Pval_ar = np.empty(1)
+                    self.min_loc_ar = np.empty(1, dtype=int)
+                    self.min_width_ar = np.empty(1, dtype=int)
+                    self.t_ar = np.empty(1)
         else:
-            if self.min_Pval_ar == []:
-                self.min_Pval_ar = np.empty(1)
-                self.min_loc_ar = np.empty(1, dtype=int)
-                self.min_width_ar = np.empty(1, dtype=int)
-                self.t_ar = np.empty(1)
+            if do_pseudo:
+                self.min_Pval_ar = np.empty(self.npe + 1)
+                self.min_loc_ar = np.empty(self.npe + 1, dtype=int)
+                self.min_width_ar = np.empty(self.npe + 1, dtype=int)
+                self.t_ar = np.empty(self.npe + 1)
+            else:
+                if self.min_Pval_ar == []:
+                    self.min_Pval_ar = np.empty(1)
+                    self.min_loc_ar = np.empty(1, dtype=int)
+                    self.min_width_ar = np.empty(1, dtype=int)
+                    self.t_ar = np.empty(1)
         self.res_ar = []
 
         # Auto-adjust the value of width_max and do an array of all width
@@ -726,27 +995,89 @@ class BumpHunter1D:
             if self.nworker > 1:
                 with thd.ThreadPoolExecutor(max_workers=self.nworker) as exe:
                     for th in range(self.npe + 1):
-                        if th == 0:
-                            exe.submit(self._scan_hist, data_hist, bkg_hist, w_ar, th)
+                        if multi_chan:
+                            if th == 0:
+                                exe.submit(
+                                    self._scan_hist_multi,
+                                    data_hist,
+                                    bkg_hist,
+                                    w_ar,
+                                    th,
+                                )
+                            else:
+                                pseudo = [
+                                    pseudo_hist[ch][:, th-1]
+                                    for ch in range(len(data))
+                                ]
+                                exe.submit(
+                                    self._scan_hist_multi,
+                                    pseudo,
+                                    bkg_hist,
+                                    w_ar,
+                                    th,
+                                )
                         else:
-                            exe.submit(
-                                self._scan_hist,
-                                pseudo_hist[:, th - 1],
-                                bkg_hist,
-                                w_ar,
-                                th,
-                            )
+                            if th == 0:
+                                exe.submit(
+                                    self._scan_hist,
+                                    data_hist,
+                                    bkg_hist,
+                                    w_ar,
+                                    th,
+                                )
+                            else:
+                                exe.submit(
+                                    self._scan_hist,
+                                    pseudo_hist[:, th - 1],
+                                    bkg_hist,
+                                    w_ar,
+                                    th,
+                                )
             else:
                 for i in range(self.npe + 1):
-                    if i == 0:
-                        self._scan_hist(data_hist, bkg_hist, w_ar, i)
+                    if multi_chan:
+                        if i == 0:
+                            self._scan_hist_multi(
+                                data_hist,
+                                bkg_hist,
+                                w_ar,
+                                i
+                            )
+                        else:
+                            pseudo = [
+                                pseudo_hist[ch][:, i-1]
+                                for ch in range(len(data))
+                            ]
+                            self._scan_hist_multi(
+                                pseudo,
+                                bkg_hist,
+                                w_ar,
+                                i
+                            )
                     else:
-                        self._scan_hist(pseudo_hist[:, i - 1], bkg_hist, w_ar, i)
+                        if i == 0:
+                            self._scan_hist(
+                                data_hist,
+                                bkg_hist,
+                                w_ar,
+                                i
+                            )
+                        else:
+                            self._scan_hist(
+                                pseudo_hist[:, i - 1],
+                                bkg_hist,
+                                w_ar,
+                                i
+                            )
         else:
-            self._scan_hist(data_hist, bkg_hist, w_ar, 0)
+            if multi_chan:
+                self._scan_hist_multi(data_hist, bkg_hist, w_ar, 0)
+            else:
+                self._scan_hist(data_hist, bkg_hist, w_ar, 0)
 
         # Use the p-value results to compute t
-        self.t_ar = -np.log(self.min_Pval_ar)
+        if not multi_chan:
+            self.t_ar = -np.log(self.min_Pval_ar)
 
         # Compute the global p-value from the t distribution
         if self.t_ar.size > 1:
@@ -770,7 +1101,7 @@ class BumpHunter1D:
         return
 
     @deprecated("Use `bump_scan` instead.")
-    def BumpScacn(self, *args, **kwargs):
+    def BumpScan(self, *args, **kwargs):
         return self.bump_scan(*args, **kwargs)
 
     # Perform signal injection on background and determine the minimum aount of signal required for observation
@@ -1045,22 +1376,33 @@ class BumpHunter1D:
     ## Display methods
 
     # Method that do the tomography plot for the data
-    def plot_tomography(self, bkg, is_hist: bool=False, filename=None):
+    def plot_tomography(self, bkg, is_hist: bool=False, label: str='' , filename=None, chan: int=0):
         """
         Function that do a tomography plot showing the local p-value for every positions and widths of the scan
         window.
 
+        If there are multiple channels, you can specify which channel to consider in the plot.
+
         Arguments :
             bkg :
-                Numpy array containing the reference background.
+                Numpy array, or list of numpy arrays, containing the reference background.
 
             is_hist :
                 Boolean specifying if data is in histogram form or not. Default to False.
+
+            label :
+                Extra label to be added to the plot title given as a string.
+                Default to '' (empty string).
 
             filename :
                 Name of the file in which the plot will be saved.
                 If None, the plot will be just shown but not saved.
                 Default to None.
+
+            chan :
+                Specify the number of the channel to be shown (if there are more than one).
+                Ignored if there is only one channel.
+                Default to 0 (the first channel).
         """
 
         # Check if there is anything to show.
@@ -1068,25 +1410,67 @@ class BumpHunter1D:
             print('Nothing to plot here !')
             return
 
-        # Get the reference histogram
-        if not is_hist:
-            Hbkg, H = np.histogram(
-                bkg, bins=self.bins, range=self.rang, weights=self.weights
-            )
+        # Check if we have multiple channels
+        if self.res_ar.ndim == 2:
+            multi_chan = True
         else:
-            if self.weights is None:
-                Hbkg = bkg
-            else:
-                Hbkg = bkg * self.weights
+            multi_chan = False
 
-        # Same c++ compatibility thing
-        non0 = [i for i in range(Hbkg.size) if Hbkg[i] > 0]
-        Hinf = min(non0)
+        # Get the reference histogram
+        if multi_chan:
+            Hbkg = []
+            H = []
+            if not is_hist:
+                for ch in range(len(bkg)):
+                    Hbkg.append(np.histogram(
+                        bkg[ch],
+                        bins=self.bins[ch],
+                        range=self.rang,
+                        weights=self.weights
+                    )[0])
+                    H.append(np.histogram_bin_edges(
+                        bkg[ch],
+                        bins=self.bins[ch],
+                        range=self.rang
+                    ))
+            else:
+                H = self.bins
+                if self.weights is None:
+                    Hbkg = bkg
+                else:
+                    Hbkg = [bkg[ch] * self.weights[ch] for ch in range(len(bkg))]
+        else:
+            if not is_hist:
+                Hbkg, H = np.histogram(
+                    bkg, bins=self.bins, range=self.rang, weights=self.weights
+                )
+            else:
+                H = self.bins
+                if self.weights is None:
+                    Hbkg = bkg
+                else:
+                    Hbkg = bkg * self.weights
+
+        # Remove empty bins at the begining of reference
+        Hinf = 0
+        if multi_chan:
+            non0 = [i for i in range(0,Hbkg[chan].size) if Hbkg[chan][i] > 0]
+            Hinf = min(non0)
+        else:
+            non0 = [i for i in range(Hbkg.size) if Hbkg[i] > 0]
+            Hinf = min(non0)
+
+        # Select the required channel (if needed)
+        if multi_chan:
+            res_data = self.res_ar[chan,:]
+            H = H[chan]
+        else:
+            res_data = self.res_ar
 
         # Get all width in number of bins
         w_ar = np.arange(self.width_min, self.width_max + 1, self.width_step)
 
-        res_data = self.res_ar
+        # Loop over width
         inter = []
         for i in range(res_data.size):
             # Get scan step for width w
@@ -1103,6 +1487,7 @@ class BumpHunter1D:
                 inter.append([res_data[i][j], loc, w_ar[i]])
 
         F = plt.figure(figsize=(12, 8))
+        plt.title(label)
         [plt.plot([i[1], i[1] + i[2]], [i[0], i[0]], "r") for i in inter if i[0] < 1.0]
         plt.xlabel("intervals", size="large")
         plt.ylabel("local p-value", size="large")
@@ -1123,16 +1508,20 @@ class BumpHunter1D:
 
     # Plot the data and bakground histograms with the bump found by BumpHunter highlighted
     @deprecated_arg("useSideBand", "use_sideband")
-    def plot_bump(self, data, bkg, is_hist: bool=False, use_sideband=None, filename=None, useSideBand=None):
+    def plot_bump(self, data, bkg, is_hist: bool=False, use_sideband=None, label: str='', filename=None, chan: int=0, useSideBand=None):
         """
         Plot the data and bakground histograms with the bump found by BumpHunter highlighted.
 
         Arguments :
             data :
-                Numpy array containing the data.
+                The data distribution.
+                If multi_chan is True, data is expected to be a list of all channels distribution in numpy arrays.
+                Otherwise, data is expected to be a single numpy array.
 
             bkg :
-                Numpy array containing the background.
+                The reference background distribution.
+                If multi_chan is True, bkg is expected to be a list of all channels distribution in numpy arrays.
+                Otherwise, bkg is expected to be a single numpy array.
 
             is_hist : 
                 Boolean specifying if data and bkg are given in histogram form or not.
@@ -1143,10 +1532,20 @@ class BumpHunter1D:
                 If None, self.use_sideband is used instead.
                 Default to None.
 
+            label :
+                Extra label to be added to the plot title given as a string.
+                Default to '' (empty string).
+
             filename :
                 Name of the file in which the plot will be saved.
                 If None, the plot will be just shown but not saved.
+                If multi_chan is True, the channel labels are automatically appeded to the file names (1 plot per channel).
                 Default to None.
+
+            chan :
+                Specify the number of the channel to be shown (if there are more than one).
+                Ignored if there is only one channel.
+                Default to 0 (the first channel).
 
             useSideBand : *Deprecated*
                 Same as use_sideband. This argument is deprecated and will be removed in a future version.
@@ -1156,44 +1555,105 @@ class BumpHunter1D:
         if useSideBand is not None:
             use_sideband = useSideBand
 
-        # Get the data in histogram form
-        if not is_hist:
-            H = np.histogram(data, bins=self.bins, range=self.rang)
+        # Check if there are multiple channels
+        if self.res_ar.ndim == 2:
+            multi_chan = True
         else:
-            H = [data, self.bins]
+            multi_chan = False
+
+        # Get the data in histogram form
+        if multi_chan:
+            if not is_hist:
+                # Take the histogram bin content for the required channel
+                H = np.histogram(data[chan], bins=self.bins[chan], range=self.rang)[0]
+                    
+                # Get all the bin edges
+                Hb = [
+                    np.histogram_bin_edges(
+                        data[chan], bins=self.bins[ch], range=self.rang
+                     )
+                     for ch in range(len(data))
+                ]
+                H = [H,Hb[chan]]
+            else:
+                H = np.histogram(data[chan], bins=self.bins, range=self.rang)
+        else:
+            if not is_hist:
+                H = np.histogram(data, bins=self.bins, range=self.rang)
+            else:
+                H = [data, self.bins]
 
         # Get bump min and max
-        Bmin = H[1][self.min_loc_ar[0]]
-        Bmax = H[1][self.min_loc_ar[0] + self.min_width_ar[0]]
+        if multi_chan:
+            Bmin = np.array([
+                H[1][self.min_loc_ar[0]] for ch in range(len(data))
+            ])
+            Bmax = np.array([
+                H[1][self.min_loc_ar[0] + self.min_width_ar[0]] for ch in range(len(data))
+            ])
+            Bmin = Bmin.max()
+            Bmax = Bmax.min()
+        else:
+            Bmin = H[1][self.min_loc_ar[0]]
+            Bmax = H[1][self.min_loc_ar[0] + self.min_width_ar[0]]
 
         # Get the background in histogram form
-        if not is_hist:
-            Hbkg = np.histogram(
-                bkg, bins=self.bins, range=self.rang, weights=self.weights
-            )[0]
-        else:
-            if self.weights is None:
-                Hbkg = bkg
+        if multi_chan:
+            if not is_hist:
+                Hbkg = np.histogram(
+                    bkg[chan],
+                    bins=self.bins[chan],
+                    range=self.rang,
+                    weights=self.weights
+                )[0]
             else:
-                Hbkg = bkg * self.weights
+                if self.weights is None:
+                    Hbkg = bkg[chan]
+                else:
+                    Hbkg = bkg[chan] * self.weights
+        else:
+            if not is_hist:
+                Hbkg = np.histogram(
+                    bkg, bins=self.bins, range=self.rang, weights=self.weights
+                )[0]
+            else:
+                if self.weights is None:
+                    Hbkg = bkg
+                else:
+                    Hbkg = bkg * self.weights
 
         # Chek if we should apply sideband normalization correction
         if use_sideband is None:
             use_sideband = self.use_sideband
 
         if use_sideband:
-            scale = (
-                H[0].sum()
-                - H[0][
-                    self.min_loc_ar[0] : self.min_loc_ar[0] + self.min_width_ar[0]
-                ].sum()
-            )
-            scale = scale / (
-                Hbkg.sum()
-                - Hbkg[
-                    self.min_loc_ar[0] : self.min_loc_ar[0] + self.min_width_ar[0]
-                ].sum()
-            )
+            # Check if we are in multi-channel
+            if multi_chan:
+                scale = (
+                    H[0].sum()
+                    - H[0][
+                        self.min_loc_ar[0][chan] : self.min_loc_ar[0][chan] + self.min_width_ar[0][chan]
+                    ].sum()
+                )
+                scale = scale / (
+                    Hbkg.sum()
+                    - Hbkg[
+                        self.min_loc_ar[0][chan] : self.min_loc_ar[0][chan] + self.min_width_ar[0][chan]
+                    ].sum()
+                )
+            else:
+                scale = (
+                    H[0].sum()
+                    - H[0][
+                        self.min_loc_ar[0] : self.min_loc_ar[0] + self.min_width_ar[0]
+                    ].sum()
+                )
+                scale = scale / (
+                    Hbkg.sum()
+                    - Hbkg[
+                        self.min_loc_ar[0] : self.min_loc_ar[0] + self.min_width_ar[0]
+                    ].sum()
+                )
             Hbkg = Hbkg * scale
 
         # Calculate significance for each bin
@@ -1212,7 +1672,7 @@ class BumpHunter1D:
         gs = grd.GridSpec(2, 1, height_ratios=[4, 1])
 
         pl1 = plt.subplot(gs[0])
-        plt.title("Distributions with bump")
+        plt.title(f"Distributions with bump  {label}")
 
         plt.hist(
             H[1][:-1],
@@ -1234,16 +1694,13 @@ class BumpHunter1D:
             label="data",
         )
 
-        plt.plot(
-            np.full(2, Bmin),
-            np.array([0, H[0][self.min_loc_ar[0]]]),
-            "r--",
-            label=("BUMP"),
-        )
-        plt.plot(
-            np.full(2, Bmax),
-            np.array([0, H[0][self.min_loc_ar[0] + self.min_width_ar[0] - 1]]),
-            "r--",
+        plt.vlines(
+            [Bmin, Bmax],
+            0,
+            H[0].max(),
+            colors="r",
+            linestyles='dashed',
+            label="BUMP"
         )
         plt.legend(fontsize="large")
         plt.yscale("log")
@@ -1429,19 +1886,44 @@ class BumpHunter1D:
         Information are printed to stdout.
         """
 
-        # Print stuff
+        # Start printing stuff
         print("BUMP WINDOW")
         print(f"   loc = {self.min_loc_ar[0]}")
         print(f"   width = {self.min_width_ar[0]}")
-        print(
-            f"   local p-value = {self.min_Pval_ar[0]:.5g}"
-        )
-        print(
-            f"   -ln(loc p-value) = {self.t_ar[0]:.5f}"
-        )
-        print(
-            f"   local significance = {norm.ppf(1 - self.min_Pval_ar[0]):.5f}"
-        )
+
+        # Check if there are multiple channels
+        if type(self.min_Pval_ar[0]) != np.ndarray:
+            # Keep printing stuff for one channel
+            print(
+                f"   local p-value = {self.min_Pval_ar[0]:.5g}"
+            )
+            print(
+                f"   -ln(loc p-value) = {self.t_ar[0]:.5f}"
+            )
+            print(
+                f"   local significance = {norm.ppf(1 - self.min_Pval_ar[0]):.5f}"
+            )
+        else:
+            # Keep printing stuff for multiple channels
+            print(
+                "   local p-value (per channel) = [",
+                end=''
+            )
+            [
+                print(f"{self.min_Pval_ar[0][ch]:.5g}  ",end='')
+                for ch in range(len(self.min_Pval_ar[0]))
+            ]
+            print("]")
+            print(
+                f"   local p-value (combined) = {self.min_Pval_ar[0].prod():.5g}"
+            )
+            print(
+                f"   -ln(loc p-value) (combined) = {self.t_ar[0]:.5f}"
+            )
+            print(
+                f"   local significance (combined) = {norm.ppf(1 - self.min_Pval_ar[0].prod()):.5f}"
+            )
+
         print("")
 
         return
@@ -1468,30 +1950,63 @@ class BumpHunter1D:
                 Default to False.
         """
 
+        # Chek if we have multi-channel
+        if self.res_ar != [] and self.res_ar.ndim == 2:
+            # We have multiple channels
+            multi_chan = True
+        else:
+            # Only a single channel
+            multi_chan = False
+
         # Get the data and background in histogram form
         if not is_hist:
-            H = np.histogram(data, bins=self.bins, range=self.rang)
-            Hb = np.histogram(
-                bkg, bins=self.bins, range=self.rang, weights=self.weights
-            )[0]
+            if multi_chan:
+                # Loop over channel
+                bins = []
+                for ch in range(len(data)):
+                    bins.append(np.histogram_bin_edges(
+                        data[ch],
+                        bins=self.bins[ch],
+                        range=self.rang
+                    ))
+            else:
+                bins = np.histogram_bin_edges(data, bins=self.bins, range=self.rang)
         else:
-            H = [data, self.bins]
-            Hb = bkg
+            bins = self.bins
 
-        # Print informations about the bump itself
-        print("BUMP POSITION")
-        Bmin = H[1][self.min_loc_ar[0]]
-        Bmax = H[1][self.min_loc_ar[0] + self.min_width_ar[0]]
+        # Compute real bump edges
+        if multi_chan:
+            Bmin = np.array([
+                bins[ch][self.min_loc_ar[0][ch]]
+                for ch in range(len(data))
+            ])
+            Bmax = np.array([
+                bins[ch][self.min_loc_ar[0][ch] + self.min_width_ar[0][ch]]
+                for ch in range(len(data))
+            ])
+
+            # Must take the common overlap window
+            Bmin = Bmin.max()
+            Bmax = Bmax.min()
+        else:
+            Bmin = bins[self.min_loc_ar[0]]
+            Bmax = bins[self.min_loc_ar[0] + self.min_width_ar[0]]
         Bmean = (Bmax + Bmin) / 2
         Bwidth = Bmax - Bmin
 
+        # Print informations about the bump itself
+        print("BUMP POSITION")
         print(f"   min : {Bmin:.3f}")
         print(f"   max : {Bmax:.3f}")
         print(f"   mean : {Bmean:.3f}")
         print(f"   width : {Bwidth:.3f}")
         print(f"   number of signal events : {self.signal_eval}")
-        print(f"   global p-value : {self.global_Pval:1.5f}")
-        print(f"   significance = {self.significance:1.5f}")
+        if multi_chan:
+            print(f"   global p-value (combined) : {self.global_Pval:1.5f}")
+            print(f"   global significance (combined) = {self.significance:1.5f}")
+        else:
+            print(f"   global p-value : {self.global_Pval:1.5f}")
+            print(f"   global significance = {self.significance:1.5f}")
         print("")
 
         return
@@ -1623,5 +2138,6 @@ class BumpHunterInterface(metaclass=ABCMeta):
         during the last iteration (when sigma_limit is reached).
         """
         pass
+
 
 
