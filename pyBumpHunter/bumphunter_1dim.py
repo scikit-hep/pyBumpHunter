@@ -705,13 +705,14 @@ class BumpHunter1D:
             self.min_Pval_ar = np.empty(self.npe + 1)
             self.min_loc_ar = np.empty(self.npe + 1, dtype=int)
             self.min_width_ar = np.empty(self.npe + 1, dtype=int)
-            self.res_ar = np.empty(self.npe + 1, dtype=object)
+            self.t_ar = np.empty(self.npe + 1)
         else:
-            if self.res_ar == []:
+            if self.min_Pval_ar == []:
                 self.min_Pval_ar = np.empty(1)
                 self.min_loc_ar = np.empty(1, dtype=int)
                 self.min_width_ar = np.empty(1, dtype=int)
-                self.res_ar = np.empty(1, dtype=object)
+                self.t_ar = np.empty(1)
+        self.res_ar = []
 
         # Auto-adjust the value of width_max and do an array of all width
         w_ar = np.arange(self.width_min, self.width_max + 1, self.width_step)
@@ -1085,7 +1086,7 @@ class BumpHunter1D:
         # Get all width in number of bins
         w_ar = np.arange(self.width_min, self.width_max + 1, self.width_step)
 
-        res_data = res_ar
+        res_data = self.res_ar
         inter = []
         for i in range(res_data.size):
             # Get scan step for width w
@@ -1099,7 +1100,7 @@ class BumpHunter1D:
             # Loop over positions
             for j in range(len(res_data[i])):
                 loc = H[j * scan_stepp + Hinf]
-                inter.append([res_data[i][j], loc, w])
+                inter.append([res_data[i][j], loc, w_ar[i]])
 
         F = plt.figure(figsize=(12, 8))
         [plt.plot([i[1], i[1] + i[2]], [i[0], i[0]], "r") for i in inter if i[0] < 1.0]
