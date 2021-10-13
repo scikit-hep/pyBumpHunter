@@ -254,7 +254,7 @@ class BumpHunter1D:
                 Same as npe. This argument is deprecated and will be removed in future versions.
             
             Nworker : *Deprecated*
-                Same as Nworker. This argument is deprecated and will be removed in future versions.
+                Same as nworker. This argument is deprecated and will be removed in future versions.
             
             useSideBand : *Deprecated*
                 Same as useSideBand. This argument is deprecated and will be removed in future versions.
@@ -407,6 +407,8 @@ class BumpHunter1D:
         min_Pval = min_Pval.min()
 
         # Save the results in inner variables and return
+        if ih == 0:
+            self.res_ar = res
         self.res_ar[ih] = res
         self.min_Pval_ar[ih] = min_Pval
         self.min_loc_ar[ih] = int(min_loc)
@@ -747,17 +749,22 @@ class BumpHunter1D:
         self.t_ar = -np.log(self.min_Pval_ar)
 
         # Compute the global p-value from the t distribution
-        tdat = self.t_ar[0]
-        S = self.t_ar[1:][self.t_ar[1:] > tdat].size
-        self.global_Pval = S / self.npe
-        print(f"Global p-value : {self.global_Pval:1.4f}  ({S} / {self.npe})")
-
-        # If global p-value is exactly 0, we might have trouble with the significance
-        if self.global_Pval < 1e-15:
-            self.significance = norm.ppf(1 - 1e-15)
+        if self.t_ar.size > 1:
+            tdat = self.t_ar[0]
+            S = self.t_ar[1:][self.t_ar[1:] >= tdat].size
+            self.global_Pval = S / self.npe
+            print(f"Global p-value : {self.global_Pval:1.4f}  ({S} / {self.npe})")
+    
+            # If global p-value is exactly 0, we might have trouble with the significance
+            if self.global_Pval < 1e-15:
+                self.significance = norm.ppf(1 - 1e-15)
+            elif self.global_Pval == 1:
+                self.significance = 0
+            else:
+                self.significance = norm.ppf(1 - self.global_Pval)
+            print(f"Significance = {self.significance:1.5f}")
         else:
-            self.significance = norm.ppf(1 - self.global_Pval)
-        print(f"Significance = {self.significance:1.5f}")
+            print("No pseudo data found : can't compute global p-value")
         print("")
 
         return
@@ -1038,45 +1045,59 @@ class BumpHunter1D:
     ## Display methods
 
     # Method that do the tomography plot for the data
-    def plot_tomography(self, data, is_hist: bool=False, filename=None):
+    def plot_tomography(self, bkg, is_hist: bool=False, filename=None):
         """
         Function that do a tomography plot showing the local p-value for every positions and widths of the scan
         window.
 
         Arguments :
-            data : Numpy array containing the data.
+            bkg :
+                Numpy array containing the reference background.
 
-            is_hist : Boolean specifying if data is in histogram form or not. Default to False.
+            is_hist :
+                Boolean specifying if data is in histogram form or not. Default to False.
 
-            filename : Name of the file in which the plot will be saved. If None, the plot will be just shown
-                       but not saved. Default to None.
+            filename :
+                Name of the file in which the plot will be saved.
+                If None, the plot will be just shown but not saved.
+                Default to None.
         """
 
+        # Check if there is anything to show.
+        if self.res_ar == []:
+            print('Nothing to plot here !')
+            return
+
+        # Get the reference histogram
+        if not is_hist:
+            Hbkg, H = np.histogram(
+                bkg, bins=self.bins, range=self.rang, weights=self.weights
+            )
+        else:
+            if self.weights is None:
+                Hbkg = bkg
+            else:
+                Hbkg = bkg * self.weights
+
         # Same c++ compatibility thing
-        non0 = [i for i in range(data.size) if data[i] > 0]
+        non0 = [i for i in range(Hbkg.size) if Hbkg[i] > 0]
         Hinf = min(non0)
 
-        # Get real bin bounds
-        if not is_hist:
-            H = np.histogram(data, bins=self.bins, range=self.rang)[1]
-        else:
-            H = self.bins
+        # Get all width in number of bins
+        w_ar = np.arange(self.width_min, self.width_max + 1, self.width_step)
 
-        res_data = self.res_ar[0]
+        res_data = res_ar
         inter = []
         for i in range(res_data.size):
-            w = (H[1] - H[0]) * (
-                self.width_min + i * self.width_step
-            )  # bin_width * Nbins
-
             # Get scan step for width w
             if self.scan_step == "half":
-                scan_stepp = max(1, (self.width_min + i * self.width_step) // 2)
+                scan_stepp = max(1, w_ar[i] // 2)
             elif self.scan_step == "full":
-                scan_stepp = self.width_min + i * self.width_step
+                scan_stepp = w_ar[i]
             else:
                 scan_stepp = self.scan_step
 
+            # Loop over positions
             for j in range(len(res_data[i])):
                 loc = H[j * scan_stepp + Hinf]
                 inter.append([res_data[i][j], loc, w])
@@ -1413,7 +1434,13 @@ class BumpHunter1D:
         print(f"   loc = {self.min_loc_ar[0]}")
         print(f"   width = {self.min_width_ar[0]}")
         print(
-            f"   local p-value | t = {self.min_Pval_ar[0]:.5f} | {self.t_ar[0]:.5f}"
+            f"   local p-value = {self.min_Pval_ar[0]:.5g}"
+        )
+        print(
+            f"   -ln(loc p-value) = {self.t_ar[0]:.5f}"
+        )
+        print(
+            f"   local significance = {norm.ppf(1 - self.min_Pval_ar[0]):.5f}"
         )
         print("")
 
