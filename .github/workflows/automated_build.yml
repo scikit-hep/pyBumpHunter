@@ -2,43 +2,30 @@ name: automated_build
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - master
+      - main
   release:
-    types: [published]
+    types:
+    - published
 
 jobs:
   dist:
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v1
 
-    - name: Setup python
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.x
-
-    - name: Install requirement
-      run: |
-        python -m pip install --upgrade pip
-        pip install "setuptools>=42.0" "setuptools_scm[toml]>=4.1" "wheel" "twine"
-
-    - name: Build SDist
-      run: python setup.py sdist
+    - name: Build wheel and SDist
+      run: pipx run build
 
     - uses: actions/upload-artifact@v2
       with:
         path: dist/*
 
-    - name: Build wheel
-      run: >
-        python -m pip wheel . -w wheels
-
-    - uses: actions/upload-artifact@v2
-      with:
-        path: wheels/pyBumpHunter-*.whl
-
     - name: Check metadata
-      run: twine check dist/* wheels/*
+      run: pipx run twine check dist/*
+
 
   publish:
     needs: [dist]
@@ -51,8 +38,6 @@ jobs:
         name: artifact
         path: dist
 
-    - name: Publish package
-      uses: pypa/gh-action-pypi-publish@v1.2.2
+    - uses: pypa/gh-action-pypi-publish@v1.4.2
       with:
-        user: __token__
         password: ${{secrets.PYTOKEN}}
