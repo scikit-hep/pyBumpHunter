@@ -409,7 +409,6 @@ class BumpHunter1D:
         # Save the results in inner variables and return
         if ih == 0:
             self.res_ar = res
-        self.res_ar[ih] = res
         self.min_Pval_ar[ih] = min_Pval
         self.min_loc_ar[ih] = int(min_loc)
         self.min_width_ar[ih] = int(min_width)
