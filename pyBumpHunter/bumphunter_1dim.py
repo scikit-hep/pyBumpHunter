@@ -725,7 +725,7 @@ class BumpHunter1D:
         if do_pseudo:
             if self.nworker > 1:
                 with thd.ThreadPoolExecutor(max_workers=self.nworker) as exe:
-                    for th in range(self.nnpe + 1):
+                    for th in range(self.npe + 1):
                         if th == 0:
                             exe.submit(self._scan_hist, data_hist, bkg_hist, w_ar, th)
                         else:
