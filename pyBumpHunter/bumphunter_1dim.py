@@ -106,7 +106,6 @@ class BumpHunter1D:
             The numpy array has dimention (Nwidth), with Nwidth the number of window's width tested.
             Each python list as dimension (Nstep), with Nstep the number of scan step for a given width (different for every value of width).
 
-
         min_Pval_ar :
             Array containing the minimum p-values obtained for the data (indice=0) and and the pseudo-data (indice>0).
 
@@ -118,6 +117,10 @@ class BumpHunter1D:
 
         signal_eval :
             Number of signal events evaluated form the last scan.
+
+        norm_scale :
+            The scale factor computed with side-band normalization.
+            If use_sideband is False, norm_scale will be None (not computed)
 
         signal_min :
             Minimum number of signal events ones must inject in the data in order to reach the required significance (might differ from signal_eval).
@@ -329,6 +332,10 @@ class BumpHunter1D:
 
             min_width :
                 Width of the window corresponding to the minimum p-value (integer).
+
+            norm_scale :
+                The scale factor computed with side-band normalization (float).
+                If side-band normalization is not use, norm_scale is set to None.
         """
 
         # Remove the first/last hist bins if empty ... just to be consistant with c++
@@ -340,9 +347,11 @@ class BumpHunter1D:
         min_Pval, min_loc = np.empty(w_ar.size), np.empty(w_ar.size, dtype=int)
         signal_eval = np.empty(w_ar.size)
 
+        # Prepare things for side-band normalization (if needed)
         if self.use_sideband:
             ref_total = ref[Hinf:Hsup].sum()
             hist_total = hist[Hinf:Hsup].sum()
+            min_scale = np.empty(w_ar.size)
 
         # Loop over all the width of the window
         for i, w in enumerate(w_ar):
@@ -371,11 +380,13 @@ class BumpHunter1D:
 
             # Count events in all windows of width w
             # FIXME any better way to do it ?? Without loop ?? FIXME
-            Nref = np.array([ref[p : p + w].sum() for p in pos])
+            Nref = np.array([ref[p : p + w].sum() for p in pos], dtype=float)
             Nhist = np.array([hist[p : p + w].sum() for p in pos])
 
+            # Compute and apply side-band normalization scale factor (if needed)
             if self.use_sideband:
-                Nref *= (hist_total - Nhist) / (ref_total - Nref)
+                scale = (hist_total - Nhist) / (ref_total - Nref)
+                Nref *= scale
 
             # Calculate all local p-values for for width w
             if self.mode == "excess":
@@ -397,10 +408,14 @@ class BumpHunter1D:
             min_Pval[i] = res[i].min()
             min_loc[i] = pos[res[i].argmin()]
             signal_eval[i] = Nhist[res[i].argmin()] - Nref[res[i].argmin()]
+            if self.use_sideband:
+                min_scale[i] = scale[res[i].argmin()]
 
         # Get the minimum p-value and associated window among all width
         min_width = w_ar[min_Pval.argmin()]
         min_loc = min_loc[min_Pval.argmin()]
+        if self.use_sideband:
+            min_scale = min_scale[min_Pval.argmin()]
 
         # Evaluate the number of signal event (for data only)
         if ih == 0:
@@ -414,6 +429,8 @@ class BumpHunter1D:
         self.min_Pval_ar[ih] = min_Pval
         self.min_loc_ar[ih] = int(min_loc)
         self.min_width_ar[ih] = int(min_width)
+        if self.use_sideband and ih == 0:
+            self.norm_scale = min_scale
 
     # Extention of the _scan_hist method to multi-channel data.
     def _scan_hist_multi(self, hist, ref, w_ar, ih: int):
@@ -450,6 +467,10 @@ class BumpHunter1D:
 
             min_width :
                 Width of the window corresponding to the minimum p-value (integer).
+
+            norm_scale :
+                The scale factor computed with side-band normalization (float).
+                If side-band normalization is not use, norm_scale is set to None.
         """
 
         # Remove the first/last hist bins if empty ... just to be consistant with c++
@@ -476,6 +497,7 @@ class BumpHunter1D:
             for ch in range(len(hist)):
                 ref_total.append(ref[ch][Hinf[ch]:Hsup[ch]].sum())
                 hist_total.append(hist[ch][Hinf[ch]:Hsup[ch]].sum())
+            min_scale_all = np.empty(len(hist))
 
         # Compute scan_stepp for all width
         if self.scan_step == "full":
@@ -501,6 +523,8 @@ class BumpHunter1D:
             # Initialize results containers for all width
             min_Pval_current = np.empty(w_ar.size)
             min_loc_current = np.empty(w_ar.size, dtype=int)
+            if self.use_sideband:
+                min_scale_current = np.empty(w_ar.size)
 
             # Loop over widths
             for i, w in enumerate(w_ar):
@@ -513,12 +537,13 @@ class BumpHunter1D:
                     continue
 
                 # Count events in all intervals for channel ch and width w
-                Nref = np.array([ref[ch][p : p + w].sum() for p in pos[ch][i]])
+                Nref = np.array([ref[ch][p : p + w].sum() for p in pos[ch][i]], dtype=float)
                 Nhist = np.array([hist[ch][p : p + w].sum() for p in pos[ch][i]])
 
-                # Apply sideband normalization if required
+                # Compute and apply side-band normalization scale factor (if needed)
                 if self.use_sideband:
-                    Nref *= (hist_total[ch] - Nhist) / (ref_total[ch] - Nref)
+                    scale = (hist_total[ch] - Nhist) / (ref_total[ch] - Nref)
+                    Nref *= scale
 
                 # Initialize a p-value container for this channel and width
                 res = np.ones(Nref.size)
@@ -544,10 +569,14 @@ class BumpHunter1D:
                 # Save/update results for width w
                 min_Pval_current[i] = res.min()
                 min_loc_current[i] = pos[ch][i][res.argmin()]
+                if self.use_sideband:
+                    min_scale_current[i] = scale[res.argmin()]
 
             # Get the best interval for channel ch
             min_loc_current = min_loc_current[min_Pval_current.argmin()]
             min_width_current = w_ar[min_Pval_current.argmin()]
+            if self.use_sideband:
+                min_scale_current = min_scale_current[min_Pval_current.argmin()]
             min_Pval_current = min_Pval_current.min()
 
             # Define the combination
@@ -555,6 +584,8 @@ class BumpHunter1D:
                 min_Pval_all[ch] = min_Pval_current
                 min_loc_all[ch] = min_loc_current
                 min_width_all[ch] = min_width_current
+                if self.use_sideband:
+                    min_scale_all[ch] = min_scale_current
             else:
                 # Get the right limit of the bump
                 loc_right = min_loc_current + min_width_current
@@ -568,6 +599,8 @@ class BumpHunter1D:
                     min_loc_all = Hinf
                     min_width_all = Hsup
                     signal_eval_all = np.full(len(ref), 0)
+                    if self.use_sideband:
+                        min_scale_all = None
                     break
                 else:
                     # There is an overlap, we can update the global results
@@ -585,6 +618,10 @@ class BumpHunter1D:
                         loc_right +=1
                     min_loc_all[ch] = min_loc_current
                     min_width_all[ch] = loc_right - min_loc_all[ch]
+                    
+                    # Side-band normalization scale scale
+                    if self.use_sideband:
+                        min_scale_all[ch] = min_scale_current
 
         # Use best inverval position and width to compute signal_eval_all
         if ih == 0 and min_Pval_all[-1] < 1:
@@ -602,6 +639,8 @@ class BumpHunter1D:
         self.min_loc_ar[ih] = np.array(min_loc_all, dtype=int)
         self.min_width_ar[ih] = np.array(min_width_all, dtype=int)
         self.t_ar[ih] = -np.log(min_Pval_all.prod())
+        if self.use_sideband and ih == 0:
+            self.norm_scale = min_scale_all
 
 
     # Variable management methods
@@ -620,6 +659,7 @@ class BumpHunter1D:
         self.min_width_ar = []
         self.t_ar = []
         self.signal_eval = 0
+        self.norm_scale = None
         self.signal_min = 0
         self.signal_ratio = None
         self.data_inject = []
@@ -671,6 +711,7 @@ class BumpHunter1D:
         state["min_width_ar"] = self.min_width_ar
         state["t_ar"] = self.t_ar
         state["signal_eval"] = self.signal_eval
+        state["norm_scale"] = self.norm_scale
         state["signal_min"] = self.signal_min
         state["signal_ratio"] = self.signal_ratio
         state["data_inject"] = self.data_inject
@@ -798,6 +839,8 @@ class BumpHunter1D:
             self.t_ar = state["t_ar"]
         if "signal_eval" in state.keys():
             self.signal_eval = state["signal_eval"]
+        if "norm_scale" in state.keys():
+            self.norm_scale = state["norm_scale"]
         if "signal_min" in state.keys():
             self.signal_min = state["signal_min"]
         if "signal_ratio" in state.keys():
@@ -1629,32 +1672,9 @@ class BumpHunter1D:
         if use_sideband:
             # Check if we are in multi-channel
             if multi_chan:
-                scale = (
-                    H[0].sum()
-                    - H[0][
-                        self.min_loc_ar[0][chan] : self.min_loc_ar[0][chan] + self.min_width_ar[0][chan]
-                    ].sum()
-                )
-                scale = scale / (
-                    Hbkg.sum()
-                    - Hbkg[
-                        self.min_loc_ar[0][chan] : self.min_loc_ar[0][chan] + self.min_width_ar[0][chan]
-                    ].sum()
-                )
+                Hbkg = Hbkg * self.norm_scale[ch]
             else:
-                scale = (
-                    H[0].sum()
-                    - H[0][
-                        self.min_loc_ar[0] : self.min_loc_ar[0] + self.min_width_ar[0]
-                    ].sum()
-                )
-                scale = scale / (
-                    Hbkg.sum()
-                    - Hbkg[
-                        self.min_loc_ar[0] : self.min_loc_ar[0] + self.min_width_ar[0]
-                    ].sum()
-                )
-            Hbkg = Hbkg * scale
+                Hbkg = Hbkg * self.norm_scale
 
         # Calculate significance for each bin
         sig = np.ones(Hbkg.size)
