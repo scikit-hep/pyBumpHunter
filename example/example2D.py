@@ -14,19 +14,14 @@ import pyBumpHunter as BH
 
 # Generate the background
 np.random.seed(42)
-bkg = np.random.exponential(scale=[4, 4], size=(100000, 2))
+bkg = np.random.exponential(scale=[4, 4], size=(1_000_000, 2)) # Need more stat to have a smoother reference
 
 # Generate the data
-Nsig = 500
-data = np.empty(shape=(100000 + Nsig, 2))
-data[:100000] = np.random.exponential(scale=[4, 4], size=(100000, 2))
-data[100000:] = np.random.multivariate_normal(
+Nsig = 700
+data = np.empty(shape=(100_000 + Nsig, 2))
+data[:100_000] = np.random.exponential(scale=[4, 4], size=(100_000, 2))
+data[100_000:] = np.random.multivariate_normal(
     mean=[6.0, 7.0], cov=[[3, 0.5], [0.5, 3]], size=(Nsig)
-)
-
-# Generate the signal
-sig = np.random.multivariate_normal(
-    mean=[6.0, 7.0], cov=[[3, 0.5], [0.5, 3]], size=(10000)
 )
 
 # Expected position of the bump in the data
@@ -68,6 +63,7 @@ hunter = BH.BumpHunter2D(
     npe=8000,
     nworker=1,
     seed=666,
+    use_sideband=True # Activate side-band normalization
 )
 
 # Call the bump_scan method
@@ -91,24 +87,3 @@ hunter.plot_bump(data, bkg, filename="results/2D/bump.png")
 # Get and save statistics plot
 hunter.plot_stat(show_Pval=True, filename="results/2D/BH_statistics.png")
 
-"""  2D signal injection is not implemeted yet
-print('')
-
-# We have to set additionnal parameters specific to the signal injection.
-# All the parameters defined previously are kept.
-hunter.sigma_limit = 5
-hunter.str_min = -1 # if str_scale='log', the real starting value is 10**str_min
-hunter.str_scale = 'log'
-hunter.signal_exp = 150 # Correspond the the real number of signal events generated when making the data
-
-print('####SignalInject call####')
-begin = datetime.now()
-hunter.signal_inject(sig,bkg,is_hist=False)
-end = datetime.now()
-print(f'time={end - begin}')
-print('')
-
-
-# Get and save the injection plot
-BHtest.PlotInject(filename=('results/2D/SignalInject.png','results/SignalInject_log.png'))
-"""
