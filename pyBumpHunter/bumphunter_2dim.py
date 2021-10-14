@@ -450,7 +450,8 @@ class BumpHunter2D(BumpHunterInterface):
         min_Pval = min_Pval.min()
 
         # Save the results in inner variables and return
-        self.res_ar[ih] = res
+        if ih == 0:
+            self.res_ar = res
         self.min_Pval_ar[ih] = min_Pval
         self.min_loc_ar[ih] = [int(min_loc[0]), int(min_loc[1])]
         self.min_width_ar[ih] = [int(min_width[0]), int(min_width[1])]
@@ -1109,8 +1110,8 @@ class BumpHunter2D(BumpHunterInterface):
         else:
             if do_pseudo:
                 self.min_Pval_ar = np.empty(self.npe + 1)
-                self.min_loc_ar = np.empty(self.npe + 1, dtype=int)
-                self.min_width_ar = np.empty(self.npe + 1, dtype=int)
+                self.min_loc_ar = np.empty(self.npe + 1, dtype=object)
+                self.min_width_ar = np.empty(self.npe + 1, dtype=object)
                 self.t_ar = np.empty(self.npe + 1)
             else:
                 if self.min_Pval_ar == []:
@@ -1869,7 +1870,7 @@ class BumpHunter2D(BumpHunterInterface):
         print(f"   width = {self.min_width_ar[0]}")
         
         # Check if there ara multiple channels
-        if type(self.min_Pval_ar[0]) == float:
+        if type(self.min_Pval_ar[0]) != np.ndarray:
             # Print stuff for 1 channel
             print(
                 f"   local p-value = {self.min_Pval_ar[0]:.5g}"
@@ -1949,7 +1950,7 @@ class BumpHunter2D(BumpHunterInterface):
                     )
                     bins.append([binx, biny])
             else:
-                _, binx, biny = np.histtogram2d(
+                _, binx, biny = np.histogram2d(
                     data[:,0],
                     data[:, 1],
                     bins=self.bins,
