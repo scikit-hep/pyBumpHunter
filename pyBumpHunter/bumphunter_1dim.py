@@ -537,8 +537,13 @@ class BumpHunter1D:
                     continue
 
                 # Count events in all intervals for channel ch and width w
-                Nref = np.array([ref[ch][p : p + w].sum() for p in pos[ch][i]], dtype=float)
-                Nhist = np.array([hist[ch][p : p + w].sum() for p in pos[ch][i]])
+                Nref = np.array(
+                    [ref[ch][p : p + w].sum() for p in pos[ch][i]],
+                    dtype=float
+                )
+                Nhist = np.array(
+                    [hist[ch][p : p + w].sum() for p in pos[ch][i]]
+                )
 
                 # Compute and apply side-band normalization scale factor (if needed)
                 if self.use_sideband:
@@ -548,7 +553,7 @@ class BumpHunter1D:
                 # Initialize a p-value container for this channel and width
                 res = np.ones(Nref.size)
 
-                # Compute all p-values
+                # Compute all local p-values for width w
                 if self.mode == "excess":
                     res[(Nhist > Nref) & (Nref > 0)] = G(
                         Nhist[(Nhist > Nref) & (Nref > 0)],
@@ -616,10 +621,11 @@ class BumpHunter1D:
                         while self.bins[ch][loc_right] > self.bins[ch-1][loc_right_prev]:
                             loc_right -= 1
                         loc_right +=1
+                    # Width
                     min_loc_all[ch] = min_loc_current
                     min_width_all[ch] = loc_right - min_loc_all[ch]
                     
-                    # Side-band normalization scale scale
+                    # Side-band normalization scale
                     if self.use_sideband:
                         min_scale_all[ch] = min_scale_current
 
@@ -643,7 +649,7 @@ class BumpHunter1D:
             self.norm_scale = min_scale_all
 
 
-    # Variable management methods
+    ## Variable management methods
 
     # Reset method
     def reset(self):
@@ -1557,14 +1563,10 @@ class BumpHunter1D:
 
         Arguments :
             data :
-                The data distribution.
-                If multi_chan is True, data is expected to be a list of all channels distribution in numpy arrays.
-                Otherwise, data is expected to be a single numpy array.
+                Numpy array containing the data.
 
             bkg :
-                The reference background distribution.
-                If multi_chan is True, bkg is expected to be a list of all channels distribution in numpy arrays.
-                Otherwise, bkg is expected to be a single numpy array.
+                Numpy array containing the background.
 
             is_hist : 
                 Boolean specifying if data and bkg are given in histogram form or not.
@@ -1582,7 +1584,6 @@ class BumpHunter1D:
             filename :
                 Name of the file in which the plot will be saved.
                 If None, the plot will be just shown but not saved.
-                If multi_chan is True, the channel labels are automatically appeded to the file names (1 plot per channel).
                 Default to None.
 
             chan :
@@ -1608,16 +1609,9 @@ class BumpHunter1D:
         if multi_chan:
             if not is_hist:
                 # Take the histogram bin content for the required channel
-                H = np.histogram(data[chan], bins=self.bins[chan], range=self.rang)[0]
+                H = np.histogram(data[chan], bins=self.bins[chan], range=self.rang)
                     
-                # Get all the bin edges
-                Hb = [
-                    np.histogram_bin_edges(
-                        data[chan], bins=self.bins[ch], range=self.rang
-                     )
-                     for ch in range(len(data))
-                ]
-                H = [H,Hb[chan]]
+                H = [H[0], H[1]]
             else:
                 H = np.histogram(data[chan], bins=self.bins, range=self.rang)
         else:
@@ -1629,10 +1623,12 @@ class BumpHunter1D:
         # Get bump min and max
         if multi_chan:
             Bmin = np.array([
-                H[1][self.min_loc_ar[0]] for ch in range(len(data))
+                H[1][self.min_loc_ar[0][ch]]
+                for ch in range(len(data))
             ])
             Bmax = np.array([
-                H[1][self.min_loc_ar[0] + self.min_width_ar[0]] for ch in range(len(data))
+                H[1][self.min_loc_ar[0][ch] + self.min_width_ar[0][ch]]
+                for ch in range(len(data))
             ])
             Bmin = Bmin.max()
             Bmax = Bmax.min()
@@ -1672,7 +1668,7 @@ class BumpHunter1D:
         if use_sideband:
             # Check if we are in multi-channel
             if multi_chan:
-                Hbkg = Hbkg * self.norm_scale[ch]
+                Hbkg = Hbkg * self.norm_scale[chan]
             else:
                 Hbkg = Hbkg * self.norm_scale
 
@@ -1978,7 +1974,7 @@ class BumpHunter1D:
             # Only a single channel
             multi_chan = False
 
-        # Get the data and background in histogram form
+        # Get bin edges
         if not is_hist:
             if multi_chan:
                 # Loop over channel
