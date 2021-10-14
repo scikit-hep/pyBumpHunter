@@ -123,6 +123,10 @@ class BumpHunter2D(BumpHunterInterface):
         signal_eval :
             Number of signal events evaluated form the last scan.
 
+        norm_scale :
+            The scale factor computed with side-band normalization.
+            If use_sideband is False, norm_scale will be None (not computed)
+
         signal_min :
             Minimum number of signal events ones must inject in the data in order to reach the required significance.
 
@@ -341,6 +345,10 @@ class BumpHunter2D(BumpHunterInterface):
 
             min_width :
                 Width of the window corresponding to the minimum p-value ([integer,integer]).
+
+            norm_scale :
+                The scale factor computed with side-band normalization (float).
+                If side-band normalization is not use, norm_scale is set to None.
         """
 
         # Create the results array
@@ -350,13 +358,14 @@ class BumpHunter2D(BumpHunterInterface):
         )
         signal_eval = np.empty(w_ar.shape[0])
 
+        # Prepare things for side-band normalization (if needed)
         if self.use_sideband:
             ref_total = ref.sum()
             hist_total = hist.sum()
+            min_scale = np.empty(w_ar.shape[0])
 
         # Loop over all the width of the window
-        i = 0
-        for w in w_ar:
+        for i, w in enumerate(w_ar):
             # Auto-adjust scan step if specified
             scan_stepp = [0, 0]
             if self.scan_step[0] == "full":
@@ -385,7 +394,6 @@ class BumpHunter2D(BumpHunterInterface):
                 min_Pval[i] = 1.0
                 min_loc[i] = [0, 0]
                 signal_eval[i] = 0
-                i += 1
                 continue
 
             # Initialize local p-value array for width w
@@ -394,15 +402,17 @@ class BumpHunter2D(BumpHunterInterface):
             # Count events in all windows of width w
             # FIXME any better way to do it ?? Without loop ?? FIXME
             Nref = np.array(
-                [ref[p[0] : p[0] + w[0], p[1] : p[1] + w[1]].sum() for p in pos]
+                [ref[p[0] : p[0] + w[0], p[1] : p[1] + w[1]].sum() for p in pos],
+                dtype=float
             )
             Nhist = np.array(
                 [hist[p[0] : p[0] + w[0], p[1] : p[1] + w[1]].sum() for p in pos]
             )
 
             # Apply side-band normalization if required
-            if self.use_sideband == True:
-                Nref *= (hist_total - Nhist) / (ref_total - Nref)
+            if self.use_sideband:
+                scale = (hist_total - Nhist) / (ref_total - Nref)
+                Nref *= scale
 
             # Calculate all local p-values for for width w
             if self.mode == "excess":
@@ -415,7 +425,7 @@ class BumpHunter2D(BumpHunterInterface):
                     Nhist[Nhist < Nref] + 1, Nref[Nhist < Nref]
                 )
 
-            if self.use_sideband == True:
+            if self.use_sideband:
                 res[i][
                     res[i] < 1e-300
                 ] = 1e-300  # prevent issue with very low p-value, sometimes induced by normalisation in the tail
@@ -424,12 +434,14 @@ class BumpHunter2D(BumpHunterInterface):
             min_Pval[i] = res[i].min()
             min_loc[i] = pos[res[i].argmin()]
             signal_eval[i] = Nhist[res[i].argmin()] - Nref[res[i].argmin()]
-
-            i += 1
+            if self.use_sideband:
+                min_scale[i] = scale[res[i].argmin()]
 
         # Get the minimum p-value and associated window among all width
         min_width = w_ar[min_Pval.argmin()]
         min_loc = min_loc[min_Pval.argmin()]
+        if self.use_sideband:
+            min_scale = min_scale[min_Pval.argmin()]
 
         # Evaluate the number of signal event (for data only)
         if ih == 0:
@@ -442,6 +454,8 @@ class BumpHunter2D(BumpHunterInterface):
         self.min_Pval_ar[ih] = min_Pval
         self.min_loc_ar[ih] = [int(min_loc[0]), int(min_loc[1])]
         self.min_width_ar[ih] = [int(min_width[0]), int(min_width[1])]
+        if self.use_sideband and ih == 0:
+            self.norm_scale = min_scale
 
     # Extention of the _scan_hist method to multi-channel data.
     def _scan_hist_multi(self, hist, ref, w_ar, ih: int):
@@ -478,6 +492,10 @@ class BumpHunter2D(BumpHunterInterface):
 
             min_width :
                 Width of the window corresponding to the minimum p-value ([integer,integer]).
+
+            norm_scale :
+                The scale factor computed with side-band normalization (float).
+                If side-band normalization is not use, norm_scale is set to None.
         """
 
         # Initialize the global results for all channels
@@ -493,6 +511,7 @@ class BumpHunter2D(BumpHunterInterface):
             for ch in range(len(hist)):
                 ref_total.append(ref[ch].sum())
                 hist_total.append(hist[ch].sum())
+            min_scale_all = np.empty(len(hist))
 
         # Compute scan_steppx for all width
         if self.scan_step[0] == "full":
@@ -546,6 +565,8 @@ class BumpHunter2D(BumpHunterInterface):
             # Initialize results containers for all width
             min_Pval_current = np.empty(w_ar.shape[0])
             min_loc_current = np.empty(w_ar.shape[0], dtype=object)
+            if self.use_sideband:
+                min_scale_current = np.empty(w_ar.shape[0])
 
             # Loop over widths
             for i, w in enumerate(w_ar):
@@ -568,7 +589,8 @@ class BumpHunter2D(BumpHunterInterface):
 
                 # Apply side-band normalization if required
                 if self.use_sideband == True:
-                    Nref *= (hist_total[ch] - Nhist) / (ref_total[ch] - Nref)
+                    scale = (hist_total[ch] - Nhist) / (ref_total[ch] - Nref)
+                    Nref *= scale
 
                 # Initialize a p-value container for this channel and width
                 res = np.ones(Nref.size)
@@ -591,13 +613,17 @@ class BumpHunter2D(BumpHunterInterface):
                 # Save all local p-values for this channel and width
                 res_all[ch, i] = res
 
-                # Save/update results for width w in mode 'multiply'
+                # Save/update results for width w
                 min_Pval_current[i] = res.min()
                 min_loc_current[i] = pos[ch][i][res.argmin()]
+                if self.use_sideband:
+                    min_scale_current[i] = scale[res.argmin()]
 
             # Get the best interval for channel ch
             min_loc_current = min_loc_current[min_Pval_current.argmin()]
             min_width_current = w_ar[min_Pval_current.argmin()]
+            if self.use_sideband:
+                min_scale_current = min_scale_current[min_Pval_current.argmin()]
             min_Pval_current = min_Pval_current.min()
 
             # Define the combination
@@ -605,6 +631,8 @@ class BumpHunter2D(BumpHunterInterface):
                 min_Pval_all[ch] = min_Pval_current
                 min_loc_all[ch] = min_loc_current
                 min_width_all[ch] = min_width_current
+                if self.use_sideband:
+                    min_scale_all[ch] = min_scale_current
             else:
                 # Get the right limit of the bump
                 loc_right = [
@@ -624,6 +652,8 @@ class BumpHunter2D(BumpHunterInterface):
                     min_loc_all = min_loc_all = [[0, 0] for ch in range(len(hist))]
                     min_width_all = [[h.shape[0], h.shape[1]] for h in hist]
                     signal_eval_all = np.full(len(ref), 0)
+                    if self.use_sideband:
+                        min_scale_all = None
                     break
                 elif self.bins[ch][1][loc_right[1]] <= self.bins[ch-1][1][min_loc_all[ch-1][1]] \
                 or  self.bins[ch][1][min_loc_current[1]] >= self.bins[ch-1][1][loc_right_prev[1]]:
@@ -632,6 +662,8 @@ class BumpHunter2D(BumpHunterInterface):
                     min_loc_all = min_loc_all = [[0, 0] for ch in range(len(hist))]
                     min_width_all = [[h.shape[0], h.shape[1]] for h in hist]
                     signal_eval_all = np.full(len(ref), 0)
+                    if self.use_sideband:
+                        min_scale_all = None
                     break
                 else:
                     # There is an overlap, we can update the global results
@@ -662,6 +694,10 @@ class BumpHunter2D(BumpHunterInterface):
                         loc_right[1] - min_loc_all[ch][1]
                     ]
 
+                    # Side-band normalization scale
+                    if self.use_sideband:
+                        min_scale_all[ch] = min_scale_current
+
         # Use best inverval position and width to compute signal_eval_all
         if ih == 0 and min_Pval_all[-1] < 1:
             signal_eval_all = np.array([
@@ -684,6 +720,8 @@ class BumpHunter2D(BumpHunterInterface):
         self.min_loc_ar[ih] = np.array(min_loc_all).astype(int)
         self.min_width_ar[ih] = np.array(min_width_all).astype(int)
         self.t_ar[ih] = -np.log(min_Pval_all.prod())
+        if self.use_sideband and ih == 0:
+            self.norm_scale = min_scale_all
 
 
     ## Variable management methods
@@ -702,6 +740,7 @@ class BumpHunter2D(BumpHunterInterface):
         self.min_width_ar = []
         self.t_ar = []
         self.signal_eval = 0
+        self.norm_scale = None
         self.signal_min = 0
         self.signal_ratio = None
         self.data_inject = []
@@ -753,6 +792,7 @@ class BumpHunter2D(BumpHunterInterface):
         state["min_width_ar"] = self.min_width_ar
         state["t_ar"] = self.t_ar
         state["signal_eval"] = self.signal_eval
+        state["norm_scale"] = self.norm_scale
         state["signal_min"] = self.signal_min
         state["signal_ratio"] = self.signal_ratio
         state["data_inject"] = self.data_inject
@@ -882,6 +922,8 @@ class BumpHunter2D(BumpHunterInterface):
             self.t_ar = state["t_ar"]
         if "signal_eval" in state.keys():
             self.signal_eval = state["signal_eval"]
+        if "norm_scale" in state.keys():
+            self.norm_scale = state["norm_scale"]
         if "signal_min" in state.keys():
             self.signal_min = state["signal_min"]
         if "signal_ratio" in state.keys():
@@ -1609,17 +1651,10 @@ class BumpHunter2D(BumpHunterInterface):
             use_sideband = self.use_sideband
 
         if use_sideband:
-            pos = self.min_loc_ar[0]
-            width = self.min_width_ar[0]
-            scale = (
-                H[0].sum()
-                - H[0][pos[0] : pos[0] + width[0], pos[1] : pos[1] + width[1]].sum()
-            )
-            scale = scale / (
-                Hbkg.sum()
-                - Hbkg[pos[0] : pos[0] + width[0], pos[1] : pos[1] + width[1]].sum()
-            )
-            Hbkg = Hbkg * scale
+            if multi_chan:
+                Hbkg = Hbkg * self.norm_scale[chan]
+            else:
+                Hbkg = Hbkg * self.norm_scale
 
         # Calculate significance for each bin
         sig = np.ones(Hbkg.shape)
