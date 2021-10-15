@@ -1533,7 +1533,8 @@ class BumpHunter1D:
             # Loop over positions
             for j in range(len(res_data[i])):
                 loc = H[j * scan_stepp + Hinf]
-                inter.append([res_data[i][j], loc, w_ar[i]])
+                w = H[j * scan_stepp + Hinf + w_ar[i]] - loc
+                inter.append([res_data[i][j], loc, w])
 
         F = plt.figure(figsize=(12, 8))
         plt.title(label)
