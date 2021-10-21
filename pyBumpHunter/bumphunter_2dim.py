@@ -923,7 +923,7 @@ class BumpHunter2D(BumpHunterInterface):
             self.t_ar = state["t_ar"]
         if "signal_eval" in state.keys():
             self.signal_eval = state["signal_eval"]
-        if "norm_scale" in state.keys():
+        if "norm_scale" in state:
             self.norm_scale = state["norm_scale"]
         if "signal_min" in state.keys():
             self.signal_min = state["signal_min"]
