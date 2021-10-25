@@ -742,116 +742,116 @@ class BumpHunter1D:
 
         self.mode = state.get("mode", "excess")
 
-        if "rang" in state.keys():
+        if "rang" in state:
             self.rang = state["rang"]
         else:
             self.rang = None
 
-        if "bins" in state.keys():
+        if "bins" in state:
             self.bins = state["bins"]
         else:
             self.bins = 60
 
-        if "weights" in state.keys():
+        if "weights" in state:
             self.rang = state["weights"]
         else:
             self.rang = None
 
-        if "width_min" in state.keys():
+        if "width_min" in state:
             self.width_min = state["width_min"]
         else:
             self.width_min = 2
 
-        if "width_max" in state.keys():
+        if "width_max" in state:
             self.width_max = state["width_max"]
         else:
             self.width_max = None
 
-        if "width_step" in state.keys():
+        if "width_step" in state:
             self.width_step = state["width_step"]
         else:
             self.width_step = 1
 
-        if "scan_step" in state.keys():
+        if "scan_step" in state:
             self.scan_step = state["scan_step"]
         else:
             self.scan_step = 1
 
-        if "npe" in state.keys():
+        if "npe" in state:
             self.npe = state["npe"]
         else:
             self.npe = 100
 
-        if "nworker" in state.keys():
+        if "nworker" in state:
             self.nworker = state["nworker"]
         else:
             self.nworker = 4
 
-        if "seed" in state.keys():
+        if "seed" in state:
             self.seed = state["seed"]
         else:
             self.seed = None
 
-        if "use_sideband" in state.keys():
+        if "use_sideband" in state:
             self.use_sideband = state["use_sideband"]
         else:
             self.use_sideband = False
 
-        if "sigma_limit" in state.keys():
+        if "sigma_limit" in state:
             self.sigma_limit = state["sigma_limit"]
         else:
             self.sigma_limit = 5
 
-        if "str_min" in state.keys():
+        if "str_min" in state:
             self.str_min = state["str_min"]
         else:
             self.str_min = 0.5
 
-        if "str_step" in state.keys():
+        if "str_step" in state:
             self.str_step = state["str_step"]
         else:
             self.str_step = 0.25
 
-        if "str_scale" in state.keys():
+        if "str_scale" in state:
             self.str_scale = state["str_scale"]
         else:
             self.str_scale = "lin"
 
-        if "signal_exp" in state.keys():
+        if "signal_exp" in state:
             self.signal_exp = state["signal_exp"]
         else:
             self.signal_exp = None
 
-        if "sig_flip" in state.keys():
+        if "sig_flip" in state:
             self.sig_flip = state["sig_flip"]
         else:
             self.sig_flip = True
 
         # Load results
         self.reset()
-        if "global_Pval" in state.keys():
+        if "global_Pval" in state:
             self.global_Pval = state["global_Pval"]
-        if "significance" in state.keys():
+        if "significance" in state:
             self.significance = state["significance"]
-        if "res_ar" in state.keys():
+        if "res_ar" in state:
             self.res_ar = state["res_ar"]
-        if "min_Pval_ar" in state.keys():
+        if "min_Pval_ar" in state:
             self.min_Pval_ar = state["min_Pval_ar"]
-        if "min_loc_ar" in state.keys():
+        if "min_loc_ar" in state:
             self.min_loc_ar = state["min_loc_ar"]
-        if "min_width_ar" in state.keys():
+        if "min_width_ar" in state:
             self.min_width_ar = state["min_width_ar"]
-        if "t_ar" in state.keys():
+        if "t_ar" in state:
             self.t_ar = state["t_ar"]
-        if "signal_eval" in state.keys():
+        if "signal_eval" in state:
             self.signal_eval = state["signal_eval"]
-        if "norm_scale" in state.keys():
+        if "norm_scale" in state:
             self.norm_scale = state["norm_scale"]
-        if "signal_min" in state.keys():
+        if "signal_min" in state:
             self.signal_min = state["signal_min"]
-        if "signal_ratio" in state.keys():
+        if "signal_ratio" in state:
             self.signal_ratio = state["signal_ratio"]
-        if "data_inject" in state.keys():
+        if "data_inject" in state:
             self.data_inject = state["data_inject"]
 
         return
@@ -925,7 +925,7 @@ class BumpHunter1D:
 
         # If we are in multi channel, we must check if bins is given separately for each channel
         if multi_chan:
-            if type(self.bins) != type(list()):
+            if not isinstance(bins, list):
                 self.bins = [self.bins for ch in range(len(data))]
 
         # Generate the background and data histograms
@@ -1909,7 +1909,7 @@ class BumpHunter1D:
         print(f"   width = {self.min_width_ar[0]}")
 
         # Check if there are multiple channels
-        if type(self.min_Pval_ar[0]) != np.ndarray:
+        if not isinstance(self.min_Pval_ar[0], np.ndarray):
             # Keep printing stuff for one channel
             print(
                 f"   local p-value = {self.min_Pval_ar[0]:.5g}"
