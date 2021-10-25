@@ -5,23 +5,14 @@ SCAN
 Global p-value : 0.0006  (5 / 8000)
 Significance = 3.22722
 
-time=0:01:39.380611
+time=0:01:31.526790
 
-BUMP WINDOW
-   loc = [3, 5]
-   width = [3, 3]
-   local p-value = 3.6572e-07
-   -ln(loc p-value) = 14.82140
-   local significance = 4.95282
-
-BUMP POSITION
-   min : [3.750, 6.250]
-   max : [7.500, 10.000]
-   mean : [5.625, 8.125]
-   width : [3.750, 3.750]
-   number of signal events : 277.7928293618411
-   global p-value : 0.00063
-   significance = 3.22722
-
+Bump edges : x=[3.75, 7.5] y=[6.25, 10]  (loc=[3, 5], width=[3, 3])
+Bump mean | width : [5.62, 8.12] | [3.75, 3.75]
+Evaluated number of signal events : 278
+Local p-value | test statistic : 3.6572e-07 | 14.821
+Local significance : 4.9528
+Global p-value : 0.000625
+Global significace : 3.23
    mean (true) = [6.0, 7.0]
 

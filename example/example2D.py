@@ -75,8 +75,7 @@ print(f"time={end - begin}")
 print("")
 
 # Print bump
-hunter.print_bump_info()
-hunter.print_bump_true(data, bkg)
+print(hunter.bump_info(data))
 print(f"   mean (true) = {Lth}")
 print("")
 

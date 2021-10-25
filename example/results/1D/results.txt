@@ -5,24 +5,15 @@ SCAN
 Global p-value : 0.0177  (177 / 10000)
 Significance = 2.10375
 
-time=0:00:19.934832
+time=0:00:16.415549
 
-BUMP WINDOW
-   loc = 16
-   width = 4
-   local p-value = 0.00017341
-   -ln(loc p-value) = 8.65985
-   local significance = 3.57756
-
-BUMP POSITION
-   min : 5.333
-   max : 6.667
-   mean : 6.000
-   width : 1.333
-   number of signal events : 208.0
-   global p-value : 0.01770
-   global significance = 2.10375
-
+Bump edges : [5.33, 6.67]  (loc=16, width=4)
+Bump mean | width : 6 | 1.33
+Evaluated number of signal events : 208
+Local p-value | test statistic : 0.00017341 | 8.6598
+Local significance : 3.5776
+Global p-value : 0.0177
+Global significace : 2.1
    mean (true) = 5.5
 
 
@@ -101,5 +92,5 @@ REACHED SIGMA LIMIT
    Number of signal event injected : 300.0
    Signal strength : 2.0000
 
-time=0:03:06.142560
+time=0:03:04.767713
 
