@@ -1857,7 +1857,136 @@ class BumpHunter2D(BumpHunterInterface):
     def PlotInject(self, *args, **kwargs):
         return self.plot_inject(*args, **kwargs)
 
+# Method to obtained a printable string containing all the results of the last BumpHunter scans
+    def bump_info(self, data, is_hist: bool=False):
+        """
+        Method that return a formated string with all the results of the last performed scan.
+
+        Arguments :
+            data :
+                Numpy array containing the data.
+
+        Return :
+            bstr :
+                The formated result string.
+        """
+
+        # Chek if we have multi-channel
+        if self.res_ar != [] and self.res_ar.ndim == 2:
+            # We have multiple channels
+            multi_chan = True
+        else:
+            # Only a single channel
+            multi_chan = False
+
+        # Get the bin edges
+        if not is_hist:
+            if multi_chan:
+                # Loop over all channels
+                bins = []
+                for ch in range(len(data)):
+                    _, binx, biny = np.histogram2d(
+                        data[ch][:, 0],
+                        data[ch][:, 1],
+                        bins=self.bins[ch],
+                        range=self.rang
+                    )
+                    bins.append([binx, biny])
+            else:
+                _, binx, biny = np.histogram2d(
+                    data[:,0],
+                    data[:, 1],
+                    bins=self.bins,
+                    range=self.rang
+                )
+                bins = [binx, biny]
+        else:
+            bins = self.bins
+
+        # Get the bin edges
+        if multi_chan:
+            # Get edges for all chanels
+            Bminx = np.array([
+                bins[ch][0][self.min_loc_ar[0][ch][0]]
+                for ch in range(len(data))
+            ])
+            Bmaxx = np.array([
+                bins[ch][0][self.min_loc_ar[0][ch][0] + self.min_width_ar[0][ch][0]]
+                for ch in range(len(data))
+            ])
+            Bminy = np.array([
+                bins[ch][1][self.min_loc_ar[0][ch][1]]
+                for ch in range(len(data))
+            ])
+            Bmaxy = np.array([
+                bins[ch][1][self.min_loc_ar[0][ch][1] + self.min_width_ar[0][ch][1]]
+                for ch in range(len(data))
+            ])
+
+            # Take common overlap window
+            Bminc = np.array([Bminx.max(), Bminy.max()])
+            Bmaxc = np.array([Bmaxx.min(), Bmaxy.min()])
+            Bmean = (Bminc + Bmaxc) / 2
+            Bwidth = Bmaxc - Bminc
+        else:
+            Bmin = np.array([
+                bins[0][self.min_loc_ar[0][0]],
+                bins[1][self.min_loc_ar[0][1]]
+            ])
+            Bmax = np.array([
+                bins[0][self.min_loc_ar[0][0] + self.min_width_ar[0][0]],
+                bins[1][self.min_loc_ar[0][1] + self.min_width_ar[0][1]]
+            ])
+            Bmean = (Bmin + Bmax) / 2
+            Bwidth = Bmax - Bmin
+
+        # Initialise the string
+        bstr = ''
+
+        # Append local results to the string
+        if multi_chan:
+            # Append the bump edges of every channels (x and y separatetly)
+            bstr += 'Bump edges (per channel):\n'
+            for ch in range(len(self.min_Pval_ar[0])):
+                bstr += f'    chan {ch+1} -> x=[{Bminx[ch]:.3g}, {Bmaxx[ch]:.3g}] y=[{Bminy[ch]:.3g}, {Bmaxy[ch]:.3g}]'
+                bstr += f'  (loc={self.min_loc_ar[0][ch]}, width={self.min_width_ar[0][ch]})\n'
+
+            # Append the combined bump edges, mean and width (x and y separately)
+            bstr += f'Combined bump edges : x=[{Bminc[0]:.3g}, {Bmaxc[0]:.3g}] y=[{Bminc[1]:.3g}, {Bmaxc[1]:.3g}]\n'
+            bstr += f'Combined bump mean | width : [{Bmean[0]:.3g}, {Bmean[1]:.3g}]'
+            bstr += f' | [{Bwidth[0]:.3g}, {Bwidth[1]:.3g}]\n'
+
+            # Append evavuated number of signal event (per channel and total)
+            bstr += 'Evaluated number f signal events (per channel):\n'
+            for ch in range(len(self.min_Pval_ar[0])):
+                bstr += f'    chan {ch+1} -> {self.signal_eval[ch]:.3g\n}'
+            bstr += f'    Total -> {self.signal_eval.sum():.3g}\n'
+
+            # Append local information
+            bstr += 'Local p-value (per channel):\n'
+            for ch in range(len(self.min_Pval_ar[0])):
+                bstr += f'    chan {ch+1} -> {self.min_Pval_ar[0][ch]:.5g}\n'
+            bstr += f'Local p-value | test statistic (combined) : {self.min_Pval_ar[0].prod():.5g}'
+            bstr += f' | {self.t_ar[0]:.5g}\n'
+            bstr += f'Local significance (combined) : {norm.ppf(1 - self.min_Pval_ar[0].prod()):.5g}\n'
+        else:
+            # Append results for only one channel (no 'combined', x and y separately)
+            bstr += f'Bump edges : x=[{Bmin[0]:.3g}, {Bmax[0]:.3g}] y=[{Bmin[1]:.3g}, {Bmax[1]:.3g}]'
+            bstr += f'  (loc={self.min_loc_ar[0]}, width={self.min_width_ar[0]})\n'
+            bstr += f'Bump mean | width : [{Bmean[0]:.3g}, {Bmean[1]:.3g}] | [{Bwidth[0]:.3g}, {Bwidth[1]:.3g}]\n'
+            bstr += f'Evaluated number of signal events : {self.signal_eval:.3g}\n'
+            bstr += f'Local p-value | test statistic : {self.min_Pval_ar[0]:.5g}'
+            bstr += f' | {self.t_ar[0]:.5g}\n'
+            bstr += f'Local significance : {norm.ppf(1 - self.min_Pval_ar[0]):.5g}\n'
+
+        # Append global results to the string
+        bstr += f'Global p-value : {self.global_Pval:.5g}\n'
+        bstr += f'Global significace : {self.significance:.3g}'
+
+        return bstr
+
     # Method that print the local infomation about the most significante bump in data
+    @deprecated("Use `bump_info` instead.")
     def print_bump_info(self):
         """
         Function that print the local infomation about the most significante bump in data.
@@ -1911,6 +2040,7 @@ class BumpHunter2D(BumpHunterInterface):
         return self.print_bump_info(*args, **kwargs)
 
     # Function that print the global infomation about the most significante bump in data
+    @deprecated("Use `bump_info` instead.")
     def print_bump_true(self, data, bkg, is_hist: bool=False):
         """
         Print the global informations about the most significante bump in data in real scale.
