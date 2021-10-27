@@ -925,7 +925,7 @@ class BumpHunter1D:
 
         # If we are in multi channel, we must check if bins is given separately for each channel
         if multi_chan:
-            if not isinstance(bins, list):
+            if not isinstance(self.bins, list):
                 self.bins = [self.bins for ch in range(len(data))]
 
         # Generate the background and data histograms
