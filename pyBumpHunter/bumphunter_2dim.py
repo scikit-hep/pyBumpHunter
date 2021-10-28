@@ -1960,7 +1960,7 @@ class BumpHunter2D(BumpHunterInterface):
             bstr += f' | [{Bwidth[0]:.3g}, {Bwidth[1]:.3g}]\n'
 
             # Append evavuated number of signal event (per channel and total)
-            bstr += 'Evaluated number f signal events (per channel):\n'
+            bstr += 'Evaluated number of signal events (per channel):\n'
             for ch in range(len(self.min_Pval_ar[0])):
                 bstr += f'    chan {ch+1} -> {self.signal_eval[ch]:.3g\n}'
             bstr += f'    Total -> {self.signal_eval.sum():.3g}\n'
