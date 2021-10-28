@@ -1227,13 +1227,16 @@ class BumpHunter2D(BumpHunterInterface):
             print(f"Global p-value : {self.global_Pval:1.4f}  ({S} / {self.npe})")
 
             # If global p-value is exactly 0, we might have trouble with the significance
-            if self.global_Pval < 1e-15:
-                self.significance = norm.ppf(1 - 1e-15)
-            elif self.global_Pval == 1:
+            if self.global_Pval == 1:
                 self.significance = 0
+                print(f"Significance = {self.significance}")
+            elif self.global_Pval == 0:
+                # I this case, we can't compute directly the significance, so we set a limit
+                self.significance = norm.ppf(1 - (1 / self.npe))
+                print(f"Significance > {self.significance:1.5f} (lower limit)")
             else:
                 self.significance = norm.ppf(1 - self.global_Pval)
-            print(f"Significance = {self.significance:1.5f}")
+                print(f"Significance = {self.significance:1.5f}")
         else:
             print("No pseudo data found : can't compute global p-value")
         print("")
@@ -1981,7 +1984,10 @@ class BumpHunter2D(BumpHunterInterface):
 
         # Append global results to the string
         bstr += f'Global p-value : {self.global_Pval:.5g}\n'
-        bstr += f'Global significace : {self.significance:.3g}'
+        if self.global_Pval == 0:
+            bstr += f'Global significance : >{self.significance:.3g}  (lower limit)'
+        else:
+            bstr += f'Global significance : {self.significance:.3g}'
 
         return bstr
 

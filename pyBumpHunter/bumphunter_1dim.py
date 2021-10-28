@@ -67,7 +67,7 @@ class BumpHunter1D:
         seed :
             Seed for the random number generator.
 
-        use_sideBand :
+        use_sideband :
             Boolean specifying if side-band normalization should be applied when computing p-values.
 
         sigma_limit :
@@ -91,6 +91,9 @@ class BumpHunter1D:
         flip_sig :
             Boolean specifying if the signal should be fliped when running in deficit mode.
             Ignored in excess mode.
+
+        npe_inject :
+            Integer specifying the number of background+signal pseudo-experiments to be generated during signal injection test.
 
     List of inner results variables :
         global_Pval :
@@ -157,6 +160,7 @@ class BumpHunter1D:
         str_scale: str="lin",
         signal_exp=None,
         flip_sig: bool=True,
+        npe_inject: int=100,
         seed=None,
         use_sideband: bool=False,
         Nworker=None,
@@ -170,33 +174,33 @@ class BumpHunter1D:
                 Can be either None or a array-like of float with shape (2,2).
                 If None, the range is set automatically to include all the data given.
                 Default to None.
-            
+
             mode :
                 String specifying if the algorithm must look for a excess or a deficit in the data.
                 Can be either 'excess' or 'deficit'.
                 Default to 'excess'.
-            
+
             width_min :
                 Minimum value of the scan window width that should be tested (in number of bins).
                 Default to 1.
-            
+
             width_max :
                 Maximum value of the scan window width that should be tested (in number of bins).
                 Can be either None or a positive integer.
                 If None, the value is set to the total number of bins of the histograms divided by 2.
                 Default to none.
-            
+
             width_step :
                 Number of bins by which the scan window width is increased at each step.
                 Default to 1.
-            
+
             scan_step :
                 Number of bins by which the position of the scan window is shifted at each step.
                 Can be either 'full', 'half' or a positive integer.
                 If 'full', the window will be shifted by a number of bins equal to its width.
                 If 'half', the window will be shifted by a number of bins equal to max(1,width//2).
                 Default to 1.
-            
+
             npe :
                 Number of pseudo-data distributions to be sampled from the reference background distribution.
                 Default to 100.
@@ -208,14 +212,14 @@ class BumpHunter1D:
                 If you want to consider multiple channels with different binning, you can also give a list of array containing the bin edges of each channels.
                 In case bins is a list and multi_chan is true, the algorithm will consider that binning is different for each channel.
                 Default to 60.
-    
+
             weights :
                 Weights for the background distribution. Can be either None or a array-like of float.
                 If array-like of floats, each background events will be accounted by its weights when making histograms.
                 The size of the array-like must be the same than of bkg.
                 If None, no weights will be considered.
                 Default to None.
-    
+
             nworker : 
                 Number of thread to be run in parallel when scanning all the histograms (data and pseudo-data).
                 If less or equal to 1, then parallelism will be disabled.
@@ -228,39 +232,43 @@ class BumpHunter1D:
             str_min :
                 The minimum number signal stregth to inject in background (first iteration).
                 Default to 0.5.
-    
+
             str_step :
                 Increase of the signal stregth to be injected in the background at each iteration.
                 Default to 0.25.
-    
+
             str_scale :
                 Specify how the signal strength should vary.
                 If 'log', the signal strength will vary according to a log scale starting from 10**str_min.
                 If 'lin', the signal will vary according to a linear scale starting from str_min with a step of str_step.
                 Default to 'lin'.
-    
+
             signal_exp :
                 Expected number of signal used to compute the signal strength.
                 If None, the signal strength is not computed. Default to None.
-    
+
             flip_sig :
                 Boolean specifying if the signal should be fliped when running in deficit mode.
                 Ignored in excess mode. Default to True.
-                
+
+            npe_inject :
+                Number of background+signal pseudo-experiments to be generating during signal injection test.
+                Default to 100.
+
             seed :
                 Seed for the random number generator.
                 Default to None. 
-            
+
             use_sideband :
                 Boolean specifying if the side-band normalization should be applied.
                 Default to False.
-            
+
             Npe : *Deprecated*
                 Same as npe. This argument is deprecated and will be removed in future versions.
-            
+
             Nworker : *Deprecated*
                 Same as nworker. This argument is deprecated and will be removed in future versions.
-            
+
             useSideBand : *Deprecated*
                 Same as useSideBand. This argument is deprecated and will be removed in future versions.
         """
@@ -289,6 +297,7 @@ class BumpHunter1D:
         self.str_scale = str_scale
         self.signal_exp = signal_exp
         self.flip_sig = flip_sig
+        self.npe_inject = npe_inject
         self.seed = seed
         self.use_sideband = use_sideband
 
@@ -706,6 +715,7 @@ class BumpHunter1D:
         state["str_scale"] = self.str_scale
         state["signal_exp"] = self.signal_exp
         state["sig_flip"] = self.flip_sig
+        state["npe_inject"] = self.npe_inject
         state["use_sideband"] = self.use_sideband
 
         # Save results
@@ -826,6 +836,11 @@ class BumpHunter1D:
             self.sig_flip = state["sig_flip"]
         else:
             self.sig_flip = True
+
+        if "npe_inject" in state:
+            self.npe_inject = state["npe_inject"]
+        else:
+            self.npe_inject = 100
 
         # Load results
         self.reset()
@@ -1135,14 +1150,17 @@ class BumpHunter1D:
             self.global_Pval = S / self.npe
             print(f"Global p-value : {self.global_Pval:1.4f}  ({S} / {self.npe})")
     
-            # If global p-value is exactly 0, we might have trouble with the significance
-            if self.global_Pval < 1e-15:
-                self.significance = norm.ppf(1 - 1e-15)
-            elif self.global_Pval == 1:
+            # Check global p-value
+            if self.global_Pval == 1:
                 self.significance = 0
+                print(f"Significance = {self.significance}")
+            elif self.global_Pval == 0:
+                # I this case, we can't compute directly the significance, so we set a limit
+                self.significance = norm.ppf(1 - (1 / self.npe))
+                print(f"Significance > {self.significance:1.5f} (lower limit)")
             else:
                 self.significance = norm.ppf(1 - self.global_Pval)
-            print(f"Significance = {self.significance:1.5f}")
+                print(f"Significance = {self.significance:1.5f}")
         else:
             print("No pseudo data found : can't compute global p-value")
         print("")
@@ -1198,6 +1216,7 @@ class BumpHunter1D:
 
         # Reset significance and sigma_ar global variable
         self.significance = 0
+        self.global_Pval = 1
         sigma_inf = 0
         sigma_sup = 0
         self.sigma_ar = []
@@ -1223,10 +1242,9 @@ class BumpHunter1D:
 
         # Generate pseudo-data by sampling background
         print("Generating background only histograms")
-        Nbkg = 1000
         np.random.seed(self.seed)
         pseudo_bkg = np.random.poisson(
-            lam=np.tile(bkg_hist, (Nbkg, 1)).transpose(), size=(bkg_hist.size, Nbkg)
+            lam=np.tile(bkg_hist, (self.npe, 1)).transpose(), size=(bkg_hist.size, self.npe)
         )
 
         # Set width_max if it is given as None
@@ -1234,10 +1252,10 @@ class BumpHunter1D:
             self.width_max = bkg_hist.size // 2
 
         # Initialize all results containenrs
-        self.min_Pval_ar = np.empty(Nbkg)
-        self.min_loc_ar = np.empty(Nbkg, dtype=int)
-        self.min_width_ar = np.empty(Nbkg, dtype=int)
-        self.res_ar = np.empty(Nbkg, dtype=object)
+        self.min_Pval_ar = np.empty(self.npe)
+        self.min_loc_ar = np.empty(self.npe, dtype=int)
+        self.min_width_ar = np.empty(self.npe, dtype=int)
+        self.res_ar = np.empty(self.npe, dtype=object)
 
         # Auto-adjust the value of width_max and do an array of all width
         w_ar = np.arange(self.width_min, self.width_max + 1, self.width_step)
@@ -1249,10 +1267,10 @@ class BumpHunter1D:
         print("BACKGROUND ONLY SCAN")
         if self.nworker > 1:
             with thd.ThreadPoolExecutor(max_workers=self.nworker) as exe:
-                for th in range(Nbkg):
+                for th in range(self.npe):
                     exe.submit(self._scan_hist, pseudo_bkg[:, th], bkg_hist, w_ar, th)
         else:
-            for th in range(Nbkg):
+            for th in range(self.npe):
                 self._scan_hist(pseudo_bkg[:, th], bkg_hist, w_ar, th)
 
         # Use the p-value results to compute t
@@ -1269,7 +1287,8 @@ class BumpHunter1D:
 
         # Main injection loop
         print("STARTING INJECTION")
-        while self.significance < self.sigma_limit:
+        while (self.significance < self.sigma_limit)\
+        and (self.global_Pval > 1 / self.npe):
             # Check how we should compute the signal strength to be injected
             if self.str_scale == "lin":
                 # Signal strength increase linearly at each step
@@ -1324,27 +1343,27 @@ class BumpHunter1D:
             print("Generating background+signal histograms")
             data_hist = bkg_hist + sig_hist
             pseudo_data = np.random.poisson(
-                lam=np.tile(data_hist, (self.npe, 1)).transpose(),
-                size=(data_hist.size, self.npe),
+                lam=np.tile(data_hist, (self.npe_inject, 1)).transpose(),
+                size=(data_hist.size, self.npe_inject),
             )
 
             # Initialize all results containenrs
-            self.min_Pval_ar = np.empty(self.npe)
-            self.min_loc_ar = np.empty(self.npe, dtype=int)
-            self.min_width_ar = np.empty(self.npe, dtype=int)
-            self.res_ar = np.empty(self.npe, dtype=object)
+            self.min_Pval_ar = np.empty(self.npe_inject)
+            self.min_loc_ar = np.empty(self.npe_inject, dtype=int)
+            self.min_width_ar = np.empty(self.npe_inject, dtype=int)
+            self.res_ar = np.empty(self.npe_inject, dtype=object)
 
             # Compute the p-value for background+signal pseudo-experiments
             # We must check if we should do it in multiple threads
             print("BACKGROUND+SIGNAL SCAN")
             if self.nworker > 1:
                 with thd.ThreadPoolExecutor(max_workers=self.nworker) as exe:
-                    for th in range(self.npe):
+                    for th in range(self.npe_inject):
                         exe.submit(
                             self._scan_hist, pseudo_data[:, th], bkg_hist, w_ar, th
                         )
             else:
-                for th in range(self.npe):
+                for th in range(self.npe_inject):
                     self._scan_hist(pseudo_data[:, th], bkg_hist, w_ar, th)
 
             # Use the p-value results to compute t
@@ -1367,18 +1386,18 @@ class BumpHunter1D:
             )
 
             # If global p-value is exactly 0, we might have trouble with the significance
-            if self.global_Pval < 1e-15:
-                self.significance = norm.ppf(1 - 1e-15)
+            if self.global_Pval <  1 / self.npe:
+                self.significance = norm.ppf(1 - (1 / self.npe))
             else:
                 self.significance = norm.ppf(1 - self.global_Pval)
 
-            if global_inf < 1e-15:
-                sigma_inf = norm.ppf(1 - 1e-15)
+            if global_inf <  1 / self.npe:
+                sigma_inf = norm.ppf(1 - (1 / self.npe))
             else:
                 sigma_inf = norm.ppf(1 - global_inf)
 
-            if global_sup < 1e-15:
-                sigma_sup = norm.ppf(1 - 1e-15)
+            if global_sup <  1 / self.npe:
+                sigma_sup = norm.ppf(1 - (1 / self.npe))
             else:
                 sigma_sup = norm.ppf(1 - global_sup)
             print(
@@ -1396,7 +1415,11 @@ class BumpHunter1D:
             )
 
         # End of injection loop
-        print("REACHED SIGMA LIMIT")
+        # Check stop condition
+        if self.significance > self.sigma_limit:
+            print("REACHED SIGMA LIMIT")
+        elif self.global_Pval <= 1 / self.npe:
+            print(f"REACHED STAT LIMIT AT {self.significance:.3f} SIGMA")
         print(f"   Number of signal event injected : {self.signal_min}")
 
         # Compute signal strength
@@ -1832,6 +1855,9 @@ class BumpHunter1D:
                 ]
             )
 
+        # Compute significance saturation masks
+        is_sat = self.sigma_ar[:, 2] == 0
+
         # If filename is not None and log scale must check
         if filename is not None and self.str_scale == "log":
             if isinstance(filename, str):
@@ -1848,8 +1874,9 @@ class BumpHunter1D:
             self.sigma_ar[:, 0],
             xerr=0,
             yerr=[self.sigma_ar[:, 1], self.sigma_ar[:, 2]],
+            marker='o',
             linewidth=2,
-            marker="o",
+            uplims=is_sat
         )
         plt.xlabel("Signal strength", size="large")
         plt.ylabel("Significance", size="large")
@@ -1874,8 +1901,9 @@ class BumpHunter1D:
                 self.sigma_ar[:, 0],
                 xerr=0,
                 yerr=[self.sigma_ar[:, 1], self.sigma_ar[:, 2]],
+                marker='o',
                 linewidth=2,
-                marker="o",
+                uplims=is_sat
             )
             plt.xlabel("Signal strength", size="large")
             plt.ylabel("Significance", size="large")
@@ -1995,7 +2023,10 @@ class BumpHunter1D:
 
         # Append global results to the string
         bstr += f'Global p-value : {self.global_Pval:.5g}\n'
-        bstr += f'Global significace : {self.significance:.3g}'
+        if self.global_Pval == 0:
+            bstr += f'Global significance : >{self.significance:.3g}  (lower limit)'
+        else:
+            bstr += f'Global significance : {self.significance:.3g}'
 
         return bstr
 
