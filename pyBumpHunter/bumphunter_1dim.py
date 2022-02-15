@@ -1560,13 +1560,13 @@ class BumpHunter1D:
                 inter.append([res_data[i][j], loc, w])
 
         F = plt.figure(figsize=(12, 8))
-        plt.title(label)
+        plt.title(label, size="xx-large")
         [plt.plot([i[1], i[1] + i[2]], [i[0], i[0]], "r") for i in inter if i[0] < 1.0]
-        plt.xlabel("intervals", size="large")
-        plt.ylabel("local p-value", size="large")
+        plt.xlabel("intervals", size="xx-large")
+        plt.ylabel("local p-value", size="xx-large")
         plt.yscale("log")
-        plt.xticks(fontsize="large")
-        plt.yticks(fontsize="large")
+        plt.xticks(fontsize="xx-large")
+        plt.yticks(fontsize="xx-large")
 
         if filename is None:
             plt.show()
@@ -1712,7 +1712,7 @@ class BumpHunter1D:
         gs = grd.GridSpec(2, 1, height_ratios=[4, 1])
 
         pl1 = plt.subplot(gs[0])
-        plt.title(f"Distributions with bump  {label}")
+        plt.title(f"Distributions with bump  {label}", size="xx-large")
 
         plt.hist(
             H[1][:-1],
@@ -1742,12 +1742,12 @@ class BumpHunter1D:
             linestyles='dashed',
             label="BUMP"
         )
-        plt.legend(fontsize="large")
+        plt.legend(fontsize="xx-large")
         plt.yscale("log")
         if self.rang is not None:
             plt.xlim(self.rang)
-        plt.xticks(fontsize="large")
-        plt.yticks(fontsize="large")
+        plt.xticks(fontsize="xx-large")
+        plt.yticks(fontsize="xx-large")
         plt.tight_layout()
 
         plt.subplot(gs[1], sharex=pl1)
@@ -1756,10 +1756,10 @@ class BumpHunter1D:
         plt.plot(np.full(2, Bmax), np.array([sig.min(), sig.max()]), "r--", linewidth=2)
         plt.yticks(
             np.arange(np.round(sig.min()), np.round(sig.max()) + 1, step=1),
-            fontsize="large",
+            fontsize="xx-large",
         )
-        plt.ylabel("significance", size="large")
-        plt.xticks(fontsize="large")
+        plt.ylabel("significance", size="xx-large")
+        plt.xticks(fontsize="xx-large")
 
         # Check if the plot should be saved or just displayed
         if filename is None:
@@ -1794,7 +1794,8 @@ class BumpHunter1D:
         F = plt.figure(figsize=(12, 8))
         if show_Pval:
             plt.title(
-                f"BumpHunter statistics distribution      global p-value = {self.global_Pval:1.4f}"
+                f"BumpHunter statistics distribution      global p-value = {self.global_Pval:1.4f}",
+                size="xx-large"
             )
         else:
             plt.title("BumpHunter statistics distribution")
@@ -1808,11 +1809,11 @@ class BumpHunter1D:
             linewidth=2,
             label="data",
         )
-        plt.legend(fontsize="large")
-        plt.xlabel("BumpHunter statistic", size="large")
+        plt.legend(fontsize="xx-large")
+        plt.xlabel("BumpHunter statistic", size="xx-large")
         plt.yscale("log")
-        plt.xticks(fontsize="large")
-        plt.yticks(fontsize="large")
+        plt.xticks(fontsize="xx-large")
+        plt.yticks(fontsize="xx-large")
 
         # Check if the plot should be saved or just displayed
         if filename is None:
@@ -1868,7 +1869,7 @@ class BumpHunter1D:
 
         # Do the plot
         F = plt.figure(figsize=(12, 8))
-        plt.title("Significance vs signal strength")
+        plt.title("Significance vs signal strength", size="xx-large")
         plt.errorbar(
             sig_str,
             self.sigma_ar[:, 0],
@@ -1878,10 +1879,10 @@ class BumpHunter1D:
             linewidth=2,
             uplims=is_sat
         )
-        plt.xlabel("Signal strength", size="large")
-        plt.ylabel("Significance", size="large")
-        plt.xticks(fontsize="large")
-        plt.yticks(fontsize="large")
+        plt.xlabel("Signal strength", size="xx-large")
+        plt.ylabel("Significance", size="xx-large")
+        plt.xticks(fontsize="xx-large")
+        plt.yticks(fontsize="xx-large")
 
         if filename is None:
             plt.show()
@@ -1895,7 +1896,7 @@ class BumpHunter1D:
         # If log scale, do also a log plot
         if self.str_scale == "log":
             F = plt.figure(figsize=(12, 8))
-            plt.title("Significance vs signal strength (log scale)")
+            plt.title("Significance vs signal strength (log scale)", size="xx-large")
             plt.errorbar(
                 sig_str,
                 self.sigma_ar[:, 0],
@@ -1905,11 +1906,11 @@ class BumpHunter1D:
                 linewidth=2,
                 uplims=is_sat
             )
-            plt.xlabel("Signal strength", size="large")
-            plt.ylabel("Significance", size="large")
+            plt.xlabel("Signal strength", size="xx-large")
+            plt.ylabel("Significance", size="xx-large")
             plt.xscale("log")
-            plt.xticks(fontsize="large")
-            plt.yticks(fontsize="large")
+            plt.xticks(fontsize="xx-large")
+            plt.yticks(fontsize="xx-large")
 
             if filename is None:
                 plt.show()
