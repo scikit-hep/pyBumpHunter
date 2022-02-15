@@ -36,6 +36,8 @@ plt.title("Test distribution (background)")
 _, binx, biny, _ = plt.hist2d(
     bkg[:, 0], bkg[:, 1], bins=[20, 20], range=rang, norm=matplotlib.colors.LogNorm()
 )
+plt.xticks(fontsize="xx-large")
+plt.yticks(fontsize="xx-large")
 plt.colorbar()
 plt.savefig("results/2D/hist_bkg.png", bbox_inches="tight")
 plt.close(F)

@@ -1675,7 +1675,7 @@ class BumpHunter2D(BumpHunterInterface):
         F = plt.figure(figsize=(12, 20))
 
         plt.subplot(2, 1, 1)
-        plt.title(f"Data distribution with bump  {label}")
+        plt.title(f"Data distribution with bump  {label}", size="xx-large")
         plt.pcolormesh(H[1][0], H[1][1], H[0].T, norm=mcl.LogNorm())
         plt.colorbar()
         plt.hlines(
@@ -1684,8 +1684,8 @@ class BumpHunter2D(BumpHunterInterface):
         plt.vlines(
             [Bminx, Bmaxx], H[1][1][0], H[1][1][-1], linestyles="dashed", color="r"
         )
-        plt.xticks(fontsize="large")
-        plt.yticks(fontsize="large")
+        plt.xticks(fontsize="xx-large")
+        plt.yticks(fontsize="xx-large")
         plt.tight_layout()
 
         plt.subplot(2, 1, 2)
@@ -1697,9 +1697,9 @@ class BumpHunter2D(BumpHunterInterface):
         plt.vlines(
             [Bminx, Bmaxx], H[1][1][0], H[1][1][-1], linestyles="dashed", color="r"
         )
-        plt.xlabel("local significance map", size="large")
-        plt.xticks(fontsize="large")
-        plt.yticks(fontsize="large")
+        plt.xlabel("local significance map", size="xx-large")
+        plt.xticks(fontsize="xx-large")
+        plt.yticks(fontsize="xx-large")
 
         # Check if the plot should be saved or just displayed
         if filename is None:
@@ -1738,7 +1738,8 @@ class BumpHunter2D(BumpHunterInterface):
         F = plt.figure(figsize=(12, 8))
         if show_Pval:
             plt.title(
-                f"BumpHunter statistics distribution      global p-value = {self.global_Pval:1.4f}"
+                f"BumpHunter statistics distribution      global p-value = {self.global_Pval:1.4f}",
+                size="xx-large"
             )
         else:
             plt.title("BumpHunter statistics distribution")
@@ -1752,11 +1753,11 @@ class BumpHunter2D(BumpHunterInterface):
             linewidth=2,
             label="data",
         )
-        plt.legend(fontsize="large")
-        plt.xlabel("BumpHunter statistic", size="large")
+        plt.legend(fontsize="xx-large")
+        plt.xlabel("BumpHunter statistic", size="xx-large")
         plt.yscale("log")
-        plt.xticks(fontsize="large")
-        plt.yticks(fontsize="large")
+        plt.xticks(fontsize="xx-large")
+        plt.yticks(fontsize="xx-large")
 
         # Check if the plot should be saved or just displayed
         if filename is None:
@@ -1860,7 +1861,7 @@ class BumpHunter2D(BumpHunterInterface):
     def PlotInject(self, *args, **kwargs):
         return self.plot_inject(*args, **kwargs)
 
-# Method to obtained a printable string containing all the results of the last BumpHunter scans
+    # Method to obtained a printable string containing all the results of the last BumpHunter scans
     def bump_info(self, data, is_hist: bool=False):
         """
         Method that return a formated string with all the results of the last performed scan.
@@ -1960,7 +1961,7 @@ class BumpHunter2D(BumpHunterInterface):
             bstr += f' | [{Bwidth[0]:.3g}, {Bwidth[1]:.3g}]\n'
 
             # Append evavuated number of signal event (per channel and total)
-            bstr += 'Evaluated number of signal events (per channel):\n'
+            bstr += 'Evaluated number f signal events (per channel):\n'
             for ch in range(len(self.min_Pval_ar[0])):
                 bstr += f'    chan {ch+1} -> {self.signal_eval[ch]:.3g\n}'
             bstr += f'    Total -> {self.signal_eval.sum():.3g}\n'
