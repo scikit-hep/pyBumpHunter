@@ -70,6 +70,11 @@ class BumpHunter1D:
         use_sideband :
             Boolean specifying if side-band normalization should be applied when computing p-values.
 
+        sideband_width :
+            Specify the number of bin to be used as side-band during the scan when side-band normalization is activated.
+            The side-band will be removed from the scan range, but it will be used for background normalization.
+            If None, then all the histograms range will be used for both the scan and normalization.
+
         sigma_limit :
             The minimum significance required after injection.
 
@@ -163,6 +168,7 @@ class BumpHunter1D:
         npe_inject: int=100,
         seed=None,
         use_sideband: bool=False,
+        sideband_width=None,
         Nworker=None,
         useSideBand=None,
         Npe=None,
@@ -263,6 +269,12 @@ class BumpHunter1D:
                 Boolean specifying if the side-band normalization should be applied.
                 Default to False.
 
+            sideband_width :
+                Specify the number of bin to be used as side-band during the scan when side-band normalization is activated.
+                The side-band will be removed from the scan range, but it will be used for background normalization.
+                If None, then all the histograms range will be used for both the scan and normalization.
+                Default to None.
+
             Npe : *Deprecated*
                 Same as npe. This argument is deprecated and will be removed in future versions.
 
@@ -300,6 +312,7 @@ class BumpHunter1D:
         self.npe_inject = npe_inject
         self.seed = seed
         self.use_sideband = use_sideband
+        self.sideband_width = sideband_width
 
         # Initialize all inner result variables
         self.reset()
@@ -351,6 +364,13 @@ class BumpHunter1D:
         non0 = [iii for iii in range(hist.size) if ref[iii] > 0]
         Hinf, Hsup = min(non0), max(non0) + 1
 
+        # Check for sidebands
+        if self.use_sideband:
+            Vinf, Vsup = Hinf, Hsup
+            if self.sideband_width is not None:
+                Hinf = Hinf + self.sideband_width
+                Hsup = Hsup - self.sideband_width
+
         # Create the results array
         res = np.empty(w_ar.size, dtype=object)
         min_Pval, min_loc = np.empty(w_ar.size), np.empty(w_ar.size, dtype=int)
@@ -358,8 +378,8 @@ class BumpHunter1D:
 
         # Prepare things for side-band normalization (if needed)
         if self.use_sideband:
-            ref_total = ref[Hinf:Hsup].sum()
-            hist_total = hist[Hinf:Hsup].sum()
+            ref_total = ref[Vinf:Vsup].sum()
+            hist_total = hist[Vinf:Vsup].sum()
             min_scale = np.empty(w_ar.size)
 
         # Loop over all the width of the window
@@ -493,6 +513,14 @@ class BumpHunter1D:
         Hinf = np.array(Hinf)
         Hsup = np.array(Hsup)
 
+        # Check for sidebands
+        if self.use_sideband:
+            Vinf, Vsup = Hinf.copy(), Hsup.copy()
+            if self.sideband_width is not None:
+                Hinf = Hinf + self.sideband_width
+                Hsup = Hsup - self.sideband_width
+
+
         # Initialize the global results for all channels
         min_loc_all = Hinf
         min_width_all = Hsup
@@ -504,8 +532,8 @@ class BumpHunter1D:
             ref_total = []
             hist_total = []
             for ch in range(len(hist)):
-                ref_total.append(ref[ch][Hinf[ch]:Hsup[ch]].sum())
-                hist_total.append(hist[ch][Hinf[ch]:Hsup[ch]].sum())
+                ref_total.append(ref[ch][Vinf[ch]:Vsup[ch]].sum())
+                hist_total.append(hist[ch][Vinf[ch]:Vsup[ch]].sum())
             min_scale_all = np.empty(len(hist))
 
         # Compute scan_stepp for all width
