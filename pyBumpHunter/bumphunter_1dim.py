@@ -520,7 +520,6 @@ class BumpHunter1D:
                 Hinf = Hinf + self.sideband_width
                 Hsup = Hsup - self.sideband_width
 
-
         # Initialize the global results for all channels
         min_loc_all = Hinf
         min_width_all = Hsup

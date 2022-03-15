@@ -74,6 +74,11 @@ class BumpHunter2D(BumpHunterInterface):
         use_sideband :
             Boolean specifying if side-band normalization should be applied when computing p-values.
 
+        sideband_width :
+            Specify the number of bin to be used as side-band during the scan when side-band normalization is activated.
+            The side-band will be removed from the scan range, but it will be used for background normalization.
+            If None, then all the histograms range will be used for both the scan and normalization.
+
         sigma_limit :
             The minimum significance required after injection.
 
@@ -164,6 +169,7 @@ class BumpHunter2D(BumpHunterInterface):
         flip_sig: bool=True,
         seed=None,
         use_sideband: bool=False,
+        sideband_width=None,
         Npe=None,
         Nworker=None,
         useSideBand=None,
@@ -233,41 +239,47 @@ class BumpHunter2D(BumpHunterInterface):
             str_min :
                 The minimum number signal stregth to inject in background (first iteration).
                 Default to 0.5.
-    
+
             str_step :
                 Increase of the signal stregth to be injected in the background at each iteration.
                 Default to 0.25.
-    
+
             str_scale :
                 Specify how the signal strength should vary.
                 If 'log', the signal strength will vary according to a log scale starting from 10**str_min
                 If 'lin', the signal will vary according to a linear scale starting from str_min with a step of str_step.
                 Default to 'lin'.
-    
+
             signal_exp :
                 Expected number of signal used to compute the signal strength.
                 If None, the signal strength is not computed.
                 Default to None.
-    
+
             flip_sig :
                 Boolean specifying if the signal should be fliped when running in deficit mode.
                 Ignored in excess mode.
                 Default to True.
-                
+
             seed :
                 Seed for the random number generator.
                 Default to None. 
-            
+
             use_sideband :
                 Boolean specifying if the side-band normalization should be applied.
                 Default to False.
-            
+
+            sideband_width :
+                Specify the number of bin to be used as side-band during the scan when side-band normalization is activated.
+                The side-band will be removed from the scan range, but it will be used for background normalization.
+                If None, then all the histograms range will be used for both the scan and normalization.
+                Default to None.
+
             Npe : *Deprecated*
                 Same as npe. This argument is deprecated and will be removed in future versions.
-            
+
             Nworker : *Deprecated*
                 Same as nworker. This argument is deprecated and will be removed in future versions.
-            
+
             useSideBand : *Deprecated*
                 Same as use_sideband. This argument is deprecated and will be removed in future versions.
         """
@@ -302,6 +314,7 @@ class BumpHunter2D(BumpHunterInterface):
         self.flip_sig = flip_sig
         self.seed = seed
         self.use_sideband = use_sideband
+        self.sideband_width = sideband_width
 
         # Initialize all inner result variables
         self.reset()
@@ -351,6 +364,19 @@ class BumpHunter2D(BumpHunterInterface):
                 If side-band normalization is not use, norm_scale is set to None.
         """
 
+        # Check for sidebands
+        if self.use_sideband:
+            Vinf = np.array([0, 0], dtype=int)
+            Vsup = np.array([hist.shape[0], hist.shape[1]], dtype=int)
+            if self.sideband_width is not None:
+                Hinf = Vinf + self.sideband_width
+                Hsup = Vsup - self.sideband_width
+            else:
+                Hinf, Hsup = Vinf, Vsup
+        else:
+            Hinf = np.array([0, 0], dtype=int)
+            Hsup = np.array([hist.shape[0], hist.shape[1]], dtype=int)
+
         # Create the results array
         res = np.empty(w_ar.shape[0], dtype=object)
         min_Pval, min_loc = np.empty(w_ar.shape[0]), np.empty(
@@ -383,8 +409,8 @@ class BumpHunter2D(BumpHunterInterface):
                 scan_stepp[1] = self.scan_step[1]
 
             # Define possition range
-            posx = np.arange(0, ref.shape[0] - w[0] + 1, scan_stepp[0])
-            posy = np.arange(0, ref.shape[1] - w[1] + 1, scan_stepp[1])
+            posx = np.arange(Hinf[0], Hsup[0] - w[0] + 1, scan_stepp[0])
+            posy = np.arange(Hinf[1], Hsup[1] - w[1] + 1, scan_stepp[1])
             pos = np.array([[p[0], p[1]] for p in itertools.product(posx, posy)])
 
             # Check that there is at least one interval to check for width w
@@ -499,6 +525,26 @@ class BumpHunter2D(BumpHunterInterface):
                 If side-band normalization is not use, norm_scale is set to None.
         """
 
+        # Check for sidebands
+        if self.use_sideband:
+            Vinf = np.zeros((len(hist), 2), dtype=int)
+            Vsup = np.array(
+                [[hist[ch].shape[0], hist[ch].shape[1]] for ch in range(len(hist))],
+                dtype=int
+            )
+            if self.sideband_width is not None:
+                Hinf = Vinf + self.sideband_width
+                Hsup = Vsup - self.sideband_width
+            else:
+                Hinf = Vinf.copy()
+                Hsup = Vsup.copy()
+        else:
+            Hinf = np.zeros((len(hist), 2), dtype=int)
+            Hsup = np.array(
+                [[hist[ch].shape[0], hist[ch].shape[1]] for ch in range(len(hist))],
+                dtype=int
+            )
+
         # Initialize the global results for all channels
         min_Pval_all = np.full(len(hist), 1.0, dtype=float)
         min_loc_all = [[0, 0] for ch in range(len(hist))]
@@ -541,11 +587,11 @@ class BumpHunter2D(BumpHunterInterface):
         pos = []
         for ch in range(len(hist)):
             posx = [
-                np.arange(0, ref[ch].shape[0] - w[0] + 1, scan_stepp[i][0])
+                np.arange(Hinf[ch, 0], Hsup[ch, 0] - w[0] + 1, scan_stepp[i][0])
                 for i, w in enumerate(w_ar)
             ]
             posy = [
-                np.arange(0, ref[ch].shape[1] - w[1] + 1, scan_stepp[i][1])
+                np.arange(Hinf[ch, 1], Hinf[ch, 0] - w[1] + 1, scan_stepp[i][1])
                 for i, w in enumerate(w_ar)
             ]
             pos.append([
@@ -555,7 +601,7 @@ class BumpHunter2D(BumpHunterInterface):
                 ])
                 for i in range(w_ar.shape[0])
             ])
-        del posx# pos = np.array([[p[0], p[1]] for p in itertools.product(posx, posy)])
+        del posx
         del posy
 
         # Initialize p-value container for all channels, width and pos
