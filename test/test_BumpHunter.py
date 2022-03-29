@@ -4,7 +4,6 @@
 
 import os
 
-import numpy as np
 import uproot as upr
 from pathlib import Path
 import pytest
@@ -15,7 +14,7 @@ import pyBumpHunter as BH
 
 here = os.path.dirname(os.path.realpath(__file__))
 
-'''
+"""
 # Generate a dataset with numpy
 # Migth be use latter
 def make_datasets(seed):
@@ -29,28 +28,31 @@ def make_datasets(seed):
 
     all = [ar[ar < 20] for ar in (data, sig, bkg)]
     return all
-'''
+"""
+
 
 # Get the dataset from the ROOT file
 # I prefer to keep it for now since the value I am testing are dataset specific
 def make_datasets():
     # Get path to data
-    path = Path('data/data.root')
+    path = Path("data/data.root")
 
     # Open the file
     with upr.open(path) as f:
         # Get the trees
-        bkg = f['bkg'].arrays(library='np')['bkg']
-        data = f['data'].arrays(library='np')['data']
-        sig = f['sig'].arrays(library='np')['sig']
+        bkg = f["bkg"].arrays(library="np")["bkg"]
+        data = f["data"].arrays(library="np")["data"]
+        sig = f["sig"].arrays(library="np")["sig"]
 
-    all = [data,sig,bkg]
-    return all 
+    all = [data, sig, bkg]
+    return all
+
 
 @pytest.fixture
 def data_sig_bkg1():
-    #return make_datasets(seed=534)
+    # return make_datasets(seed=534)
     return make_datasets()
+
 
 @pytest.fixture
 def bhunter():
@@ -62,7 +64,7 @@ def bhunter():
         scan_step=1,
         npe=10000,
         nworker=1,
-        seed=666
+        seed=666,
     )
 
 
@@ -81,7 +83,7 @@ def test_scan_run(data_sig_bkg1, bhunter):
     assert bhunter.min_width_ar[0] == 4  # 4 bins
 
     # Test if the local p-value is correct w.r.t. the expected value (up to 7 digit)
-    assert "{:.7f}".format(bhunter.min_Pval_ar[0]) == "0.0001734"
+    assert f"{bhunter.min_Pval_ar[0]:.7f}" == "0.0001734"
 
     # Test if the global p-value is correct w.r.t. the expected value (up to 5 digit)
     assert f"{bhunter.global_Pval:.5f}" == "0.01770"
@@ -112,7 +114,6 @@ def test_inject_run(bhunter, data_sig_bkg1):
 
     # Test if the final number of injected signal event is correct w.r.t. the expected value
     assert int(bhunter.signal_min) == 300
-    
+
     # Test if the final signal ratio is correct w.r.t. the expected value
     assert f"{bhunter.signal_ratio:.2f}" == "2.00"
-
