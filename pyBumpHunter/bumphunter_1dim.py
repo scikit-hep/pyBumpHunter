@@ -716,7 +716,6 @@ class BumpHunter1D:
 
         # Auto-adjust the value of width_max and do an array of all width
         w_ar = np.arange(self.width_min, self.width_max + 1, self.width_step)
-        width_max = w_ar[-1]
         print(f"{w_ar.size} values of width will be tested")
 
         # Compute the p-value for data and all pseudo-experiments
@@ -814,7 +813,6 @@ class BumpHunter1D:
         # Internal variables
         i = 1
         strength = 0
-        data = []
 
         # Reset significance and sigma_ar global variable
         self.significance = 0
@@ -831,7 +829,7 @@ class BumpHunter1D:
 
         # Turn the background distributions into histogram
         if not is_hist:
-            bkg_hist, bins = np.histogram(
+            bkg_hist, _ = np.histogram(
                 bkg, bins=self.bins, range=self.rang, weights=self.weights
             )
         else:
@@ -839,7 +837,6 @@ class BumpHunter1D:
                 bkg_hist = bkg
             else:
                 bkg_hist = bkg * self.weights
-            bins = self.bins
 
         # Generate pseudo-data by sampling background
         print("Generating background only histograms")
@@ -1473,12 +1470,8 @@ class BumpHunter1D:
         # Get the data and background in histogram form
         if not is_hist:
             H = np.histogram(data, bins=self.bins, range=self.rang)
-            Hb = np.histogram(
-                bkg, bins=self.bins, range=self.rang, weights=self.weights
-            )[0]
         else:
             H = [data, self.bins]
-            Hb = bkg
 
         # Print informations about the bump itself
         print("BUMP POSITION")

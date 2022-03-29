@@ -46,7 +46,7 @@ from .bumphunter_2dim import BumpHunter2D
 # Automatic versioning
 from .version import version as __version__
 
-__all__ = ["BumpHunter1D", "BumpHunter2D"]
+__all__ = ["BumpHunter1D", "BumpHunter2D", "__version__"]
 
 from .util import deprecated as _deprecated
 

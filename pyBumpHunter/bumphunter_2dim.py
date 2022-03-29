@@ -147,10 +147,10 @@ class BumpHunter2D(BumpHunterInterface):
         mode: str = "excess",
         width_min=None,
         width_max=None,
-        width_step=[1, 1],
-        scan_step=[1, 1],
+        width_step=(1, 1),
+        scan_step=(1, 1),
         npe: int = 100,
-        bins=[20, 20],
+        bins=(20, 20),
         weights=None,
         nworker: int = 4,
         sigma_limit: float = 5,
@@ -305,7 +305,7 @@ class BumpHunter2D(BumpHunterInterface):
 
         return
 
-    ## Private methods
+    # Private methods
 
     # Method that performs a scan of a given data histogram and compares it to a reference background histogram.
     # This method is used by the BumpHunter class methods and is not intended to be used directly.
@@ -400,7 +400,7 @@ class BumpHunter2D(BumpHunterInterface):
             )
 
             # Apply side-band normalization if required
-            if self.use_sideband == True:
+            if self.use_sideband:
                 Nref *= (hist_total - Nhist) / (ref_total - Nref)
 
             # Calculate all local p-values for for width w
@@ -414,7 +414,7 @@ class BumpHunter2D(BumpHunterInterface):
                     Nhist[Nhist < Nref] + 1, Nref[Nhist < Nref]
                 )
 
-            if self.use_sideband == True:
+            if self.use_sideband:
                 res[i][
                     res[i] < 1e-300
                 ] = 1e-300  # prevent issue with very low p-value, sometimes induced by normalisation in the tail
@@ -758,7 +758,6 @@ class BumpHunter2D(BumpHunterInterface):
         wx = np.arange(self.width_min[0], self.width_max[0] + 1, self.width_step[0])
         wy = np.arange(self.width_min[1], self.width_max[1] + 1, self.width_step[1])
         w_ar = np.array([[w[0], w[1]] for w in itertools.product(wx, wy)])
-        width_max = w_ar[-1]
         print(f"{w_ar.shape[0]} values of width will be tested")
 
         # Compute the p-value for data and all pseudo-experiments
@@ -859,7 +858,7 @@ class BumpHunter2D(BumpHunterInterface):
         # Internal variables
         i = 1
         strength = 0
-        data = []
+        data = []  # noqa: F841
 
         # Reset significance and sigma_ar global variable
         self.significance = 0
@@ -1310,8 +1309,8 @@ class BumpHunter2D(BumpHunterInterface):
             )
 
         # If filename is not None and log scale must check
-        if filename != None and self.str_scale == "log":
-            if type(filename) == str:
+        if filename is not None and self.str_scale == "log":
+            if isinstance(filename, str):
                 print("WARNING : log plot for signal injection will not be saved !")
                 nolog = True
             else:
@@ -1412,20 +1411,9 @@ class BumpHunter2D(BumpHunterInterface):
         # Get the data and background in histogram form
         if not is_hist:
             H = np.histogram2d(data[:, 0], data[:, 1], bins=self.bins, range=self.rang)
-            Hb = np.histogram2d(
-                bkg[:, 0],
-                bkg[:, 1],
-                bins=self.bins,
-                range=self.rang,
-                weights=self.weights,
-            )[0]
             H = [H[0], [H[1], H[2]]]
         else:
             H = [data, self.bins]
-            if self.weights is None:
-                Hb = bkg
-            else:
-                Hb = bkg * self.weights
 
         # Print informations about the bump itself
         print("BUMP POSITION")

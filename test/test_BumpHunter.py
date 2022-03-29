@@ -4,7 +4,6 @@
 
 import os
 
-import numpy as np
 import uproot as upr
 from pathlib import Path
 import pytest
@@ -30,6 +29,7 @@ def make_datasets(seed):
     all = [ar[ar < 20] for ar in (data, sig, bkg)]
     return all
 """
+
 
 # Get the dataset from the ROOT file
 # I prefer to keep it for now since the value I am testing are dataset specific
