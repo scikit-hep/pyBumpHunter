@@ -22,4 +22,3 @@ BUMP POSITION
    significance = 7.94144
 
    mean (true) = [6.0, 7.0]
-

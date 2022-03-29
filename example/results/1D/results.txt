@@ -100,4 +100,3 @@ REACHED SIGMA LIMIT
    Signal strength : 2.0000
 
 time=0:02:57.387793
-
