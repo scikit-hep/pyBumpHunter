@@ -14,6 +14,7 @@ from pyBumpHunter.bumphunter_1dim import BumpHunterInterface
 
 from .util import deprecated, deprecated_arg
 
+
 # THE super BumpHunter2D class
 class BumpHunter2D(BumpHunterInterface):
     """
@@ -32,10 +33,10 @@ class BumpHunter2D(BumpHunterInterface):
             String specifying if the algorithm must look for a excess or a deficit in the data.
             Can be either 'excess' or 'deficit'.
 
-        width_min : 
+        width_min :
             Minimum [x,y] values of the scan window width that should be tested (in number of bins).
 
-        width_max : 
+        width_max :
             Maximum [x,y] values of the scan window width that should be tested (in number of bins).
             Can be either None or an array-like of 2 positive integers.
             If None, the value is set to the total number of bins of the histograms divided by 2.
@@ -108,7 +109,7 @@ class BumpHunter2D(BumpHunterInterface):
         significance :
             Significance corresponding to the globbal p-value from the test statistic distribution.
 
-        res_ar : 
+        res_ar :
             Array-like container containing all the local p-values calculated during the last BumpHnter scan.
             The indice 0 (res_ar[0]) correspond to the sacn of the data and the other indices correspond to the the pseudo-data.
             For each indices, there is a Numpy array of python list containing all the p-values of all windows obtained for a given distribution.
@@ -116,7 +117,7 @@ class BumpHunter2D(BumpHunterInterface):
             Each python list as dimension (Nstep), with Nstep the number of scan step for a given width (different for every value of width).
 
 
-        min_Pval_ar : 
+        min_Pval_ar :
             Array containing the minimum p-values obtained for the data (indice=0) and and the pseudo-data (indice>0).
 
         min_loc_ar :
@@ -152,23 +153,23 @@ class BumpHunter2D(BumpHunterInterface):
     def __init__(
         self,
         rang=None,
-        mode: str="excess",
+        mode: str = "excess",
         width_min=None,
         width_max=None,
         width_step=[1, 1],
         scan_step=[1, 1],
-        npe: int=100,
+        npe: int = 100,
         bins=[20, 20],
         weights=None,
-        nworker: int=4,
-        sigma_limit: float=5,
-        str_min: float=0.5,
-        str_step: float=0.25,
-        str_scale: str="lin",
+        nworker: int = 4,
+        sigma_limit: float = 5,
+        str_min: float = 0.5,
+        str_step: float = 0.25,
+        str_scale: str = "lin",
         signal_exp=None,
-        flip_sig: bool=True,
+        flip_sig: bool = True,
         seed=None,
-        use_sideband: bool=False,
+        use_sideband: bool = False,
         sideband_width=None,
         Npe=None,
         Nworker=None,
@@ -181,34 +182,34 @@ class BumpHunter2D(BumpHunterInterface):
                 Can be either None or a array-like of float with shape (2,2).
                 If None, the range is set automatically to include all the data given.
                 Default to None.
-            
+
             mode :
                 String specifying if the algorithm must look for a excess or a deficit in the data.
                 Can be either 'excess' or 'deficit'.
                 Default to 'excess'.
-            
+
             width_min :
                 Minimum [x,y] values of the scan window width that should be tested (in number of bins).
                 Can be either None or a array-like of 2 positive integers.
                 If None, it will be set to [1,1].
                 Default to None.
-            
+
             width_max :
                 Maximum [x,y] values of the scan window width that should be tested (in number of bins).
                 Can be either None or an array-like of 2 positive integers.
                 If None, the value is set to the total number of bins of the histograms divided by 2. Default to none.
-            
+
             width_step :
                 Number of bins by which the scan window width is increased at each step.
                 Default to [1,1].
-            
+
             scan_step :
                 Number of bins by which the position of the scan window is shifted at each step.
                 Can an array-like length 2 of either 'full', 'half' or positive integers.
                 If 'full', the window will be shifted by a number of bins equal to its width.
                 If 'half', the window will be shifted by a number of bins equal to max(1,width//2).
                 Default to [1,1].
-            
+
             npe :
                 Number of pseudo-data distributions to be sampled from the reference background distribution.
                 Default to 100.
@@ -218,7 +219,7 @@ class BumpHunter2D(BumpHunterInterface):
                 If a pair of integer integer ([N,M]), N*M bins of equal width will be considered.
                 If 2D array-like of float (a), a number of bins equal to (a.shape[0]-1)*(a.shape[1]-1) with the values of a as edges will be considered (variable width bins allowed).
                 Default to [20,20].
-    
+
             weights :
                 Weights for the background distribution.
                 Can be either None or a array-like of float.
@@ -226,7 +227,7 @@ class BumpHunter2D(BumpHunterInterface):
                 The size of the array-like must be the same than of bkg.
                 If None, no weights will be considered.
                 Default to None.
-    
+
             nworker :
                 Number of thread to be run in parallel when scanning all the histograms (data and pseudo-data).
                 If less or equal to 1, then parallelism will be disabled.
@@ -262,7 +263,7 @@ class BumpHunter2D(BumpHunterInterface):
 
             seed :
                 Seed for the random number generator.
-                Default to None. 
+                Default to None.
 
             use_sideband :
                 Boolean specifying if the side-band normalization should be applied.
@@ -804,7 +805,7 @@ class BumpHunter2D(BumpHunterInterface):
         Save the current state (all parameters and results) of a BupHunter instance into a dict variable.
 
         Ruturns:
-            state : 
+            state :
                 The dict containing all the parameters and results of this BumpHunter instance.
                 The keys of the dict entries correspond the name of their associated parameters/results as defined in the BumpHunter class.
         """
@@ -988,7 +989,14 @@ class BumpHunter2D(BumpHunterInterface):
 
     # Method that perform the scan on every pseudo experiment and data (in parrallel threads).
     # For each scan, the value of p-value and test statistic t is computed and stored in result array
-    def bump_scan(self, data, bkg, is_hist: bool=False, do_pseudo: bool=True, multi_chan: bool=False):
+    def bump_scan(
+        self,
+        data,
+        bkg,
+        is_hist: bool = False,
+        do_pseudo: bool = True,
+        multi_chan: bool = False
+    ):
         """
         Function that perform the full BumpHunter algorithm presented in https://arxiv.org/pdf/1101.0390.pdf without sidebands.
         This includes the generation of pseudo-data, the calculation of the BumpHunter p-value associated to data and to all pseudo experiment as well as the calculation of the test satistic t.
@@ -1294,7 +1302,7 @@ class BumpHunter2D(BumpHunterInterface):
         return self.bump_scan(*args, **kwargs)
 
     # Perform signal injection on background and determine the minimum aount of signal required for observation
-    def signal_inject(self, sig, bkg, is_hist: bool=False):
+    def signal_inject(self, sig, bkg, is_hist: bool = False):
         """
         Function that perform a signal injection test in order to determine the minimum signal strength required to reach a target significance.
         This function use the BumpHunter algorithm in order to calculate the reached significance for a given signal strength.
@@ -1425,7 +1433,7 @@ class BumpHunter2D(BumpHunterInterface):
             elif self.str_scale == "log":
                 # Signal strength increase to form a logarithmic scale axis
                 if i == 1:
-                    strength = 10 ** self.str_min
+                    strength = 10**self.str_min
                     self.str_step = strength
                 else:
                     strength += self.str_step
@@ -1565,7 +1573,17 @@ class BumpHunter2D(BumpHunterInterface):
 
     # Plot the data and bakground histograms with the bump found by BumpHunter highlighted
     @deprecated_arg("useSideBand", "use_sideband")
-    def plot_bump(self, data, bkg, is_hist: bool=False, use_sideband=None, label: str='', filename=None, chan: int=0, useSideBand=None):
+    def plot_bump(
+        self,
+        data,
+        bkg,
+        is_hist: bool = False,
+        use_sideband=None,
+        label: str = '',
+        filename=None,
+        chan: int = 0,
+        useSideBand=None
+    ):
         """
         Plot the data and bakground histograms with the bump found by BumpHunter highlighted.
 
@@ -1761,7 +1779,7 @@ class BumpHunter2D(BumpHunterInterface):
         return self.plot_bump(*args, **kwargs)
 
     # Plot the Bumpunter test statistic distribution with the result for data
-    def plot_stat(self, show_Pval: bool=False, filename=None):
+    def plot_stat(self, show_Pval: bool = False, filename=None):
         """
         Plot the Bumphunter statistic distribution together with the observed value with the data.
 
@@ -2054,15 +2072,9 @@ class BumpHunter2D(BumpHunterInterface):
         # Check if there ara multiple channels
         if not isinstance(self.min_Pval_ar[0], np.ndarray):
             # Print stuff for 1 channel
-            print(
-                f"   local p-value = {self.min_Pval_ar[0]:.5g}"
-            )
-            print(
-                f"   -ln(loc p-value) = {self.t_ar[0]:.5f}"
-            )
-            print(
-                f"   local significance = {norm.ppf(1 - self.min_Pval_ar[0]):.5f}"
-            )
+            print(f"   local p-value = {self.min_Pval_ar[0]:.5g}")
+            print(f"   -ln(loc p-value) = {self.t_ar[0]:.5f}")
+            print(f"   local significance = {norm.ppf(1 - self.min_Pval_ar[0]):.5f}")
         else:
             # Print stuf for multiple channels
             print(
@@ -2094,7 +2106,7 @@ class BumpHunter2D(BumpHunterInterface):
 
     # Function that print the global infomation about the most significante bump in data
     @deprecated("Use `bump_info` instead.")
-    def print_bump_true(self, data, bkg, is_hist: bool=False):
+    def print_bump_true(self, data, bkg, is_hist: bool = False):
         """
         Print the global informations about the most significante bump in data in real scale.
         Information are printed to stdout.

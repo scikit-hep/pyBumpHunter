@@ -22,13 +22,12 @@ class BumpHunter1D:
     List of inner parameter variables :
         rang :
             x-axis range of the histograms. Also define the range in which the scan will be performed.
-            
 
         mode :
             String specifying if the algorithm must look for a excess or a deficit in the data.
             Can be either 'excess' or 'deficit'.
 
-        width_min : 
+        width_min :
             Minimum value of the scan window width that should be tested (in number of bins).
 
         width_max :
@@ -117,7 +116,7 @@ class BumpHunter1D:
         min_Pval_ar :
             Array containing the minimum p-values obtained for the data (indice=0) and and the pseudo-data (indice>0).
 
-        min_loc_ar : 
+        min_loc_ar :
             Array containing the positions of the windows for which the minimum p-value has been found for the data (indice=0) and pseudo-data (indice>0).
 
         min_width_ar :
@@ -150,24 +149,24 @@ class BumpHunter1D:
     def __init__(
         self,
         rang=None,
-        mode: str="excess",
-        width_min: int=1,
+        mode: str = "excess",
+        width_min: int = 1,
         width_max=None,
-        width_step: int=1,
-        scan_step: int=1,
-        npe: int=100,
-        bins: int=60,
+        width_step: int = 1,
+        scan_step: int = 1,
+        npe: int = 100,
+        bins: int = 60,
         weights=None,
-        nworker: int=4,
-        sigma_limit: float=5,
-        str_min: float=0.5,
-        str_step: float=0.25,
-        str_scale: str="lin",
+        nworker: int = 4,
+        sigma_limit: float = 5,
+        str_min: float = 0.5,
+        str_step: float = 0.25,
+        str_scale: str = "lin",
         signal_exp=None,
-        flip_sig: bool=True,
-        npe_inject: int=100,
+        flip_sig: bool = True,
+        npe_inject: int = 100,
         seed=None,
-        use_sideband: bool=False,
+        use_sideband: bool = False,
         sideband_width=None,
         Nworker=None,
         useSideBand=None,
@@ -226,7 +225,7 @@ class BumpHunter1D:
                 If None, no weights will be considered.
                 Default to None.
 
-            nworker : 
+            nworker :
                 Number of thread to be run in parallel when scanning all the histograms (data and pseudo-data).
                 If less or equal to 1, then parallelism will be disabled.
                 Default to 4.
@@ -906,7 +905,7 @@ class BumpHunter1D:
 
     # Method that perform the scan on every pseudo experiment and data (in parrallel threads).
     # For each scan, the value of p-value and test statistic t is computed and stored in result array
-    def bump_scan(self, data, bkg, is_hist: bool=False, do_pseudo: bool=True, multi_chan: bool=False):
+    def bump_scan(self, data, bkg, is_hist: bool = False, do_pseudo: bool = True, multi_chan: bool = False):
         """
         Function that perform the full BumpHunter algorithm presented in https://arxiv.org/pdf/1101.0390.pdf without sidebands.
         This includes the generation of pseudo-data, the calculation of the BumpHunter p-value associated to data and to all pseudo experiment as well as the calculation of the test satistic t.
@@ -1176,7 +1175,7 @@ class BumpHunter1D:
             S = self.t_ar[1:][self.t_ar[1:] >= tdat].size
             self.global_Pval = S / self.npe
             print(f"Global p-value : {self.global_Pval:1.4f}  ({S} / {self.npe})")
-    
+
             # Check global p-value
             if self.global_Pval == 1:
                 self.significance = 0
@@ -1199,7 +1198,7 @@ class BumpHunter1D:
         return self.bump_scan(*args, **kwargs)
 
     # Perform signal injection on background and determine the minimum aount of signal required for observation
-    def signal_inject(self, sig, bkg, is_hist: bool=False):
+    def signal_inject(self, sig, bkg, is_hist: bool = False):
         """
         Function that perform a signal injection test in order to determine the minimum signal strength required to reach a target significance.
         This function use the BumpHunter algorithm in order to calculate the reached significance for a given signal strength.
@@ -1332,7 +1331,7 @@ class BumpHunter1D:
             elif self.str_scale == "log":
                 # Signal strength increase to form a logarithmic scale axis
                 if i == 1:
-                    strength = 10 ** self.str_min
+                    strength = 10**self.str_min
                     self.str_step = strength
                 else:
                     strength += self.str_step
@@ -1475,7 +1474,7 @@ class BumpHunter1D:
     ## Display methods
 
     # Method that do the tomography plot for the data
-    def plot_tomography(self, bkg, is_hist: bool=False, label: str='' , filename=None, chan: int=0):
+    def plot_tomography(self, bkg, is_hist: bool = False, label: str = '' , filename=None, chan: int = 0):
         """
         Function that do a tomography plot showing the local p-value for every positions and widths of the scan
         window.
@@ -1506,7 +1505,7 @@ class BumpHunter1D:
 
         # Check if there is anything to show.
         if self.res_ar == []:
-            print('Nothing to plot here !')
+            print("Nothing to plot here !")
             return
 
         # Check if we have multiple channels
@@ -1608,7 +1607,17 @@ class BumpHunter1D:
 
     # Plot the data and bakground histograms with the bump found by BumpHunter highlighted
     @deprecated_arg("useSideBand", "use_sideband")
-    def plot_bump(self, data, bkg, is_hist: bool=False, use_sideband=None, label: str='', filename=None, chan: int=0, useSideBand=None):
+    def plot_bump(
+        self,
+        data,
+        bkg,
+        is_hist: bool = False,
+        use_sideband=None,
+        label: str = '',
+        filename=None,
+        chan: int = 0,
+        useSideBand=None
+    ):
         """
         Plot the data and bakground histograms with the bump found by BumpHunter highlighted.
 
@@ -1619,7 +1628,7 @@ class BumpHunter1D:
             bkg :
                 Numpy array containing the background.
 
-            is_hist : 
+            is_hist :
                 Boolean specifying if data and bkg are given in histogram form or not.
                 Default to False.
 
@@ -1802,7 +1811,7 @@ class BumpHunter1D:
         return self.plot_bump(*args, **kwargs)
 
     # Plot the Bumpunter test statistic distribution with the result for data
-    def plot_stat(self, show_Pval: bool=False, filename=None):
+    def plot_stat(self, show_Pval: bool = False, filename=None):
         """
         Plot the Bumphunter statistic distribution together with the observed value with the data.
 
@@ -2074,15 +2083,9 @@ class BumpHunter1D:
         # Check if there are multiple channels
         if not isinstance(self.min_Pval_ar[0], np.ndarray):
             # Keep printing stuff for one channel
-            print(
-                f"   local p-value = {self.min_Pval_ar[0]:.5g}"
-            )
-            print(
-                f"   -ln(loc p-value) = {self.t_ar[0]:.5f}"
-            )
-            print(
-                f"   local significance = {norm.ppf(1 - self.min_Pval_ar[0]):.5f}"
-            )
+            print(f"   local p-value = {self.min_Pval_ar[0]:.5g}")
+            print(f"   -ln(loc p-value) = {self.t_ar[0]:.5f}")
+            print(f"   local significance = {norm.ppf(1 - self.min_Pval_ar[0]):.5f}")
         else:
             # Keep printing stuff for multiple channels
             print(
@@ -2114,7 +2117,7 @@ class BumpHunter1D:
 
     # Function that print the global infomation about the most significante bump in data
     @deprecated("Use `bump_info` instead.")
-    def print_bump_true(self, data, bkg, is_hist: bool=False):
+    def print_bump_true(self, data, bkg, is_hist: bool = False):
         """
         Print the global informations about the most significante bump in data in real scale.
         Information are printed to stdout.

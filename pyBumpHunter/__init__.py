@@ -73,7 +73,7 @@ class BumpHunter(BumpHunter1D):
         flip_sig=True,
         seed=None,
         use_sideband=None,
-        Npe = None,
+        Npe=None,
         Nworker=None,
         useSideBand=None,
     ):
