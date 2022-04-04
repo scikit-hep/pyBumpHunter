@@ -98,7 +98,6 @@ print("")
 
 # Get and save the injection plot
 hunter.plot_inject(
-    filename="results/1D/SignalInject.png", "results/1D/SignalInject_log.png"
+    filename=("results/1D/SignalInject.png", "results/1D/SignalInject_log.png")
 )
-
 

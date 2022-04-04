@@ -905,7 +905,14 @@ class BumpHunter1D:
 
     # Method that perform the scan on every pseudo experiment and data (in parrallel threads).
     # For each scan, the value of p-value and test statistic t is computed and stored in result array
-    def bump_scan(self, data, bkg, is_hist: bool = False, do_pseudo: bool = True, multi_chan: bool = False):
+    def bump_scan(
+        self,
+        data,
+        bkg,
+        is_hist: bool = False,
+        do_pseudo: bool = True,
+        multi_chan: bool = False
+    ):
         """
         Function that perform the full BumpHunter algorithm presented in https://arxiv.org/pdf/1101.0390.pdf without sidebands.
         This includes the generation of pseudo-data, the calculation of the BumpHunter p-value associated to data and to all pseudo experiment as well as the calculation of the test satistic t.
@@ -1075,7 +1082,6 @@ class BumpHunter1D:
 
         # Auto-adjust the value of width_max and do an array of all width
         w_ar = np.arange(self.width_min, self.width_max + 1, self.width_step)
-        width_max = w_ar[-1]
         print(f"{w_ar.size} values of width will be tested")
 
         # Compute the p-value for data and all pseudo-experiments
@@ -1238,7 +1244,6 @@ class BumpHunter1D:
         # Internal variables
         i = 1
         strength = 0
-        data = []
 
         # Reset significance and sigma_ar global variable
         self.significance = 0
@@ -1256,7 +1261,7 @@ class BumpHunter1D:
 
         # Turn the background distributions into histogram
         if not is_hist:
-            bkg_hist, bins = np.histogram(
+            bkg_hist, _ = np.histogram(
                 bkg, bins=self.bins, range=self.rang, weights=self.weights
             )
         else:
@@ -1264,7 +1269,6 @@ class BumpHunter1D:
                 bkg_hist = bkg
             else:
                 bkg_hist = bkg * self.weights
-            bins = self.bins
 
         # Generate pseudo-data by sampling background
         print("Generating background only histograms")
@@ -2097,15 +2101,9 @@ class BumpHunter1D:
                 for ch in range(len(self.min_Pval_ar[0]))
             ]
             print("]")
-            print(
-                f"   local p-value (combined) = {self.min_Pval_ar[0].prod():.5g}"
-            )
-            print(
-                f"   -ln(loc p-value) (combined) = {self.t_ar[0]:.5f}"
-            )
-            print(
-                f"   local significance (combined) = {norm.ppf(1 - self.min_Pval_ar[0].prod()):.5f}"
-            )
+            print(f"   local p-value (combined) = {self.min_Pval_ar[0].prod():.5g}")
+            print(f"   -ln(loc p-value) (combined) = {self.t_ar[0]:.5f}")
+            print(f"   local significance (combined) = {norm.ppf(1 - self.min_Pval_ar[0].prod()):.5f}")
 
         print("")
 
@@ -2217,7 +2215,7 @@ class BumpHunterInterface(metaclass=ABCMeta):
         Save the current state (all parameters and results) of a BupHunter instance into a dict variable.
 
         Ruturns:
-            state : 
+            state :
                 The dict containing all the parameters and results of this BumpHunter instance.
                 The keys of the dict entries correspond the name of their associated parameters/results as defined in the BumpHunter class.d
         """
@@ -2244,7 +2242,7 @@ class BumpHunterInterface(metaclass=ABCMeta):
         The results are stored in the inner result variables of this BumpHunter instance.
 
         Arguments :
-            data : 
+            data :
                 Numpy array containing the data distribution.
                 This distribution will be transformed into a binned histogram and the algorithm will look for the most significant excess.
 
@@ -2278,7 +2276,7 @@ class BumpHunterInterface(metaclass=ABCMeta):
             min_loc_ar :
                 Array containing the positions of the windows for which the minimum p-value has been found for the data (indice=0) and pseudo-data (indice>0).
 
-            min_width_ar : 
+            min_width_ar :
                 Array containing the width of the windows for which the minimum p-value has been found for the data (indice=0) and pseudo-data (indice>0).
 
             signal_eval :
@@ -2295,7 +2293,7 @@ class BumpHunterInterface(metaclass=ABCMeta):
         This method share most of its parameters with the BumpScan method.
 
         Arguments :
-            sig : 
+            sig :
                 Numpy array containing the simulated signal. This distribution will be used to perform the signal injection.
 
             bkg :
@@ -2322,6 +2320,5 @@ class BumpHunterInterface(metaclass=ABCMeta):
         during the last iteration (when sigma_limit is reached).
         """
         pass
-
 
 

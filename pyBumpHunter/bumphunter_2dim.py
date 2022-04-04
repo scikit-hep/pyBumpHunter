@@ -322,7 +322,7 @@ class BumpHunter2D(BumpHunterInterface):
 
         return
 
-    ## Private methods
+    # Private methods
 
     # Method that performs a scan of a given data histogram and compares it to a reference background histogram.
     # This method is used by the BumpHunter class methods and is not intended to be used directly.
@@ -1179,7 +1179,6 @@ class BumpHunter2D(BumpHunterInterface):
         wx = np.arange(self.width_min[0], self.width_max[0] + 1, self.width_step[0])
         wy = np.arange(self.width_min[1], self.width_max[1] + 1, self.width_step[1])
         w_ar = np.array([[w[0], w[1]] for w in itertools.product(wx, wy)])
-        width_max = w_ar[-1]
         print(f"{w_ar.shape[0]} values of width will be tested")
 
         # Compute the p-value for data and all pseudo-experiments
@@ -1347,7 +1346,7 @@ class BumpHunter2D(BumpHunterInterface):
         # Internal variables
         i = 1
         strength = 0
-        data = []
+        data = []  # noqa: F841
 
         # Reset significance and sigma_ar global variable
         self.significance = 0
@@ -1864,7 +1863,7 @@ class BumpHunter2D(BumpHunterInterface):
             )
 
         # If filename is not None and log scale must check
-        if filename != None and self.str_scale == "log":
+        if filename is not None and self.str_scale == "log":
             if isinstance(filename, str):
                 print("WARNING : log plot for signal injection will not be saved !")
                 nolog = True

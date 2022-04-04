@@ -15,4 +15,3 @@ Local significance : 4.9528
 Global p-value : 0.000625
 Global significance : 3.23
    mean (true) = [6.0, 7.0]
-
