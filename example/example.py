@@ -40,7 +40,9 @@ plt.hist(
     label=("bakground", "data"),
     linewidth=2,
 )
-plt.legend()
+plt.legend(fontsize='xx-large')
+plt.xticks(fontsize='xx-large')
+plt.yticks(fontsize='xx-large')
 plt.savefig("results/1D/hist.png", bbox_inches="tight")
 plt.close(F)
 
@@ -65,8 +67,7 @@ print(f"time={end - begin}")
 print("")
 
 # Print bump
-hunter.print_bump_info()
-hunter.print_bump_true(data, bkg)
+print(hunter.bump_info(data))
 print(f"   mean (true) = {Lth}")
 print("")
 
@@ -99,3 +100,4 @@ print("")
 hunter.plot_inject(
     filename=("results/1D/SignalInject.png", "results/1D/SignalInject_log.png")
 )
+

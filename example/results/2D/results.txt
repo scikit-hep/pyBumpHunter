@@ -2,23 +2,16 @@
 Generating histograms
 4 values of width will be tested
 SCAN
-Global p-value : 0.0000  (0 / 8000)
-Significance = 7.94144
+Global p-value : 0.0006  (5 / 8000)
+Significance = 3.22722
 
-time=0:01:47.142017
+time=0:01:33.864793
 
-BUMP WINDOW
-   loc = [4, 5]
-   width = [2, 2]
-   local p-value | t = 0.00000 | 17.99286
-
-BUMP POSITION
-   min : [5.000, 6.250]
-   max : [7.500, 8.750]
-   mean : [6.250, 7.500]
-   width : [2.500, 2.500]
-   number of signal events : 201.0
-   global p-value : 0.00000
-   significance = 7.94144
-
+Bump edges : x=[3.75, 7.5] y=[6.25, 10]  (loc=[3, 5], width=[3, 3])
+Bump mean | width : [5.62, 8.12] | [3.75, 3.75]
+Evaluated number of signal events : 278
+Local p-value | test statistic : 3.6572e-07 | 14.821
+Local significance : 4.9528
+Global p-value : 0.000625
+Global significance : 3.23
    mean (true) = [6.0, 7.0]
