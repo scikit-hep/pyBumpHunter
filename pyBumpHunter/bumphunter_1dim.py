@@ -676,17 +676,21 @@ class BumpHunter1D:
 
         # If do_pseudo is False, must check if previous results are avalable
         if not do_pseudo:
-            if (not isinstance(self.t_ar, np.ndarray)) or self.t_ar.shape[0] == 1: #TODO check
+            if (not isinstance(self.t_ar, np.ndarray)) or self.t_ar.shape[0] == 1:
+                # Previous results not available, must change do_pseudo
                 print("Warning : pseudo-data are required to performe signal injection.")
                 do_pseudo = True
 
-                # Check if last scan was injection
-                if self.t_ar.shape[0] == self.npe + 1:
-                    # If not, must retrieve bkg only results
-                    bkg_loc = self.min_loc_ar[1:]
-                    bkg_width = self.min_width_ar[1:]
-                    bkg_Pval = self.min_Pvak_ar[1:]
-                    bkg_t = self.t_ar[1:]
+            # Check if last scan was injection
+            elif self.t_ar.shape[0] == self.npe + self.npe_inject:
+                # If yes, must retrieve bkg only results
+                bkg_loc = self.min_loc_ar[self.npe_inject:]
+                bkg_width = self.min_width_ar[self.npe_inject:]
+                bkg_Pval = self.min_Pvak_ar[self.npe_inject:]
+                bkg_t = self.t_ar[self.npe_inject:]
+                bkg_save = True
+            else:
+                bkg_save = False
 
         # Generate all the pseudo-data histograms
         if do_pseudo:
@@ -707,21 +711,26 @@ class BumpHunter1D:
         if self.width_max is None:
             self.width_max = data.hist[0].size // 2
 
-        # Check pseudo-data are requested
+        # Initialize results containers
         if do_pseudo:
-            # Initialize/reset all results containenrs
             self.min_Pval_ar = np.empty((self.npe + 1, data.nchan))
             self.min_loc_ar = np.empty((self.npe + 1, data.nchan), dtype=int)
             self.min_width_ar = np.empty((self.npe + 1, data.nchan), dtype=int)
             self.t_ar = np.empty((self.npe + 1, data.nchan))
-        else:
-            # Check previous results are available
-            if not isinstance(self.t_ar, np.ndarray) or self.t_ar.size != self.npe + 1:
-                # No pseudo data requested and no previous results available
-                self.min_Pval_ar = np.empty((1, data.nchan))
-                self.min_loc_ar = np.empty((1, data.nchan), dtype=int)
-                self.min_width_ar = np.empty((1, data.nchan), dtype=int)
-                self.t_ar = np.empty((1, data.nchan))
+        elif bkg_save:
+            # Must create appropriate containers and fill in bkg results
+            self.min_Pval_ar = np.empty((self.npe + 1, data.nchan))
+            self.min_Pval_ar[1:] = bkg_Pval
+            self.min_loc_ar = np.empty((self.npe + 1, data.nchan), dtype=int)
+            self.min_loc_ar[1:] = bkg_loc
+            self.min_width_ar = np.empty((self.npe + 1, data.nchan), dtype=int)
+            self.min_width_ar[1:] = bkg_width
+            self.t_ar = np.empty((self.npe + 1, data.nchan))
+            self.t_ar[1:] = bkg_t
+            del bkg_Pval
+            del bkg_loc
+            del bkg_width
+            del bkg_t
         self.res_ar = np.empty((data.nchan), dtype=object)
         self.signal_eval = np.empty((data.nchan))
         self.norm_scale = np.ones((data.nchan))
@@ -927,9 +936,21 @@ class BumpHunter1D:
 
         # If do_pseudo is False, must check if previous results are avalable
         if not do_pseudo:
-            if (not isinstance(self.t_ar, np.ndarray)) or self.t_ar.shape[0] == 1: #TODO check
+            if (not isinstance(self.t_ar, np.ndarray)) or self.t_ar.shape[0] == 1:
+                # Previous results not available, must change do_pseudo
                 print("Warning : pseudo-data are required to performe signal injection.")
                 pseudo_data = True
+
+            # Check if last scan was simple scan
+            elif self.t_ar.shape[0] == self.npe + 1:
+                # If yes, must retrieve bkg only results
+                bkg_loc = self.min_loc_ar[1:]
+                bkg_width = self.min_width_ar[1:]
+                bkg_Pval = self.min_Pvak_ar[1:]
+                bkg_t = self.t_ar[1:]
+                bkg_save = True
+            else:
+                bkg_save = False
 
         # Generate pseudo-data by sampling background
         if do_pseudo:
@@ -957,7 +978,25 @@ class BumpHunter1D:
             self.min_width_ar = np.empty((self.npe + self.npe_inject, data.nchan), dtype=int)
             self.signal_eval = np.empty((self.npe + self.npe_inject, data.nchan))
             self.t_ar = np.empty((self.npe + self.npe_inject, data.nchan))
-            self.res_ar = np.empty((self.npe_inject, data.nchan), dtype=object)
+        elif bkg_save:
+            # Must create appropriate containers and fill in bkg results
+            self.min_Pval_ar = np.empty((self.npe + self.npe_inject, data.nchan))
+            self.min_Pval_ar[self.npe_inject:] = bkg_Pval
+            self.min_loc_ar = np.empty((self.npe + self.npe_inject, data.nchan), dtype=int)
+            self.min_loc_ar[self.npe_inject:] = bkg_loc
+            self.min_width_ar = np.empty((self.npe + self.npe_inject, data.nchan), dtype=int)
+            self.min_width_ar[self.npe_inject:] = bkg_width
+            self.t_ar = np.empty((self.npe + self.npe_inject, data.nchan))
+            self.t_ar[self.npe_inject:] = bkg_t
+            del bkg_Pval
+            del bkg_loc
+            del bkg_width
+            del bkg_t
+        self.res_ar = np.empty((self.npe_inject, data.nchan), dtype=object)
+        self.signal_eval = np.empty((self.npe_inject, data.nchan))
+        self.norm_scale = np.ones((self.npe_inject, data.nchan))
+        self.global_Pval = np.empty((data.nchan))
+        self.significance = np.empty((data.nchan))
 
         # Auto-adjust the value of width_max and do an array of all width
         w_ar = np.arange(self.width_min, self.width_max + 1, self.width_step)
