@@ -46,9 +46,14 @@ plt.yticks(fontsize='xx-large')
 plt.savefig("results/1D/hist.png", bbox_inches="tight")
 plt.close(F)
 
+# Create an DataHandler class to make histograms
+dh = BH.DataHandler(ndim=1, nchan=1)
+dh.set_ref(bkg, bins=60, rang=rang)
+dh.set_data(data)
+dh.set_sig(sig, signal_exp=150)
+
 # Create a BumpHunter1D class instance
 hunter = BH.BumpHunter1D(
-    rang=rang,
     width_min=2,
     width_max=6,
     width_step=1,
@@ -61,24 +66,49 @@ hunter = BH.BumpHunter1D(
 # Call the bump_scan method
 print("####bump_scan call####")
 begin = datetime.now()
-hunter.bump_scan(data, bkg)
+hunter.bump_scan(dh)
 end = datetime.now()
 print(f"time={end - begin}")
 print("")
 
 # Print bump
-print(hunter.bump_info(data))
+print(hunter.bump_info(dh))
 print(f"   mean (true) = {Lth}")
 print("")
 
 # Get and save tomography plot
-hunter.plot_tomography(data, filename="results/1D/tomography.png")
+F = plt.figure(figsize=(12, 8))
+plt.title("Tomography plot", size=24)
+hunter.plot_tomography(dh)
+plt.xlabel("intervals", size=24)
+plt.ylabel("local p-value", size=24)
+plt.xticks(fontsize=24)
+plt.yticks(fontsize=24)
+plt.savefig("results/1D/tomography.png", bbox_inches="tight")
+plt.close(F)
 
 # Get and save bump plot
-hunter.plot_bump(data, bkg, filename="results/1D/bump.png")
+F = plt.figure(figsize=(12, 8))
+plt.suptitle("Distributions with bump", size=24)
+pl = hunter.plot_bump(dh, fontsize=24)
+pl[0].legend(fontsize=24)
+pl[0].axes.set_ylabel("envent count", size=24)
+pl[1].axes.set_xlabel("variable", size=24)
+pl[1].axes.set_ylabel("significance", size=24)
+plt.savefig("results/1D/bump.png", bbox_inches="tight")
+plt.close(F)
 
 # Get and save statistics plot
-hunter.plot_stat(show_Pval=True, filename="results/1D/BH_statistics.png")
+F = plt.figure(figsize=(12, 8))
+plt.title(f"BumpHunter test statistic distribution\nglobal significance={hunter.significance[0]:.3f}$\sigma$", size=24)
+hunter.plot_stat()
+plt.legend(fontsize=24)
+plt.xlabel("test statistic", size=24)
+plt.ylabel("pseudo-data count", size=24)
+plt.xticks(fontsize=24)
+plt.yticks(fontsize=24)
+plt.savefig("results/1D/BH_statistics.png", bbox_inches="tight")
+plt.close(F)
 
 print("")
 
@@ -87,17 +117,31 @@ print("")
 hunter.sigma_limit = 5
 hunter.str_min = -1  # if str_scale='log', the real starting value is 10**str_min
 hunter.str_scale = "log"
-hunter.signal_exp = 150  # Correspond the the real number of signal events generated when making the data
+hunter.npe_inject = 1000
 
 print("####singal_inject call####")
 begin = datetime.now()
-hunter.signal_inject(sig, bkg, is_hist=False)
+hunter.signal_inject(dh, do_pseudo=False) # We don't need to scan bkg-only pseudo-data again
 end = datetime.now()
 print(f"time={end - begin}")
-print("")
 
 # Get and save the injection plot
-hunter.plot_inject(
-    filename=("results/1D/SignalInject.png", "results/1D/SignalInject_log.png")
-)
+F = plt.figure(figsize=(12,8))
+plt.title("Signal injection test", size=24)
+hunter.plot_inject()
+plt.xlabel("signal strength", size=24)
+plt.ylabel("global significance ($\sigma$)", size=24)
+plt.xticks(fontsize=24)
+plt.yticks(fontsize=24)
+plt.savefig("results/1D/SignalInject.png", bbox_inches="tight")
+
+F = plt.figure(figsize=(12,8))
+plt.title("Signal injection test", size=24)
+hunter.plot_inject(log=True)
+plt.xlabel("signal strength", size=24)
+plt.ylabel("global significance ($\sigma$)", size=24)
+plt.xticks(fontsize=24)
+plt.yticks(fontsize=24)
+plt.savefig("results/1D/SignalInject_log.png", bbox_inches="tight")
+plt.close(F)
 

@@ -1,17 +1,126 @@
 ####bump_scan call####
-Generating histograms
+Generating 10000 background-only histograms
 4 values of width will be tested
-SCAN
-Global p-value : 0.0006  (5 / 8000)
-Significance = 3.22722
+SCAN CH0
+####CH0
+Global p-value : 0.00000  (0 / 10000)
+Significance > 3.71902 (lower limit)
+Fit is required !
+Global p-value (fit) = 0.00013
+significnce (fit) = 3.65590
 
-time=0:01:33.864793
+time=0:01:53.484826
 
-Bump edges : x=[3.75, 7.5] y=[6.25, 10]  (loc=[3, 5], width=[3, 3])
-Bump mean | width : [5.62, 8.12] | [3.75, 3.75]
-Evaluated number of signal events : 278
-Local p-value | test statistic : 3.6572e-07 | 14.821
-Local significance : 4.9528
-Global p-value : 0.000625
-Global significance : 3.23
+####BUMP SCAN SUMMARY####
+Channel 0 :
+    Bump x edges : [3.75, 7.5] (loc=3, width=3)
+    Bump mean x | width x : 5.62 | 3.75
+    Bump y edges : [6.25, 10] (loc=5, width=3)
+    Bump mean y | width y : 8.12 | 3.75
+    Number of signal events : 290
+    Local p-value | test statistic : 1.0699e-07 | 16.05
+    Local significance : 5.1868
+    global p-value : 0
+    global significance > 3.719 (lower limit)
+    Fit parameters :
+        pM = 0.3271 +- 0.0090004
+        m = 119.3 +- 7.8915
+        A = 2487 +- 24.937
+    Fit p-value : 0.00012814
+    Fit significance : 3.6559
+
    mean (true) = [6.0, 7.0]
+
+####singal_inject call####
+4 values of width will be tested
+STARTING INJECTION
+   STEP 1 : signal strength = 0.1
+Generating 1000 background+signal histograms
+BACKGROUND+SIGNAL SCAN CH0
+####CH0
+Global p-value : 0.46880  (4688 / 10000)   0.70600  (7060)   0.23310  (2331)
+Significance = 0.078287 (-0.54174  0.72868)
+
+   STEP 2 : signal strength = 0.2
+Generating 1000 background+signal histograms
+BACKGROUND+SIGNAL SCAN CH0
+####CH0
+Global p-value : 0.34460  (3446 / 10000)   0.63620  (6362)   0.16340  (1634)
+Significance = 0.39994 (-0.34832  0.98058)
+
+   STEP 3 : signal strength = 0.30000000000000004
+Generating 1000 background+signal histograms
+BACKGROUND+SIGNAL SCAN CH0
+####CH0
+Global p-value : 0.27190  (2719 / 10000)   0.49520  (4952)   0.08700  (870)
+Significance = 0.60708 (0.012032  1.3595)
+
+   STEP 4 : signal strength = 0.4
+Generating 1000 background+signal histograms
+BACKGROUND+SIGNAL SCAN CH0
+####CH0
+Global p-value : 0.13440  (1344 / 10000)   0.33800  (3380)   0.02160  (216)
+Significance = 1.1058 (0.41793  2.0218)
+
+   STEP 5 : signal strength = 0.5
+Generating 1000 background+signal histograms
+BACKGROUND+SIGNAL SCAN CH0
+####CH0
+Global p-value : 0.03100  (310 / 10000)   0.15370  (1537)   0.00310  (31)
+Significance = 1.8663 (1.0207  2.737)
+Fit is required !
+Global p-value (fit) = 0.03100 (0.15370  0.00514)
+significnce (fit) = 1.8663 (1.0207  2.5664)
+
+   STEP 6 : signal strength = 0.6
+Generating 1000 background+signal histograms
+BACKGROUND+SIGNAL SCAN CH0
+####CH0
+Global p-value : 0.00360  (36 / 10000)   0.03640  (364)   0.00020  (2)
+Significance = 2.6874 (1.7941  3.5401)
+Fit is required !
+Global p-value (fit) = 0.00553 (0.03640  0.00045)
+significnce (fit) = 2.541 (1.7941  3.3188)
+
+   STEP 7 : signal strength = 0.7
+Generating 1000 background+signal histograms
+BACKGROUND+SIGNAL SCAN CH0
+####CH0
+Global p-value : 0.00030  (3 / 10000)   0.00280  (28)   0.00000  (0)
+Significance = 3.4316 (2.7703  3.719)
+Fit is required !
+Global p-value (fit) = 0.00050 (0.00429  0.00003)
+significnce (fit) = 3.2891 (2.6284  4.0033)
+
+   STEP 8 : signal strength = 0.7999999999999999
+Generating 1000 background+signal histograms
+BACKGROUND+SIGNAL SCAN CH0
+####CH0
+Global p-value : 0.00000  (0 / 10000)   0.00040  (4)   0.00000  (0)
+Significance = 3.719 (3.3528  3.719)
+Fit is required !
+Global p-value (fit) = 0.00003 (0.00059  0.00000)
+significnce (fit) = 3.9789 (3.242  4.6898)
+
+   STEP 9 : signal strength = 0.8999999999999999
+Generating 1000 background+signal histograms
+BACKGROUND+SIGNAL SCAN CH0
+####CH0
+Global p-value : 0.00000  (0 / 10000)   0.00000  (0)   0.00000  (0)
+Significance = 3.719 (3.719  3.719)
+Fit is required !
+Global p-value (fit) = 0.00000 (0.00005  0.00000)
+significnce (fit) = 4.5491 (3.9052  5.2725)
+
+   STEP 10 : signal strength = 0.9999999999999999
+Generating 1000 background+signal histograms
+BACKGROUND+SIGNAL SCAN CH0
+####CH0
+Global p-value : 0.00000  (0 / 10000)   0.00000  (0)   0.00000  (0)
+Significance = 3.719 (3.719  3.719)
+Fit is required !
+Global p-value (fit) = 0.00000 (0.00000  0.00000)
+significnce (fit) = 5.319 (4.6094  6.0308)
+REACHED SIGMA LIMIT
+   Signal strength : 1.0000
+time=0:01:54.378730
