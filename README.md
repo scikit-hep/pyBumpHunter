@@ -28,6 +28,7 @@ BumpHunter depends on the following python libraries :
 * numpy
 * scipy
 * matplotlib
+* h5py
 
 ### [pyBumpHunter wiki](https://github.com/scikit-hep/pyBumpHunter/wiki)
 
