@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 """Extension of the BumpHunter algorithm to 2D distributions"""
 
-import concurrent.futures as thd
+from concurrent.futures import ProcessPoolExecutor as PPE
+import os
+import h5py
 import itertools
 
 import matplotlib.pyplot as plt
@@ -334,8 +336,12 @@ class BumpHunter2D(BumpHunterInterface):
             Vinf = np.array([0, 0], dtype=int)
             Vsup = np.array([hist.shape[0], hist.shape[1]], dtype=int)
             if self.sideband_width is not None:
-                Hinf = Vinf + self.sideband_width
-                Hsup = Vsup - self.sideband_width
+                if isinstance(self.sideband_width, int):
+                    Hinf = Vinf + self.sideband_width
+                    Hsup = Vsup - self.sideband_width
+                else:
+                    Hinf = Hinf + self.sideband_width[0]
+                    Hsup = Hsup - self.sideband_width[1]
             else:
                 Hinf, Hsup = Vinf, Vsup
         else:
@@ -348,11 +354,13 @@ class BumpHunter2D(BumpHunterInterface):
         min_loc = np.empty((w_ar.shape[0], 2), dtype=int)
         signal_eval = np.empty(w_ar.shape[0])
 
-        # Prepare things for side-band normalization (if needed)
+        # Compute a constant normalization term
         if self.use_sideband:
-            ref_total = ref.sum()
-            hist_total = hist.sum()
-            min_scale = np.empty(w_ar.shape[0])
+            ref_sb = ref[Vinf[0]:Hinf[0], Vinf[1]:Hinf[1]].sum()
+            ref_sb += ref[Hsup[0]:Vsup[0], Hsup[1]:Vsup[1]].sum()
+            hist_sb = hist[Vinf[0]:Hinf[0], Vinf[1]:Hinf[1]].sum()
+            hist_sb += hist[Hsup[0]:Vsup[0], Hsup[1]:Vsup[1]].sum()
+            scale = hist_sb / ref_sb
 
         # Loop over all the width of the window
         for i, w in enumerate(w_ar):
@@ -401,7 +409,6 @@ class BumpHunter2D(BumpHunterInterface):
 
             # Compute and apply side-band normalization scale factor (if needed)
             if self.use_sideband:
-                scale = (hist_total - Nhist) / (ref_total - Nref)
                 Nref *= scale
 
             # Calculate all local p-values for for width w
@@ -424,14 +431,10 @@ class BumpHunter2D(BumpHunterInterface):
             min_Pval[i] = res[i].min()
             min_loc[i] = pos[res[i].argmin()]
             signal_eval[i] = Nhist[res[i].argmin()] - Nref[res[i].argmin()]
-            if self.use_sideband:
-                min_scale[i] = scale[res[i].argmin()]
 
         # Get the minimum p-value and associated window among all width
         min_width = w_ar[min_Pval.argmin()]
         min_loc = min_loc[min_Pval.argmin()]
-        if self.use_sideband:
-            min_scale = min_scale[min_Pval.argmin()]
 
         # Evaluate the number of signal event (for data only)
         if ih == 0 and self.res_ar.ndim == 1:
@@ -448,15 +451,75 @@ class BumpHunter2D(BumpHunterInterface):
             # Fill results for simple scan
             self.res_ar[ch] = res
             if self.use_sideband:
-                self.norm_scale[ch] = min_scale
+                self.norm_scale[ch] = scale
         elif ih < self.npe_inject and self.res_ar.ndim == 2:
             # Fill results for signal injection
             self.res_ar[ih, ch] = res
             if self.use_sideband:
-                self.norm_scale[ch] = min_scale
+                self.norm_scale[ih, ch] = scale
         self.min_Pval_ar[ih, ch] = min_Pval
         self.min_loc_ar[ih, :, ch] = np.array([int(min_loc[0]), int(min_loc[1])], dtype=int)
         self.min_width_ar[ih, :, ch] = np.array([int(min_width[0]), int(min_width[1])], dtype=int)
+
+    # Method to scan a batch of histograms
+    # Can be run in parrallel on different batches
+    def _scan_batch(self, data, ref, w_ar, ch, thi, thf, btc):
+        """
+        Method to scan a batch of historgrams and compare them with a common reference.
+        This method is meant to be used internally in parallel processes.
+        Direct use by front-end users is not recommended since it could break things.
+
+        Arguments :
+            data :
+                The data histograms bin yields (numpy array).
+
+            ref :
+                The common reference histogram bin yields.
+
+            w_ar :
+                Numpy array with all the scan wndow width to be tested.
+
+            ch :
+                The current channel number.
+
+            thi :
+                Integer specifying the starting indice of the batch.
+
+            thf :
+                Integer specifying the stopping indice of the batch.
+
+            btc :
+                Integer used as ID for the current batch.
+        """
+
+        # Loop over histograms of this batch
+        for th in range(thi, thf):
+            # Call the _scan_hist method
+            self._scan_hist(data[:, :, th - thi], ref, w_ar, th, ch)
+
+        # Create files to put all the float results
+        fname = f"temp/flt{btc}.h5"
+        if os.path.exists(fname):
+            os.remove(fname)
+        with h5py.File(fname, mode='a') as f:
+            res = np.empty((thf - thi, 2))
+            res[:, 0] = self.min_Pval_ar[thi:thf, ch]
+            res[:, 1] = self.t_ar[thi:thf, ch]
+            f.create_dataset('data', data=res)
+        del res
+
+        # Create files to put all the integer results
+        fname = f"temp/int{btc}.h5"
+        if os.path.exists(fname):
+            os.remove(fname)
+        with h5py.File(fname, mode='a') as f:
+            res = np.empty((thf - thi, 2, 2), dtype=int)
+            res[:, 0] = self.min_loc_ar[thi:thf, :, ch]
+            res[:, 1] = self.min_width_ar[thi:thf, :, ch]
+            f.create_dataset('data', data=res)
+        del res
+
+        return
 
     # Method to get the combined bump edges (if there is any)
     def _bump_combined(self, data):
@@ -722,7 +785,7 @@ class BumpHunter2D(BumpHunterInterface):
                 # If yes, must retrieve bkg only results
                 bkg_loc = self.min_loc_ar[self.npe_inject:]
                 bkg_width = self.min_width_ar[self.npe_inject:]
-                bkg_Pval = self.min_Pvak_ar[self.npe_inject:]
+                bkg_Pval = self.min_Pval_ar[self.npe_inject:]
                 bkg_t = self.t_ar[self.npe_inject:]
                 bkg_save = True
             else:
@@ -787,24 +850,83 @@ class BumpHunter2D(BumpHunterInterface):
 
         # Loop over channels
         for ch in range(data.nchan):
-            if verbose:
-                print(f"SCAN CH{ch}")
-
             # Scan the data histogram for channel ch
             self._scan_hist(data.hist[ch], data.ref[ch], w_ar, 0, ch)
 
-            # Loop over all pseudo-data histograms to be scanned (if required)
-            if do_pseudo:
-                # TODO add a condition for multi-core computation that works
-                for th in range(self.npe):
-                    # Scan channel ch of histogram th
-                    self._scan_hist(
-                        pseudo_hist[ch][:, :, th],
-                        data.ref[ch],
-                        w_ar,
-                        th + 1,
-                        ch
-                    )
+        # Check if pseuso-data scans are required
+        if do_pseudo:
+            # Loop over channels
+            for ch in range(data.nchan):
+                if verbose:
+                    print(f"SCAN CH{ch}")
+
+                if self.nworker == 1:
+                    # Run all scans in a single loop
+                    for th in range(self.npe):
+                        # Scan channel ch of histogram th
+                        self._scan_hist(
+                            pseudo_hist[ch][:, :, th],
+                            data.ref[ch],
+                            w_ar,
+                            th + 1,
+                            ch
+                        )
+                else:
+                    # Create a temporary directory for the batch results
+                    if not os.path.exists("temp/"):
+                        os.mkdir("temp/")
+
+                    # Compute start and stop indices for each batch
+                    if self.npe % self.nworker == 0:
+                        # Same number of scans per process
+                        Nbtc = self.npe // self.nworker
+                        thi = np.arange(1, self.npe - Nbtc + 2, Nbtc, dtype=int)
+                        thf = np.arange(1 + Nbtc, self.npe + 2, Nbtc, dtype=int)
+                    else:
+                        # Last process must contains left-over scans
+                        Nbtc = self.npe // self.nworker
+                        Nleft = Nbtc + (self.npe % self.nworker)
+                        thi = np.arange(1, self.npe - Nleft + 2, Nbtc, dtype=int)
+                        thf = np.empty((self.nworker), dtype=int)
+                        thf[:-1] = np.arange(1 + Nbtc, self.npe - Nleft + 2, Nbtc)
+                        thf[-1] = self.npe + 1
+
+                    # Setup a ProcessPoolExecutor
+                    with PPE(max_workers=self.nworker) as exe:
+                        # loop over processes
+                        for btc in range(self.nworker):
+                            # Start scan of batch btc
+                            exe.submit(
+                                self._scan_batch,
+                                pseudo_hist[ch][:, :, thi[btc] - 1:thf[btc] - 1],
+                                data.ref[ch],
+                                w_ar,
+                                ch,
+                                thi[btc],
+                                thf[btc],
+                                btc
+                            )
+
+                    # Loop over result files
+                    for btc in range(self.nworker):
+                        # Open the float results file for this batch
+                        fname = f"temp/flt{btc}.h5"
+                        res = np.empty((thf[btc] - thi[btc], 2))
+                        with h5py.File(fname, mode='r') as f:
+                            # Get the file content and put it at the right place
+                            f.get('data').read_direct(res)
+                            self.min_Pval_ar[thi[btc]:thf[btc], ch] = res[:, 0]
+                            self.t_ar[thi[btc]:thf[btc], ch] = res[:, 1]
+
+                        # Open the int results file for this batch
+                        fname = f"temp/int{btc}.h5"
+                        res = np.empty((thf[btc] - thi[btc], 2, 2), dtype=int)
+                        with h5py.File(fname, mode='r') as f:
+                            # Get the file content and put it at the right place
+                            f.get('data').read_direct(res)
+                            self.min_loc_ar[thi[btc]:thf[btc], :, ch] = res[:, :, 0]
+                            self.min_width_ar[thi[btc]:thf[btc], :, ch] = res[:, :, 1]
+                    del res
 
         # Use the p-value results to compute t
         self.t_ar = -np.log(self.min_Pval_ar)
@@ -990,7 +1112,7 @@ class BumpHunter2D(BumpHunterInterface):
                 # If yes, must retrieve bkg only results
                 bkg_loc = self.min_loc_ar[1:]
                 bkg_width = self.min_width_ar[1:]
-                bkg_Pval = self.min_Pvak_ar[1:]
+                bkg_Pval = self.min_Pval_ar[1:]
                 bkg_t = self.t_ar[1:]
                 bkg_save = True
             else:
@@ -1026,13 +1148,13 @@ class BumpHunter2D(BumpHunterInterface):
         elif bkg_save:
             # Must create appropriate containers and fill in bkg results
             self.min_Pval_ar = np.empty((self.npe + self.npe_inject, data.nchan))
-            self.min_Pval_ar[:npe_inject] = bkg_Pval
+            self.min_Pval_ar[self.npe_inject:] = bkg_Pval
             self.min_loc_ar = np.empty((self.npe + self.npe_inject, 2, data.nchan), dtype=int)
-            self.min_loc_ar[:npe_inject] = bkg_loc
+            self.min_loc_ar[self.npe_inject:] = bkg_loc
             self.min_width_ar = np.empty((self.npe + self.npe_inject, 2, data.nchan), dtype=int)
-            self.min_width_ar[:npe_inject] = bkg_width
+            self.min_width_ar[self.npe_inject:] = bkg_width
             self.t_ar = np.empty((self.npe + self.npe_inject, data.nchan))
-            self.t_ar[:npe_inject] = bkg_t
+            self.t_ar[self.npe_inject:] = bkg_t
             del bkg_Pval
             del bkg_loc
             del bkg_width
@@ -1050,7 +1172,6 @@ class BumpHunter2D(BumpHunterInterface):
         if verbose:
             print(f"{w_ar.shape[0]} values of width will be tested")
 
-
         # Scan the background-only pseudo-data if required
         if do_pseudo:
             # Loop over channels
@@ -1058,22 +1179,79 @@ class BumpHunter2D(BumpHunterInterface):
                 if verbose:
                     print(f"BACKGROUND SCAN CH{ch}")
 
-                # TODO add a condition for multi-core computation that works
-                for th in range(self.npe):
-                    # Scan channel ch of histogram th
-                    self._scan_hist(
-                        pseudo_hist[ch][:, :, th],
-                        data.ref[ch],
-                        w_ar,
-                        th + self.npe_inject,
-                        ch
-                    )
+                # Check if we should run in multiple processes
+                if self.nworker == 1:
+                    for th in range(self.npe):
+                        # Scan channel ch of histogram th
+                        self._scan_hist(
+                            pseudo_hist[ch][:, :, th],
+                            data.ref[ch],
+                            w_ar,
+                            th + self.npe_inject,
+                            ch
+                        )
+                else:
+                    # Create a temporary directory for the batch results
+                    if not os.path.exists("temp/"):
+                        os.mkdir("temp/")
+
+                    # Compute start and stop indices for each batch
+                    if self.npe % self.nworker == 0:
+                        # Same number of scans per process
+                        Nbtc = self.npe // self.nworker
+                        thi = np.arange(self.npe_inject, self.npe_inject + self.npe - Nbtc + 1, Nbtc, dtype=int)
+                        thf = np.arange(self.npe_inject + Nbtc, self.npe_inject + self.npe + 1, Nbtc, dtype=int)
+                    else:
+                        # Last process must contains left-over scans
+                        Nbtc = self.npe // self.nworker
+                        Nleft = Nbtc + (self.npe % self.nworker)
+                        thi = np.arange(self.npe_inject, self.npe_inject + self.npe - Nleft + 1, Nbtc, dtype=int)
+                        thf = np.empty((self.nworker), dtype=int)
+                        thf[:-1] = np.arange(self.npe_inject + self.npe_inject + Nbtc, self.npe - Nleft + 1, Nbtc)
+                        thf[-1] = self.npe_inject + self.npe
+
+                    # Setup a ProcessPoolExecutor
+                    with PPE(max_workers=self.nworker) as exe:
+                        # loop over processes
+                        for btc in range(self.nworker):
+                            # Start scan of batch btc
+                            exe.submit(
+                                self._scan_batch,
+                                pseudo_hist[ch][:, :, thi[btc] - self.npe_inject:thf[btc] - self.npe_inject],
+                                data.ref[ch],
+                                w_ar,
+                                ch,
+                                thi[btc],
+                                thf[btc],
+                                btc
+                            )
+
+                    # Loop over result files
+                    for btc in range(self.nworker):
+                        # Open the float results file for this batch
+                        fname = f"temp/flt{btc}.h5"
+                        res = np.empty((thf[btc] - thi[btc], 2))
+                        with h5py.File(fname, mode='r') as f:
+                            # Get the file content and put it at the right place
+                            f.get('data').read_direct(res)
+                            self.min_Pval_ar[thi[btc]:thf[btc], ch] = res[:, 0]
+                            self.t_ar[thi[btc]:thf[btc], ch] = res[:, 1]
+
+                        # Open the int results file for this batch
+                        fname = f"temp/int{btc}.h5"
+                        res = np.empty((thf[btc] - thi[btc], 2, 2), dtype=int)
+                        with h5py.File(fname, mode='r') as f:
+                            # Get the file content and put it at the right place
+                            f.get('data').read_direct(res)
+                            self.min_loc_ar[thi[btc]:thf[btc], :, ch] = res[:, 0]
+                            self.min_width_ar[thi[btc]:thf[btc], :, ch] = res[:, 1]
+                    del res
+
+            # Don't need them anymore
+            del pseudo_hist
 
         # Use the p-value results to compute t
         self.t_ar[self.npe_inject:] = -np.log(self.min_Pval_ar[self.npe_inject:])
-
-        # Don't need them anymore
-        del pseudo_hist
 
         # Main injection loop
         if verbose:
@@ -1410,23 +1588,26 @@ class BumpHunter2D(BumpHunterInterface):
         if use_sideband is None:
             use_sideband = self.use_sideband
 
+        # Apply it if needed
         if use_sideband:
-            data.ref = data.ref * self.norm_scale[chan]
+            ref = data.ref[chan].astype(float) * self.norm_scale[chan]
+        else:
+            ref = data.ref[chan]
 
         # Calculate significance for each bin
         sig = np.ones(data.ref[chan].shape)
-        sig[(data.hist[chan] > data.ref[chan]) & (data.ref[chan] > 0)] = G(
-            data.hist[chan][(data.hist[chan] > data.ref[chan]) & (data.ref[chan] > 0)],
-            data.ref[chan][(data.hist[chan] > data.ref[chan]) & (data.ref[chan] > 0)]
+        sig[(data.hist[chan] > ref) & (ref > 0)] = G(
+            data.hist[chan][(data.hist[chan] > ref) & (ref > 0)],
+            ref[(data.hist[chan] > ref) & (ref > 0)]
         )
-        sig[data.hist[chan] < data.ref[chan]] = 1 - G(
-            data.hist[chan][data.hist[chan] < data.ref[chan]] + 1,
-            data.ref[chan][data.hist[chan] < data.ref[chan]]
+        sig[data.hist[chan] < ref] = 1 - G(
+            data.hist[chan][data.hist[chan] < ref] + 1,
+            ref[data.hist[chan] < ref]
         )
         sig = norm.ppf(1 - sig)
         sig[sig < 0.0] = 0.0  # If negative, set it to 0
         np.nan_to_num(sig, posinf=0, neginf=0, nan=0, copy=False)  # Avoid errors
-        sig[data.hist[chan] < data.ref[chan]] = -sig[data.hist[chan] < data.ref[chan]]  # Now we can make it signed
+        sig[data.hist[chan] < ref] = -sig[data.hist[chan] < ref]  # Now we can make it signed
 
         # Plot the test histograms with the bump found by BumpHunter plus a little significance plot
         # Do the plot in the current figure
