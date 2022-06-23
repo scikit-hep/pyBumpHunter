@@ -10,8 +10,6 @@ import pytest
 
 import pyBumpHunter as BH
 
-# Import the data
-
 here = os.path.dirname(os.path.realpath(__file__))
 
 """
@@ -44,8 +42,13 @@ def make_datasets():
         data = f["data"].arrays(library="np")["data"]
         sig = f["sig"].arrays(library="np")["sig"]
 
-    all = [data, sig, bkg]
-    return all
+        # Put the data into a DataHandler
+        dh = BH.DataHandler(nchan=1, ndim=1)
+        dh.set_ref(bkg, bins=[60], rang=[0, 20])
+        dh.set_data(data)
+        dh.set_sig(sig, signal_exp=150) # Correspond the the real number of signal events generated when making the data
+
+    return dh
 
 
 @pytest.fixture
@@ -57,7 +60,6 @@ def data_sig_bkg1():
 @pytest.fixture
 def bhunter():
     return BH.BumpHunter1D(
-        rang=[0, 20],
         width_min=2,
         width_max=6,
         width_step=1,
@@ -71,49 +73,49 @@ def bhunter():
 # Test if the the bump_scan method runs
 def test_scan_run(data_sig_bkg1, bhunter):
     # Get the data
-    data, _, bkg = data_sig_bkg1
+    dh = data_sig_bkg1
 
     # Run the bump_scan method
-    bhunter.bump_scan(data, bkg)
+    bhunter.bump_scan(dh)
 
     # Test if the position of the Bump is correct w.r.t. the expected value
-    assert bhunter.min_loc_ar[0] == 16  # 16th bin
+    assert bhunter.min_loc_ar[0, 0] == 16  # 16th bin
 
     # Test if the width of the bump is correct w.r.t. the expected value
-    assert bhunter.min_width_ar[0] == 4  # 4 bins
+    assert bhunter.min_width_ar[0, 0] == 4  # 4 bins
 
     # Test if the local p-value is correct w.r.t. the expected value (up to 7 digit)
-    assert f"{bhunter.min_Pval_ar[0]:.7f}" == "0.0001734"
+    assert f"{bhunter.min_Pval_ar[0, 0]:.7f}" == "0.0001734"
 
     # Test if the global p-value is correct w.r.t. the expected value (up to 5 digit)
-    assert f"{bhunter.global_Pval:.5f}" == "0.01770"
+    assert f"{bhunter.global_Pval[0]:.5f}" == "0.01770"
 
     # Test if the number of tested intervals is correct w.r.t. the expected value
     N = 0
-    for r in bhunter.res_ar:
+    for r in bhunter.res_ar[0]:
         N += r.size
     assert N == 285
 
     # Test if the evaluated number of signal event is correct w.r.t. the expected value
-    assert bhunter.signal_eval == 208
+    assert bhunter.signal_eval[0] == 208
 
 
 # Test if the signal_inject method runs
 def test_inject_run(bhunter, data_sig_bkg1):
     # Get the data
-    _, sig, bkg = data_sig_bkg1
+    dh = data_sig_bkg1
 
     # Set the injection parametters
     bhunter.sigma_limit = 5
     bhunter.str_min = -1  # if str_scale='log', the real starting value is 10**str_min
     bhunter.str_scale = "log"
-    bhunter.signal_exp = 150  # Correspond the the real number of signal events generated when making the data
 
     # Run the signal_inject method
-    bhunter.signal_inject(sig, bkg)
+    bhunter.signal_inject(dh)
 
     # Test if the final number of injected signal event is correct w.r.t. the expected value
-    assert int(bhunter.signal_min) == 300
+    assert int(bhunter.signal_min[0]) == 450
 
     # Test if the final signal ratio is correct w.r.t. the expected value
-    assert f"{bhunter.signal_ratio:.2f}" == "2.00"
+    assert f"{bhunter.signal_ratio:.2f}" == "3.00"
+

@@ -1320,7 +1320,7 @@ class BumpHunter2D(BumpHunterInterface):
                 if verbose:
                     print(f"BACKGROUND+SIGNAL SCAN CH{ch}")
 
-                # TODO add a condition for multi-core computation that works
+                # Run bkg+sig scans in single core
                 for th in range(self.npe_inject):
                     # Scan channel ch of histogram th
                     self._scan_hist(
