@@ -14,7 +14,7 @@ def make_datasets(seed):
     bkg = np.random.exponential(scale=[4, 4], size=(1_000_000, 2))
 
     # Data
-    Nsig = 700
+    Nsig = 500
     data = np.empty(shape=(100_000 + Nsig, 2))
     data[:100_000] = np.random.exponential(scale=[4, 4], size=(100_000, 2))
     data[100_000:] = np.random.multivariate_normal(
@@ -22,10 +22,23 @@ def make_datasets(seed):
     )
 
     # Signal
-    # Not needed yet
+    sig = np.random.multivariate_normal(
+        mean=[6.0, 7.0], cov=[[3, 0.5], [0.5, 3]], size=(10_000)
+    )
+
+    # Put everything in a DataHandler
+    dh = BH.DataHandler(ndim=2, nchan=1)
+    dh.set_ref(
+        bkg,
+        bins=[[20, 20]],
+        rang=[[0, 25], [0, 25]],
+        weights = np.full(bkg.shape[0], 0.1) # Rescale bkg to data with event weights
+    )
+    dh.set_data(data)
+    dh.set_sig(sig, signal_exp=Nsig)
 
     # Return the dataset
-    return data, bkg
+    return dh
 
 @pytest.fixture
 def data_sig_bkg1():
@@ -33,64 +46,57 @@ def data_sig_bkg1():
 
 @pytest.fixture
 def bhunter():
-    return BH.BumpHunter2D(rang=[[0, 25], [0, 25]],
-                           width_min=[2, 2],
-                           width_max=[3, 3],
-                           width_step=[1, 1],
-                           scan_step=[1, 1],
-                           bins=[20, 20],
-                           npe=8000,
-                           nworker=1,
-                           seed=666,
-                           use_sideband=True)
+    return BH.BumpHunter2D(
+               width_min=[2, 2],
+               width_max=[3, 3],
+               width_step=[1, 1],
+               scan_step=[1, 1],
+               npe=8000,
+               nworker=1,
+               seed=666
+           )
 
 # Test if the bump_scan method runs
-def test_scan_run(data_sig_bkg1, bhunter):
+def test_scan_run(bhunter, data_sig_bkg1):
     # Get the data
-    data, bkg = data_sig_bkg1
+    dh = data_sig_bkg1
 
     # Run the bump_scan method
-    bhunter.bump_scan(data, bkg)
+    bhunter.bump_scan(dh)
 
     # Test if the position of the Bump is correct w.r.t. the expected value
-    assert bhunter.min_loc_ar[0] == [3, 5]
+    assert bhunter.min_loc_ar[0, :, 0].all() == np.array([3, 5]).all()
 
     # Test if the width of the bump is correct w.r.t. the expected value
-    assert bhunter.min_width_ar[0] == [3, 3]
+    assert bhunter.min_width_ar[0, :, 0].all() == np.array([3, 3]).all()
 
     # Test if the local p-value is correct w.r.t. the expected value (up to 5 digit)
-    assert f"{bhunter.min_Pval_ar[0]:.5g}" == '3.6572e-07'
+    assert f"{bhunter.min_Pval_ar[0, 0]:.5g}" == "4.4481e-05"
 
     # Test if the global p-value is correct w.r.t. the expected value (up to 5 digit)
-    assert f"{bhunter.global_Pval:.5f}" == "0.00063"
+    assert f"{bhunter.global_Pval[0]:.5f}" == "0.02863"
     
     # Test if the number of tested intervals is correct w.r.t. the expected value
     N = 0
-    for r in bhunter.res_ar:
+    for r in bhunter.res_ar[0]:
         N += r.size
     assert N == 1369
 
     # Test if the evaluated number of signal event is correct w.r.t. the expected value
-    assert int(bhunter.signal_eval) == 277
+    assert int(bhunter.signal_eval[0]) == 163
 
-
-''' 2D signal injection is not implemented yet
 # Test if the SignalInject method runs
-def test_inject_run():
-    BHtest.sigma_limit = 5
-    BHtest.str_min = -1 # if str_scale='log', the real starting value is 10**str_min
-    BHtest.str_scale = 'log'
-    BHtest.signal_exp = 150 # Correspond the the real number of signal events generated when making the data
+def test_inject_run(bhunter, data_sig_bkg1):
+    # Get the data
+    dh = data_sig_bkg1
 
-    BHtest.SignalInject(sig,bkg)
+    bhunter.sigma_limit = 5
+    bhunter.str_min = -1 # if str_scale='log', the real starting value is 10**str_min
+    bhunter.str_scale = 'log'
 
-# Test if the final signal strength is correct w.r.t. the expected value (up to 2 digit)
-def test_signal_str():
-    assert '{0:.2f}'.format(BHtest.signal_ratio) == '2.00'
+    bhunter.signal_inject(dh)
 
-# Test if the number of injected event is correct w.r.t. the expected value
-def test_number_inject():
-    assert int(BHtest.signal_min) == 300
-'''
+    assert f"{bhunter.signal_ratio:.2f}" == "2.00"
 
+    assert int(bhunter.signal_min[0]) == 1000
 
