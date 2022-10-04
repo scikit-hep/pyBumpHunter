@@ -8,7 +8,7 @@ This is a python version of the BumpHunter algorithm, see [arXiv:1101.0390, G. C
 
 The main BumpHunter function will scan a data distribution using variable-width window sizes and calculate the p-value of data with respect to a given background distribution in each window. The minimum p-value obtained from all windows is the local p-value. To cope with the "look-elsewhere effect" a global p-value is calculated by performing background-only pseudo-experiments.
 
-The BumpHunter algorithm can also perform signal injection tests where more and more signal is injected in toy data until a given signal significance (global) is reached (*signal injection not available in 2D yet*).
+The BumpHunter algorithm can also perform signal injection tests where more and more signal is injected in toy data until a given signal significance (global) is reached.
 
 ### Content
 
@@ -65,7 +65,7 @@ See the [wiki](https://github.com/scikit-hep/pyBumpHunter/wiki) for a detailed o
 
 ### To do list
 
-* Run BH on 2D histograms
+* Add systematics ?
 
 ### Authors and contributors
 
