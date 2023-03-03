@@ -1,11 +1,20 @@
 cff-version: 1.2.0
 title: "pyBumpHunter"
-message: "If you use this software, please cite it as below."
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+abstract: "Python implementation of the BumpHunter algorithm used by the HEP community."
 doi: "10.5281/zenodo.7684558"
-date-released: "2021-03-22"
 authors:
 - family-names: "Vaslin"
   given-names: "Louis"
   affiliation: "Laboratoire de Physique de Clermont"
   orcid: "https://orcid.org/0000-0001-9161-7716"
   email: "louis.vaslin@clermont.in2p3.fr"
+repository-code: "https://github.com/scikit-hep/pyBumpHunter"
+keywords:
+  - python
+  - BumpHunter algorithm
+  - scikit-hep
+license: "BSD-3-Clause"
