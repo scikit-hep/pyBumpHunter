@@ -3,7 +3,7 @@
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/scikit-hep/pyBumpHunter/master)
 [![Test](https://github.com/scikit-hep/pyBumpHunter/workflows/automated_testing/badge.svg)](https://github.com/scikit-hep/pyBumpHunter/actions)
 [![PyPI](https://img.shields.io/pypi/v/pyBumpHunter)](https://pypi.org/project/pyBumpHunter/)
-[![DOI](https://zenodo.org/badge/350275737.svg)](https://zenodo.org/badge/latestdoi/350275737)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7684558.svg)](https://doi.org/10.5281/zenodo.7684558)
 
 This is a python version of the BumpHunter algorithm, see [arXiv:1101.0390, G. Choudalakis](https://arxiv.org/abs/1101.0390), designed to find localized excess (or deficit) of events in a 1D or 2D distribution.
 
