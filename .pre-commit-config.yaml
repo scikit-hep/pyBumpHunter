@@ -1,11 +1,11 @@
 repos:
   - repo: https://github.com/psf/black-pre-commit-mirror
-    rev: 22.3.0
+    rev: 25.1.0
     hooks:
       - id: black
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.1.0
+    rev: v6.0.0
     hooks:
       - id: check-added-large-files
       - id: check-case-conflict
@@ -19,24 +19,24 @@ repos:
       - id: trailing-whitespace
 
   - repo: https://github.com/mgedmin/check-manifest
-    rev: "0.48"
+    rev: "0.50"
     hooks:
       - id: check-manifest
         stages: [ manual ]
 
   - repo: https://github.com/asottile/pyupgrade
-    rev: v2.31.1
+    rev: v3.20.0
     hooks:
       - id: pyupgrade
         args: [ --py36-plus ]
 
   - repo: https://github.com/asottile/setup-cfg-fmt
-    rev: v1.20.0
+    rev: v2.8.0
     hooks:
       - id: setup-cfg-fmt
 
   - repo: https://github.com/pycqa/flake8
-    rev: 4.0.1
+    rev: 7.3.0
     hooks:
       - id: flake8
         additional_dependencies:
