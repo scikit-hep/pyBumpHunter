@@ -22,7 +22,7 @@ The BumpHunter algorithm can also perform signal injection tests where more and 
 
 ### Dependencies
 
-Requires python >= 3.6 py
+Requires Python >= 3.8.
 
 BumpHunter depends on the following python libraries :
 
