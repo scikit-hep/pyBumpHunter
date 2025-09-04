@@ -1508,7 +1508,7 @@ class BumpHunter1D:
         """
 
         # Check if there is anything to show.
-        if self.res_ar == []:
+        if self.res_ar.size == 0:
             print("Nothing to plot here !")
             return
 
@@ -1980,7 +1980,7 @@ class BumpHunter1D:
         """
 
         # Check if we are in multi_chan
-        if self.res_ar != [] and self.res_ar.ndim == 2:
+        if self.res_ar.size > 0 and self.res_ar.ndim == 2:
             multi_chan = True
         else:
             multi_chan = False
