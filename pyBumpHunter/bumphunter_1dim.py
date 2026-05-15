@@ -934,7 +934,7 @@ class BumpHunter1D:
 
             is_hist :
                 Boolean that specify if the given data and background are already in histogram form.
-                If true, the data and backgrouns are considered as already 'histogramed'.
+                If true, the data and backgrounds are considered as already 'histogramed'.
                 Default to False.
 
             do_pseudo :
@@ -1508,7 +1508,7 @@ class BumpHunter1D:
         """
 
         # Check if there is anything to show.
-        if self.res_ar == []:
+        if self.res_ar.size == 0:
             print("Nothing to plot here !")
             return
 
@@ -1980,7 +1980,7 @@ class BumpHunter1D:
         """
 
         # Check if we are in multi_chan
-        if self.res_ar != [] and self.res_ar.ndim == 2:
+        if self.res_ar.size > 0 and self.res_ar.ndim == 2:
             multi_chan = True
         else:
             multi_chan = False
