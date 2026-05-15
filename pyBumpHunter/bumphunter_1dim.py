@@ -697,8 +697,21 @@ class BumpHunter1D:
 
         Arguments :
             data :
-                A DataHandler containing at least a set of reference background and data histograms.
-                Ths distributions must be 1D histograms.
+                The data distribution.
+                If there is only one channel, it should be a numpy array containing the data distribution.
+                Otherwise, it should be a list of numpy arrays (one per channels).
+                The distribution(s) will be transformed into a binned histogram and the algorithm will look for the most significant excess.
+
+            bkg :
+                The reference background distribution.
+                If there is only one channel, it should be a numpy array containing the reference background distribution.
+                Otherwise, it should be a list of numpy arrays (one per channels).
+                The distribution(s) will be transformed into a binned histogram and the algorithm will compare it to data while looking for a bump.
+
+            is_hist :
+                Boolean that specify if the given data and background are already in histogram form.
+                If true, the data and backgrounds are considered as already 'histogramed'.
+                Default to False.
 
             do_pseudo :
                 Boolean specifying if pesudo data should be generated.
@@ -1497,6 +1510,52 @@ class BumpHunter1D:
                 Default to 0 (the first channel).
         """
 
+        # Check if there is anything to show.
+        if self.res_ar.size == 0:
+            print("Nothing to plot here !")
+            return
+
+        # Check if we have multiple channels
+        if self.res_ar.ndim == 2:
+            multi_chan = True
+        else:
+            multi_chan = False
+
+        # Get the reference histogram
+        if multi_chan:
+            Hbkg = []
+            H = []
+            if not is_hist:
+                for ch in range(len(bkg)):
+                    Hbkg.append(np.histogram(
+                        bkg[ch],
+                        bins=self.bins[ch],
+                        range=self.rang,
+                        weights=self.weights
+                    )[0])
+                    H.append(np.histogram_bin_edges(
+                        bkg[ch],
+                        bins=self.bins[ch],
+                        range=self.rang
+                    ))
+            else:
+                H = self.bins
+                if self.weights is None:
+                    Hbkg = bkg
+                else:
+                    Hbkg = [bkg[ch] * self.weights[ch] for ch in range(len(bkg))]
+        else:
+            if not is_hist:
+                Hbkg, H = np.histogram(
+                    bkg, bins=self.bins, range=self.rang, weights=self.weights
+                )
+            else:
+                H = self.bins
+                if self.weights is None:
+                    Hbkg = bkg
+                else:
+                    Hbkg = bkg * self.weights
+
         # Remove empty bins at the begining of reference
         Hinf = 0
         non0 = [i for i in range(data.ref[chan].size) if data.ref[chan][i] > 0]
@@ -1792,11 +1851,28 @@ class BumpHunter1D:
                 The formated result string.
         """
 
-        # Check if we have results for simple scan or signal injection
-        if self.t_ar.shape[0] == self.npe + 1:
-            prt_inject = False
-        elif self.t_ar.shape[0] == self.npe + self.npe_inject:
-            prt_inject = True
+        # Check if we are in multi_chan
+        if self.res_ar.size > 0 and self.res_ar.ndim == 2:
+            multi_chan = True
+        else:
+            multi_chan = False
+        
+
+        # Get the bin edges
+        if not is_hist:
+            if multi_chan:
+                # Loop over channel
+                bins = []
+                for ch in range(len(data)):
+                    bins.append(np.histogram_bin_edges(
+                        data[ch],
+                        bins=self.bins[ch],
+                        range=self.rang
+                    ))
+            else:
+                bins = np.histogram_bin_edges(data, bins=self.bins, range=self.rang)
+        else:
+            bins = self.bins
 
         # Compute bump edges
         if prt_inject:
