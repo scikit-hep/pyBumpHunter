@@ -14,7 +14,9 @@ import pyBumpHunter as BH
 
 # Generate the background
 np.random.seed(42)
-bkg = np.random.exponential(scale=[4, 4], size=(1_000_000, 2)) # Need more stat to have a smoother reference
+bkg = np.random.exponential(
+    scale=[4, 4], size=(1_000_000, 2)
+)  # Need more stat to have a smoother reference
 
 # Generate the data
 Nsig = 700
@@ -65,7 +67,7 @@ hunter = BH.BumpHunter2D(
     npe=8000,
     nworker=1,
     seed=666,
-    use_sideband=True # Activate side-band normalization
+    use_sideband=True,  # Activate side-band normalization
 )
 
 # Call the bump_scan method
@@ -87,4 +89,3 @@ hunter.plot_bump(data, bkg, filename="results/2D/bump.png")
 
 # Get and save statistics plot
 hunter.plot_stat(show_Pval=True, filename="results/2D/BH_statistics.png")
-

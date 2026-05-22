@@ -40,9 +40,9 @@ plt.hist(
     label=("bakground", "data"),
     linewidth=2,
 )
-plt.legend(fontsize='xx-large')
-plt.xticks(fontsize='xx-large')
-plt.yticks(fontsize='xx-large')
+plt.legend(fontsize="xx-large")
+plt.xticks(fontsize="xx-large")
+plt.yticks(fontsize="xx-large")
 plt.savefig("results/1D/hist.png", bbox_inches="tight")
 plt.close(F)
 
@@ -100,4 +100,3 @@ print("")
 hunter.plot_inject(
     filename=("results/1D/SignalInject.png", "results/1D/SignalInject_log.png")
 )
-
