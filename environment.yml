@@ -1,13 +1,17 @@
+name: pybumphunter
 channels:
   - conda-forge
   - defaults
 dependencies:
-  - python
+  - python>=3.8
   - jupyter
-  - numpy
+  - numpy>=1.13.3
   - matplotlib
   - scipy
   - awkward
   - uproot
   - cachetools
-  - pyBumpHunter
+  - pip
+  - pytest
+  - pip:
+      - -e .
