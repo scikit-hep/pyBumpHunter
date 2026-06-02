@@ -235,7 +235,7 @@ class BumpHunter1D:
 
             seed :
                 Seed for the random number generator.
-                Default to None. 
+                Default to None.
 
             use_sideband :
                 Boolean specifying if the side-band normalization should be applied.
@@ -395,9 +395,9 @@ class BumpHunter1D:
                 )
 
             if self.use_sideband:
-                res[i][
-                    res[i] < 1e-300
-                ] = 1e-300  # prevent issue with very low p-value, sometimes induced by normalisation in the tail
+                res[i][res[i] < 1e-300] = (
+                    1e-300  # prevent issue with very low p-value, sometimes induced by normalisation in the tail
+                )
 
             # Get the minimum p-value and associated position for width w
             min_Pval[i] = res[i].min()
@@ -528,7 +528,6 @@ class BumpHunter1D:
             return [left, right]
 
         return None
-
 
     ## Variable management methods
 
@@ -1527,17 +1526,19 @@ class BumpHunter1D:
             H = []
             if not is_hist:
                 for ch in range(len(bkg)):
-                    Hbkg.append(np.histogram(
-                        bkg[ch],
-                        bins=self.bins[ch],
-                        range=self.rang,
-                        weights=self.weights
-                    )[0])
-                    H.append(np.histogram_bin_edges(
-                        bkg[ch],
-                        bins=self.bins[ch],
-                        range=self.rang
-                    ))
+                    Hbkg.append(
+                        np.histogram(
+                            bkg[ch],
+                            bins=self.bins[ch],
+                            range=self.rang,
+                            weights=self.weights,
+                        )[0]
+                    )
+                    H.append(
+                        np.histogram_bin_edges(
+                            bkg[ch], bins=self.bins[ch], range=self.rang
+                        )
+                    )
             else:
                 H = self.bins
                 if self.weights is None:
@@ -1856,7 +1857,6 @@ class BumpHunter1D:
             multi_chan = True
         else:
             multi_chan = False
-        
 
         # Get the bin edges
         if not is_hist:
@@ -1864,11 +1864,11 @@ class BumpHunter1D:
                 # Loop over channel
                 bins = []
                 for ch in range(len(data)):
-                    bins.append(np.histogram_bin_edges(
-                        data[ch],
-                        bins=self.bins[ch],
-                        range=self.rang
-                    ))
+                    bins.append(
+                        np.histogram_bin_edges(
+                            data[ch], bins=self.bins[ch], range=self.rang
+                        )
+                    )
             else:
                 bins = np.histogram_bin_edges(data, bins=self.bins, range=self.rang)
         else:
@@ -2155,5 +2155,3 @@ class BumpHunterInterface(metaclass=ABCMeta):
         during the last iteration (when sigma_limit is reached).
         """
         pass
-
-

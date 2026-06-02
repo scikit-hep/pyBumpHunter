@@ -401,7 +401,7 @@ class BumpHunter2D(BumpHunterInterface):
             # FIXME any better way to do it ?? Without loop ?? FIXME
             Nref = np.array(
                 [ref[p[0] : p[0] + w[0], p[1] : p[1] + w[1]].sum() for p in pos],
-                dtype=float
+                dtype=float,
             )
             Nhist = np.array(
                 [hist[p[0] : p[0] + w[0], p[1] : p[1] + w[1]].sum() for p in pos]
@@ -423,9 +423,9 @@ class BumpHunter2D(BumpHunterInterface):
                 )
 
             if self.use_sideband:
-                res[i][
-                    res[i] < 1e-300
-                ] = 1e-300  # prevent issue with very low p-value, sometimes induced by normalisation in the tail
+                res[i][res[i] < 1e-300] = (
+                    1e-300  # prevent issue with very low p-value, sometimes induced by normalisation in the tail
+                )
 
             # Get the minimum p-value and associated position for width w
             min_Pval[i] = res[i].min()
@@ -1773,7 +1773,7 @@ class BumpHunter2D(BumpHunterInterface):
             plt.xscale('log')
 
     # Method to obtained a printable string containing all the results of the last BumpHunter scans
-    def bump_info(self, data, is_hist: bool=False):
+    def bump_info(self, data, is_hist: bool = False):
         """
         Method that return a formated string with all the results of the last performed scan.
 

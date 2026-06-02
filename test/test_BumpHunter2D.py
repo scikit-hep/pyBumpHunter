@@ -6,6 +6,7 @@ import pyBumpHunter as BH
 import pytest
 import numpy as np
 
+
 # Function to generate a dataset with numpy
 def make_datasets(seed):
     np.random.seed(seed)
@@ -40,9 +41,11 @@ def make_datasets(seed):
     # Return the dataset
     return dh
 
+
 @pytest.fixture
 def data_sig_bkg1():
     return make_datasets(seed=42)
+
 
 @pytest.fixture
 def bhunter():

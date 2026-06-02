@@ -14,7 +14,9 @@ import pyBumpHunter as BH
 
 # Generate the background
 np.random.seed(42)
-bkg = np.random.exponential(scale=[4, 4], size=(1_000_000, 2)) # Need more stat to have a smoother reference
+bkg = np.random.exponential(
+    scale=[4, 4], size=(1_000_000, 2)
+)  # Need more stat to have a smoother reference
 
 # Generate the data
 Nsig = 700
