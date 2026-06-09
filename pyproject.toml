@@ -9,6 +9,9 @@ readme = "README.md"
 authors = [
   { name = "Louis VASLIN", email = "louis.vaslin@clermont.in2p3.fr" }
 ]
+maintainers = [
+    { name = "The Scikit-HEP admins", email = "scikit-hep-admins@googlegroups.com" },
+]
 license = { text = "BSD-3-Clause" }
 requires-python = ">=3.9"
 classifiers = [
