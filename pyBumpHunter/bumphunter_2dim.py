@@ -1203,8 +1203,8 @@ class BumpHunter2D(BumpHunterInterface):
             else:
                 if len(self.min_Pval_ar) == 0:
                     self.min_Pval_ar = np.empty(1)
-                    self.min_loc_ar = np.empty(1, dtype=int)
-                    self.min_width_ar = np.empty(1, dtype=int)
+                    self.min_loc_ar = np.empty(1, dtype=object)
+                    self.min_width_ar = np.empty(1, dtype=object)
                     self.t_ar = np.empty(1)
         else:
             if do_pseudo:
@@ -1215,8 +1215,8 @@ class BumpHunter2D(BumpHunterInterface):
             else:
                 if len(self.min_Pval_ar) == 0:
                     self.min_Pval_ar = np.empty(1)
-                    self.min_loc_ar = np.empty(1, dtype=int)
-                    self.min_width_ar = np.empty(1, dtype=int)
+                    self.min_loc_ar = np.empty(1, dtype=object)
+                    self.min_width_ar = np.empty(1, dtype=object)
                     self.t_ar = np.empty(1)
         self.res_ar = []
 

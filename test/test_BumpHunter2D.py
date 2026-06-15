@@ -98,3 +98,19 @@ def test_signal_str():
 def test_number_inject():
     assert int(BHtest.signal_min) == 300
 """
+
+
+# Test if bump_info runs without crashing (verifies the numpy deprecation fix)
+def test_bump_info(data_sig_bkg1, bhunter):
+    data, bkg = data_sig_bkg1
+    bhunter.bump_scan(data, bkg)
+    info_str = bhunter.bump_info(data)
+    assert isinstance(info_str, str)
+    assert len(info_str) > 0
+
+
+# Test scan without pseudo experiments (verifies the TypeError fix)
+def test_scan_no_pseudo(data_sig_bkg1, bhunter):
+    data, bkg = data_sig_bkg1
+    bhunter.bump_scan(data, bkg, do_pseudo=False)
+    assert len(bhunter.min_loc_ar) > 0
