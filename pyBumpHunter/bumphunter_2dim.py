@@ -1201,10 +1201,10 @@ class BumpHunter2D(BumpHunterInterface):
                 self.min_width_ar = np.empty(self.npe + 1, dtype=object)
                 self.t_ar = np.empty(self.npe + 1)
             else:
-                if self.min_Pval_ar == []:
+                if len(self.min_Pval_ar) == 0:
                     self.min_Pval_ar = np.empty(1)
-                    self.min_loc_ar = np.empty(1, dtype=int)
-                    self.min_width_ar = np.empty(1, dtype=int)
+                    self.min_loc_ar = np.empty(1, dtype=object)
+                    self.min_width_ar = np.empty(1, dtype=object)
                     self.t_ar = np.empty(1)
         else:
             if do_pseudo:
@@ -1213,10 +1213,10 @@ class BumpHunter2D(BumpHunterInterface):
                 self.min_width_ar = np.empty(self.npe + 1, dtype=object)
                 self.t_ar = np.empty(self.npe + 1)
             else:
-                if self.min_Pval_ar == []:
+                if len(self.min_Pval_ar) == 0:
                     self.min_Pval_ar = np.empty(1)
-                    self.min_loc_ar = np.empty(1, dtype=int)
-                    self.min_width_ar = np.empty(1, dtype=int)
+                    self.min_loc_ar = np.empty(1, dtype=object)
+                    self.min_width_ar = np.empty(1, dtype=object)
                     self.t_ar = np.empty(1)
         self.res_ar = []
 
@@ -1958,7 +1958,11 @@ class BumpHunter2D(BumpHunterInterface):
         """
 
         # Chek if we have multi-channel
-        if self.res_ar != [] and self.res_ar.ndim == 2:
+        if (
+            isinstance(self.res_ar, np.ndarray)
+            and self.res_ar.size > 0
+            and self.res_ar.ndim == 2
+        ):
             # We have multiple channels
             multi_chan = True
         else:
@@ -2135,7 +2139,11 @@ class BumpHunter2D(BumpHunterInterface):
         """
 
         # Chek if we have multi-channel
-        if self.res_ar != [] and self.res_ar.ndim == 2:
+        if (
+            isinstance(self.res_ar, np.ndarray)
+            and self.res_ar.size > 0
+            and self.res_ar.ndim == 2
+        ):
             # We have multiple channels
             multi_chan = True
         else:
