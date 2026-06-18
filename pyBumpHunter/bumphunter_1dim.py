@@ -4,9 +4,7 @@
 import concurrent.futures as thd
 from abc import ABCMeta, abstractmethod
 
-import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib import gridspec as grd
 from scipy.special import gammainc as G  # Need G(a,b) for the gamma function
 from scipy.stats import norm
 
@@ -78,10 +76,10 @@ class BumpHunter1D:
             The minimum significance required after injection.
 
         str_min :
-            The minimum number signal stregth to inject in background (first iteration).
+            The minimum number signal strength to inject in background (first iteration).
 
         str_step :
-            Increase of the signal stregth to be injected in the background at each iteration.
+            Increase of the signal strength to be injected in the background at each iteration.
 
         str_scale :
             Specify how the signal strength should vary.
@@ -107,20 +105,20 @@ class BumpHunter1D:
             Significance corresponding to the globbal p-value from the test statistic distribution.
 
         res_ar :
-            Array-like container containing all the local p-values calculated during the last BumpHnter scan.
-            The indice 0 (res_ar[0]) correspond to the sacn of the data and the other indices correspond to the the pseudo-data.
+            Array-like container containing all the local p-values calculated during the last BumpHunter scan.
+            Index 0 (res_ar[0]) corresponds to the scan of the data and the other indices correspond to the pseudo-data.
             For each indices, there is a Numpy array of python list containing all the p-values of all windows obtained for a given distribution.
             The numpy array has dimention (Nwidth), with Nwidth the number of window's width tested.
             Each python list as dimension (Nstep), with Nstep the number of scan step for a given width (different for every value of width).
 
         min_Pval_ar :
-            Array containing the minimum p-values obtained for the data (indice=0) and and the pseudo-data (indice>0).
+            Array containing the minimum p-values obtained for the data (index=0) and the pseudo-data (index>0).
 
         min_loc_ar :
-            Array containing the positions of the windows for which the minimum p-value has been found for the data (indice=0) and pseudo-data (indice>0).
+            Array containing the positions of the windows for which the minimum p-value has been found for the data (index=0) and pseudo-data (index>0).
 
         min_width_ar :
-            Array containing the width of the windows for which the minimum p-value has been found for the data (indice=0) and pseudo-data (indice>0).
+            Array containing the width of the windows for which the minimum p-value has been found for the data (index=0) and pseudo-data (index>0).
 
         signal_eval :
             Number of signal events evaluated form the last scan.
@@ -235,11 +233,11 @@ class BumpHunter1D:
                 Deault to 5.
 
             str_min :
-                The minimum number signal stregth to inject in background (first iteration).
+                The minimum number signal strength to inject in background (first iteration).
                 Default to 0.5.
 
             str_step :
-                Increase of the signal stregth to be injected in the background at each iteration.
+                Increase of the signal strength to be injected in the background at each iteration.
                 Default to 0.25.
 
             str_scale :
@@ -341,12 +339,12 @@ class BumpHunter1D:
 
         Results stored in inner variables :
             res :
-                Numpy array of arrays containing all the p-values of all windows computed durring the scan.
+                Numpy array of arrays containing all the p-values of all windows computed during the scan.
                 The numpy array as dimention (Nwidth), with Nwidth the number of window's width tested.
                 Each array has dimension (Nstep), with Nstep the number of scan step for a given width (different for every value of width).
 
             min_Pval :
-                Minimum p_value obtained durring the scan (float).
+                Minimum p_value obtained during the scan (float).
 
             min_loc :
                 Position of the window corresponding to the minimum p-value (integer).
@@ -391,7 +389,7 @@ class BumpHunter1D:
             else:
                 scan_stepp = self.scan_step
 
-            # Define possition range
+            # Define position range
             pos = np.arange(Hinf, Hsup - w + 1, scan_stepp)
 
             # Check that there is at least one interval to check for width w
@@ -483,12 +481,12 @@ class BumpHunter1D:
 
         Results stored in inner variables :
             res :
-                Numpy array of arrays containing all the p-values of all windows computed durring the scan.
+                Numpy array of arrays containing all the p-values of all windows computed during the scan.
                 The numpy array as dimention (Nchan, Nwidth), with Nchan the number of channels and Nwidth the number of window's width tested.
                 Each array has dimension (Nstep), with Nstep the number of scan step for a given width (different for every value of width).
 
             min_Pval :
-                Minimum p_value obtained durring the scan (float).
+                Minimum p_value obtained during the scan (float).
 
             min_loc :
                 Position of the window corresponding to the minimum p-value (integer).
@@ -731,7 +729,7 @@ class BumpHunter1D:
         """
         Save the current state (all parameters and results) of a BupHunter instance into a dict variable.
 
-        Ruturns:
+        Returns:
             state :
                 The dict containing all the parameters and results of this BumpHunter instance.
                 The keys of the dict entries correspond the name of their associated parameters/results as defined in the BumpHunter class.
@@ -967,17 +965,17 @@ class BumpHunter1D:
                 Global p-value obtained from the test statistic distribution.
 
             res_ar :
-                Array of containers containing all the p-value calculated durring the scan of the data.
+                Array of containers containing all the p-value calculated during the scan of the data.
                 For more detail about how the p-values are sorted in the containers, please reffer the the doc of the function _scan_hist.
 
             min_Pval_ar :
-                Array containing the minimum p-values obtained for the data (indice=0) and and the pseudo-data (indice>0).
+                Array containing the minimum p-values obtained for the data (index=0) and the pseudo-data (index>0).
 
             min_loc_ar :
-                Array containing the positions of the windows for which the minimum p-value has been found for the data (indice=0) and pseudo-data (indice>0).
+                Array containing the positions of the windows for which the minimum p-value has been found for the data (index=0) and pseudo-data (index>0).
 
             min_width_ar :
-                Array containing the width of the windows for which the minimum p-value has been found for the data (indice=0) and pseudo-data (indice>0).
+                Array containing the width of the windows for which the minimum p-value has been found for the data (index=0) and pseudo-data (index>0).
 
             signal_eval :
                 Number of signal events evaluated form the last scan.
@@ -1217,7 +1215,7 @@ class BumpHunter1D:
 
             is_hist :
                 Boolean that specify if the given data and background are already in histogram form.
-                If true, the data and backgrouns are considered as already 'histogramed'.
+                If true, the data and backgrounds are considered as already 'histogramed'.
                 Default to False.
 
         Result inner variables :
@@ -1231,7 +1229,7 @@ class BumpHunter1D:
             sigma_ar :
                 Numpy array containing the significance values obtained at each step.
 
-        All the result inner variables of the BumpHunter instance will be filled with the results of the scan permormed
+        All the result inner variables of the BumpHunter instance will be filled with the results of the scan performed
         during the last iteration (when sigma_limit is reached).
         """
 
@@ -1508,6 +1506,8 @@ class BumpHunter1D:
                 Default to 0 (the first channel).
         """
 
+        import matplotlib.pyplot as plt
+
         # Check if there is anything to show.
         if self.res_ar.size == 0:
             print("Nothing to plot here !")
@@ -1661,6 +1661,9 @@ class BumpHunter1D:
             useSideBand : *Deprecated*
                 Same as use_sideband. This argument is deprecated and will be removed in a future version.
         """
+
+        import matplotlib.pyplot as plt
+        from matplotlib import gridspec as grd
 
         # legacy deprecation
         if useSideBand is not None:
@@ -1827,6 +1830,8 @@ class BumpHunter1D:
                 Default to None.
         """
 
+        import matplotlib.pyplot as plt
+
         # Plot the BumpHunter statistic distribution
         F = plt.figure(figsize=(12, 8))
         if show_Pval:
@@ -1876,6 +1881,8 @@ class BumpHunter1D:
                 If None, the plot will be just shown but not saved.
                 Default to None.
         """
+
+        import matplotlib.pyplot as plt
 
         # Get the x-values (signal strength)
         if self.str_scale == "lin":
@@ -2211,7 +2218,7 @@ class BumpHunterInterface(metaclass=ABCMeta):
         """
         Save the current state (all parameters and results) of a BupHunter instance into a dict variable.
 
-        Ruturns:
+        Returns:
             state :
                 The dict containing all the parameters and results of this BumpHunter instance.
                 The keys of the dict entries correspond the name of their associated parameters/results as defined in the BumpHunter class.d
@@ -2249,13 +2256,13 @@ class BumpHunterInterface(metaclass=ABCMeta):
 
             is_hist :
                 Boolean that specify if the given data and background are already in histogram form.
-                If true, the data and backgrouns are considered as already 'histogramed'.
+                If true, the data and backgrounds are considered as already 'histogramed'.
                 Default to False.
 
             do_pseudo :
                 Boolean specifying if pesudo data should be generated.
-                If False, then the BumpHunter statistics distribution kept in memmory is used to compute the global p-value and significance.
-                If there is nothing in memmory, the global p-value and significance will not be computed.
+                If False, then the BumpHunter statistics distribution kept in memory is used to compute the global p-value and significance.
+                If there is nothing in memory, the global p-value and significance will not be computed.
                 Default to True.
 
 
@@ -2264,17 +2271,17 @@ class BumpHunterInterface(metaclass=ABCMeta):
                 Global p-value obtained from the test statistic distribution.
 
             res_ar :
-                 Array of containers containing all the p-value calculated durring the scan of the data (indice=0) and of the pseudo-data (indice>0).
+                 Array of containers containing all the p-value calculated during the scan of the data (index=0) and of the pseudo-data (index>0).
                  For more detail about how the p-values are sorted in the containers, please reffer the the doc of the function scan_hist.
 
             min_Pval_ar :
-                Array containing the minimum p-values obtained for the data (indice=0) and and the pseudo-data (indice>0).
+                Array containing the minimum p-values obtained for the data (index=0) and the pseudo-data (index>0).
 
             min_loc_ar :
-                Array containing the positions of the windows for which the minimum p-value has been found for the data (indice=0) and pseudo-data (indice>0).
+                Array containing the positions of the windows for which the minimum p-value has been found for the data (index=0) and pseudo-data (index>0).
 
             min_width_ar :
-                Array containing the width of the windows for which the minimum p-value has been found for the data (indice=0) and pseudo-data (indice>0).
+                Array containing the width of the windows for which the minimum p-value has been found for the data (index=0) and pseudo-data (index>0).
 
             signal_eval :
                 Number of signal events evaluated form the last scan.
@@ -2299,7 +2306,7 @@ class BumpHunterInterface(metaclass=ABCMeta):
 
             is_hist :
                 Boolean that specify if the given data and background are already in histogram form.
-                If true, the data and backgrouns are considered as already 'histogramed'.
+                If true, the data and backgrounds are considered as already 'histogramed'.
                 Default to False.
 
         Result inner variables :
@@ -2313,7 +2320,7 @@ class BumpHunterInterface(metaclass=ABCMeta):
             sigma_ar :
                 Numpy array containing the significance values obtained at each step.
 
-        All the result inner variables of the BumpHunter instance will be filled with the results of the scan permormed
+        All the result inner variables of the BumpHunter instance will be filled with the results of the scan performed
         during the last iteration (when sigma_limit is reached).
         """
         pass
