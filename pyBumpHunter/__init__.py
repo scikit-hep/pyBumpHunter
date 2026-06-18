@@ -77,25 +77,32 @@ class BumpHunter(BumpHunter1D):
         Nworker=None,
         useSideBand=None,
     ):
+        deprecated_kwargs = {}
+        if Npe is not None:
+            deprecated_kwargs["Npe"] = Npe
+        if Nworker is not None:
+            deprecated_kwargs["Nworker"] = Nworker
+        if useSideBand is not None:
+            deprecated_kwargs["useSideBand"] = useSideBand
+        if use_sideband is not None:
+            deprecated_kwargs["use_sideband"] = use_sideband
         super().__init__(
-            rang,
-            mode,
-            width_min,
-            width_max,
-            width_step,
-            scan_step,
-            Npe,
-            bins,
-            weights,
-            nworker,
-            sigma_limit,
-            str_min,
-            str_step,
-            str_scale,
-            signal_exp,
-            flip_sig,
-            seed,
-            use_sideband,
-            Nworker,
-            useSideBand,
+            rang=rang,
+            mode=mode,
+            width_min=width_min,
+            width_max=width_max,
+            width_step=width_step,
+            scan_step=scan_step,
+            npe=npe,
+            bins=bins,
+            weights=weights,
+            nworker=nworker,
+            sigma_limit=sigma_limit,
+            str_min=str_min,
+            str_step=str_step,
+            str_scale=str_scale,
+            signal_exp=signal_exp,
+            flip_sig=flip_sig,
+            seed=seed,
+            **deprecated_kwargs,
         )

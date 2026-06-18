@@ -1,10 +1,9 @@
 import functools
 import warnings
-from collections import defaultdict
 from typing import Optional
 
 warned_funcs = set()
-warned_args = defaultdict(dict)
+warned_args = set()
 
 
 def deprecated_arg(oldarg: str, newarg: str, comment: Optional[str] = None):
@@ -22,7 +21,7 @@ def deprecated_arg(oldarg: str, newarg: str, comment: Optional[str] = None):
     def decorator(func):
         @functools.wraps(func)
         def wrapped_func(*args, **kwargs):
-            if oldarg in kwargs and oldarg not in warned_args[func]:
+            if oldarg in kwargs and (func, oldarg) not in warned_args:
                 warnings.warn(
                     f"The argument {oldarg} in function {func} is deprecated and will be removed"
                     f" in a future release. Use {newarg} instead. {comment}",
@@ -30,7 +29,7 @@ def deprecated_arg(oldarg: str, newarg: str, comment: Optional[str] = None):
                     stacklevel=2,
                 )
 
-                warned_args[func] = oldarg
+                warned_args.add((func, oldarg))
 
             return func(*args, **kwargs)
 

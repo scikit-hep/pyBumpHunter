@@ -869,6 +869,7 @@ class BumpHunter2D(BumpHunterInterface):
         state["signal_exp"] = self.signal_exp
         state["sig_flip"] = self.flip_sig
         state["use_sideband"] = self.use_sideband
+        state["sideband_width"] = self.sideband_width
 
         # Save results
         state["global_Pval"] = self.global_Pval
@@ -917,9 +918,9 @@ class BumpHunter2D(BumpHunterInterface):
             self.bins = [20, 20]
 
         if "weights" in state:
-            self.rang = state["weights"]
+            self.weights = state["weights"]
         else:
-            self.rang = None
+            self.weights = None
 
         if "width_min" in state:
             self.width_min = state["width_min"]
@@ -987,9 +988,14 @@ class BumpHunter2D(BumpHunterInterface):
             self.signal_exp = None
 
         if "sig_flip" in state:
-            self.sig_flip = state["sig_flip"]
+            self.flip_sig = state["sig_flip"]
         else:
-            self.sig_flip = True
+            self.flip_sig = True
+
+        if "sideband_width" in state:
+            self.sideband_width = state["sideband_width"]
+        else:
+            self.sideband_width = None
 
         # Load results
         self.reset()
