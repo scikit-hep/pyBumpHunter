@@ -1232,41 +1232,44 @@ class BumpHunter2D(BumpHunterInterface):
         if do_pseudo:
             if self.nworker > 1:
                 with thd.ThreadPoolExecutor(max_workers=self.nworker) as exe:
+                    futures = []
                     for th in range(self.npe + 1):
                         if multi_chan:
                             if th == 0:
-                                exe.submit(
+                                futures.append(exe.submit(
                                     self._scan_hist_multi,
                                     data_hist,
                                     bkg_hist,
                                     w_ar,
                                     th,
-                                )
+                                ))
                             else:
                                 pseudo = [
                                     pseudo_hist[ch][:, :, th - 1]
                                     for ch in range(len(data))
                                 ]
-                                exe.submit(
+                                futures.append(exe.submit(
                                     self._scan_hist_multi,
                                     pseudo,
                                     bkg_hist,
                                     w_ar,
                                     th,
-                                )
+                                ))
                         else:
                             if th == 0:
-                                exe.submit(
+                                futures.append(exe.submit(
                                     self._scan_hist, data_hist, bkg_hist, w_ar, th
-                                )
+                                ))
                             else:
-                                exe.submit(
+                                futures.append(exe.submit(
                                     self._scan_hist,
                                     pseudo_hist[:, :, th - 1],
                                     bkg_hist,
                                     w_ar,
                                     th,
-                                )
+                                ))
+                    for f in futures:
+                        f.result()
             else:
                 for i in range(self.npe + 1):
                     if multi_chan:
@@ -1415,8 +1418,12 @@ class BumpHunter2D(BumpHunterInterface):
         print("BACKGROUND ONLY SCAN")
         if self.nworker > 1:
             with thd.ThreadPoolExecutor(max_workers=self.nworker) as exe:
-                for th in range(Nbkg):
+                futures = [
                     exe.submit(self._scan_hist, pseudo_bkg[:, th], bkg_hist, w_ar, th)
+                    for th in range(Nbkg)
+                ]
+                for f in futures:
+                    f.result()
         else:
             for th in range(Nbkg):
                 self._scan_hist(pseudo_bkg[:, th], bkg_hist, w_ar, th)
@@ -1505,10 +1512,14 @@ class BumpHunter2D(BumpHunterInterface):
             print("BACKGROUND+SIGNAL SCAN")
             if self.nworker > 1:
                 with thd.ThreadPoolExecutor(max_workers=self.nworker) as exe:
-                    for th in range(self.npe):
+                    futures = [
                         exe.submit(
                             self._scan_hist, pseudo_data[:, th], bkg_hist, w_ar, th
                         )
+                        for th in range(self.npe)
+                    ]
+                    for f in futures:
+                        f.result()
             else:
                 for th in range(self.npe):
                     self._scan_hist(pseudo_data[:, th], bkg_hist, w_ar, th)
