@@ -1112,42 +1112,50 @@ class BumpHunter1D:
                     for th in range(self.npe + 1):
                         if multi_chan:
                             if th == 0:
-                                futures.append(exe.submit(
-                                    self._scan_hist_multi,
-                                    data_hist,
-                                    bkg_hist,
-                                    w_ar,
-                                    th,
-                                ))
+                                futures.append(
+                                    exe.submit(
+                                        self._scan_hist_multi,
+                                        data_hist,
+                                        bkg_hist,
+                                        w_ar,
+                                        th,
+                                    )
+                                )
                             else:
                                 pseudo = [
                                     pseudo_hist[ch][:, th - 1]
                                     for ch in range(len(data))
                                 ]
-                                futures.append(exe.submit(
-                                    self._scan_hist_multi,
-                                    pseudo,
-                                    bkg_hist,
-                                    w_ar,
-                                    th,
-                                ))
+                                futures.append(
+                                    exe.submit(
+                                        self._scan_hist_multi,
+                                        pseudo,
+                                        bkg_hist,
+                                        w_ar,
+                                        th,
+                                    )
+                                )
                         else:
                             if th == 0:
-                                futures.append(exe.submit(
-                                    self._scan_hist,
-                                    data_hist,
-                                    bkg_hist,
-                                    w_ar,
-                                    th,
-                                ))
+                                futures.append(
+                                    exe.submit(
+                                        self._scan_hist,
+                                        data_hist,
+                                        bkg_hist,
+                                        w_ar,
+                                        th,
+                                    )
+                                )
                             else:
-                                futures.append(exe.submit(
-                                    self._scan_hist,
-                                    pseudo_hist[:, th - 1],
-                                    bkg_hist,
-                                    w_ar,
-                                    th,
-                                ))
+                                futures.append(
+                                    exe.submit(
+                                        self._scan_hist,
+                                        pseudo_hist[:, th - 1],
+                                        bkg_hist,
+                                        w_ar,
+                                        th,
+                                    )
+                                )
                     for f in futures:
                         f.result()
             else:
@@ -1691,7 +1699,7 @@ class BumpHunter1D:
 
                 H = [H[0], H[1]]
             else:
-                H = np.histogram(data[chan], bins=self.bins, range=self.rang)
+                H = np.histogram(data[chan], bins=self.bins[chan], range=self.rang)
         else:
             if not is_hist:
                 H = np.histogram(data, bins=self.bins, range=self.rang)
