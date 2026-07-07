@@ -20,7 +20,7 @@ jobs:
         python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     - name: Setup python ${{ matrix.python-version }}
       uses: actions/setup-python@v6
@@ -39,6 +39,6 @@ jobs:
         pytest --cov=pyBumpHunter --cov-report=xml
 
     - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@v6
+      uses: codecov/codecov-action@v7
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
