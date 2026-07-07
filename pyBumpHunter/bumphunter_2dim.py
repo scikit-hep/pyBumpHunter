@@ -5,6 +5,8 @@ import concurrent.futures as thd
 import itertools
 
 import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib import colors as mcl
 from scipy.special import gammainc as G  # Need G(a,b) for the gamma function
 from scipy.stats import norm
 
@@ -1638,9 +1640,6 @@ class BumpHunter2D(BumpHunterInterface):
                 Same as use_sideband. This argument is deprecated and will be removed in a future version.
         """
 
-        import matplotlib.pyplot as plt
-        from matplotlib import colors as mcl
-
         # legacy deprecation
         if useSideBand is not None:
             use_sideband = useSideBand
@@ -1812,8 +1811,6 @@ class BumpHunter2D(BumpHunterInterface):
                 Default to None.
         """
 
-        import matplotlib.pyplot as plt
-
         # Check if there is a BH statistics distribution to plot.
         if self.t_ar.size <= 1:
             print("Nothing to plot here ...")
@@ -1867,8 +1864,6 @@ class BumpHunter2D(BumpHunterInterface):
                 Name of the file in which the plot will be saved. If None, the plot will be just shown but not saved.
                 Default to None.
         """
-
-        import matplotlib.pyplot as plt
 
         # Get the x-values (signal strength)
         if self.str_scale == "lin":

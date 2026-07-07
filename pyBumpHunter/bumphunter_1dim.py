@@ -5,6 +5,8 @@ import concurrent.futures as thd
 from abc import ABCMeta, abstractmethod
 
 import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib import gridspec as grd
 from scipy.special import gammainc as G  # Need G(a,b) for the gamma function
 from scipy.stats import norm
 
@@ -1506,8 +1508,6 @@ class BumpHunter1D:
                 Default to 0 (the first channel).
         """
 
-        import matplotlib.pyplot as plt
-
         # Check if there is anything to show.
         if self.res_ar.size == 0:
             print("Nothing to plot here !")
@@ -1661,9 +1661,6 @@ class BumpHunter1D:
             useSideBand : *Deprecated*
                 Same as use_sideband. This argument is deprecated and will be removed in a future version.
         """
-
-        import matplotlib.pyplot as plt
-        from matplotlib import gridspec as grd
 
         # legacy deprecation
         if useSideBand is not None:
@@ -1830,8 +1827,6 @@ class BumpHunter1D:
                 Default to None.
         """
 
-        import matplotlib.pyplot as plt
-
         # Plot the BumpHunter statistic distribution
         F = plt.figure(figsize=(12, 8))
         if show_Pval:
@@ -1881,8 +1876,6 @@ class BumpHunter1D:
                 If None, the plot will be just shown but not saved.
                 Default to None.
         """
-
-        import matplotlib.pyplot as plt
 
         # Get the x-values (signal strength)
         if self.str_scale == "lin":
