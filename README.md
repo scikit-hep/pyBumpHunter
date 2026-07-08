@@ -46,19 +46,19 @@ You can also open the example notebook with jupyter or binder.
 * Bump hunting:
 
 <p align="center">
-<img src="./example/results/1D/bump.png" title="drawing"  width="500">
+<img src="https://raw.githubusercontent.com/scikit-hep/pyBumpHunter/master/example/results/1D/bump.png" title="drawing"  width="500">
 </p>
 
 * Tomography scan:
 
 <p align="center">
-<img src="./example/results/1D/tomography.png" title="drawing"  width="500">
+<img src="https://raw.githubusercontent.com/scikit-hep/pyBumpHunter/master/example/results/1D/tomography.png" title="drawing"  width="500">
 </p>
 
 * Test statistics and global p-value:
 
 <p align="center">
-<img src="./example/results/1D/BH_statistics.png" title="drawing"  width="500">
+<img src="https://raw.githubusercontent.com/scikit-hep/pyBumpHunter/master/example/results/1D/BH_statistics.png" title="drawing"  width="500">
 </p>
 
 See the [wiki](https://github.com/scikit-hep/pyBumpHunter/wiki) for a detailed overview of all the features offered by pyBumpHunter.
