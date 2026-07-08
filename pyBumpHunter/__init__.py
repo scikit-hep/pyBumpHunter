@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-Python implementation of the BumpHenter algorithm used by HEP community.
+Python implementation of the BumpHunter algorithm used by HEP community.
 
 This package provide a BumpHunter class that allows to extract a global p-value
 from a data distribution given a reference background distribution.
@@ -12,15 +12,15 @@ Note that BumpHunter2D does NOT support signal injection yet.
 
 Basic usage :
 
-To create an BumpHunter class instance (valid of BumpHunter2D) :
+To create an BumpHunter class instance (valid for BumpHunter2D) :
     import pyBumpHunter as BH
     BHtest = BH.BumpHunter(...)
 
-To perform a scan using BumpHnuter algorithm and compute a global p-value
-and significance (valid of BumpHunter2D) :
+To perform a scan using BumpHunter algorithm and compute a global p-value
+and significance (valid for BumpHunter2D) :
     BHtest.BumpScan(data,bkg)
 
-To print the results of the last scan performed and do some plots (valid of BumpHunter2D) :
+To print the results of the last scan performed and do some plots (valid for BumpHunter2D) :
     BHtest.PrintBumpInfo()
     BHtest.PrintBumpTrue()
     BHtest.GetTomography()
