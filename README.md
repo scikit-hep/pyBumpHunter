@@ -1,9 +1,13 @@
 # pyBumpHunter
 
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/scikit-hep/pyBumpHunter/master)
-[![Test](https://github.com/scikit-hep/pyBumpHunter/workflows/automated_testing/badge.svg)](https://github.com/scikit-hep/pyBumpHunter/actions)
+[![Scikit-HEP](https://scikit-hep.org/assets/images/Scikit--HEP-Project-blue.svg)](https://scikit-hep.org/)
 [![PyPI](https://img.shields.io/pypi/v/pyBumpHunter)](https://pypi.org/project/pyBumpHunter/)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7684558.svg)](https://doi.org/10.5281/zenodo.7684558)
+
+[![Test](https://github.com/scikit-hep/pyBumpHunter/workflows/automated_testing/badge.svg)](https://github.com/scikit-hep/pyBumpHunter/actions)
+[![Code Coverage](https://codecov.io/gh/scikit-hep/pyBumpHunter/branch/master/graph/badge.svg)](https://app.codecov.io/gh/scikit-hep/pyBumpHunter/tree/master)
+
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/scikit-hep/pyBumpHunter/master)
 
 This is a python version of the BumpHunter algorithm, see [arXiv:1101.0390, G. Choudalakis](https://arxiv.org/abs/1101.0390), designed to find localized excess (or deficit) of events in a 1D or 2D distribution.
 
