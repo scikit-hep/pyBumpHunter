@@ -360,8 +360,12 @@ class BumpHunter1D:
         """
 
         # Remove the first/last hist bins if empty ... just to be consistant with c++
-        non0 = [iii for iii in range(hist.size) if ref[iii] > 0]
-        Hinf, Hsup = min(non0), max(non0) + 1
+        non0 = np.nonzero(ref)[0]
+        if non0.size == 0:
+            raise ValueError(
+                "Reference (background) histogram has no positive bin; cannot scan."
+            )
+        Hinf, Hsup = non0[0], non0[-1] + 1
 
         # Check for sidebands
         if self.use_sideband:
@@ -380,6 +384,10 @@ class BumpHunter1D:
             ref_total = ref[Vinf:Vsup].sum()
             hist_total = hist[Vinf:Vsup].sum()
             min_scale = np.empty(w_ar.size)
+
+        # Prefix sums so each window count is an O(1) index difference
+        cum_ref = np.concatenate(([0.0], np.cumsum(ref)))
+        cum_hist = np.concatenate(([0], np.cumsum(hist)))
 
         # Loop over all the width of the window
         for i, w in enumerate(w_ar):
@@ -406,10 +414,9 @@ class BumpHunter1D:
             # Initialize local p-value array for width w
             res[i] = np.ones(pos.size)
 
-            # Count events in all windows of width w
-            # FIXME any better way to do it ?? Without loop ?? FIXME
-            Nref = np.array([ref[p : p + w].sum() for p in pos], dtype=float)
-            Nhist = np.array([hist[p : p + w].sum() for p in pos])
+            # Count events in all windows of width w via prefix-sum differences
+            Nref = (cum_ref[pos + w] - cum_ref[pos]).astype(float)
+            Nhist = cum_hist[pos + w] - cum_hist[pos]
 
             # Compute and apply side-band normalization scale factor (if needed)
             if self.use_sideband:
@@ -506,9 +513,13 @@ class BumpHunter1D:
         Hinf = []
         Hsup = []
         for ch in range(len(hist)):
-            non0 = [iii for iii in range(0, ref[ch].size) if ref[ch][iii] > 0]
-            Hinf.append(min(non0))
-            Hsup.append(max(non0) + 1)
+            non0 = np.nonzero(ref[ch])[0]
+            if non0.size == 0:
+                raise ValueError(
+                    "Reference (background) histogram has no positive bin; cannot scan."
+                )
+            Hinf.append(non0[0])
+            Hsup.append(non0[-1] + 1)
         Hinf = np.array(Hinf)
         Hsup = np.array(Hsup)
 
@@ -555,6 +566,14 @@ class BumpHunter1D:
         # Initialize p-value container for all channels, width and pos
         res_all = np.empty((len(hist), w_ar.size), dtype=object)
 
+        # Prefix sums per channel so each window count is an O(1) index difference
+        cum_ref = [
+            np.concatenate(([0.0], np.cumsum(ref[ch]))) for ch in range(len(hist))
+        ]
+        cum_hist = [
+            np.concatenate(([0], np.cumsum(hist[ch]))) for ch in range(len(hist))
+        ]
+
         # Loop over channels
         for ch in range(len(hist)):
             # Initialize results containers for all width
@@ -573,11 +592,10 @@ class BumpHunter1D:
                     min_loc_current[i] = Hinf
                     continue
 
-                # Count events in all intervals for channel ch and width w
-                Nref = np.array(
-                    [ref[ch][p : p + w].sum() for p in pos[ch][i]], dtype=float
-                )
-                Nhist = np.array([hist[ch][p : p + w].sum() for p in pos[ch][i]])
+                # Count events in all intervals via prefix-sum differences
+                p = pos[ch][i]
+                Nref = (cum_ref[ch][p + w] - cum_ref[ch][p]).astype(float)
+                Nhist = cum_hist[ch][p + w] - cum_hist[ch][p]
 
                 # Compute and apply side-band normalization scale factor (if needed)
                 if self.use_sideband:
@@ -1051,7 +1069,7 @@ class BumpHunter1D:
                 for ch in range(len(data)):
                     pseudo_hist.append(
                         np.random.poisson(
-                            lam=np.tile(bkg_hist[ch], (self.npe, 1)).transpose(),
+                            lam=bkg_hist[ch][:, None],
                             size=(bkg_hist[ch].size, self.npe),
                         )
                     )
@@ -1060,7 +1078,7 @@ class BumpHunter1D:
 
             else:
                 pseudo_hist = np.random.poisson(
-                    lam=np.tile(bkg_hist, (self.npe, 1)).transpose(),
+                    lam=bkg_hist[:, None],
                     size=(bkg_hist.size, self.npe),
                 )
 
