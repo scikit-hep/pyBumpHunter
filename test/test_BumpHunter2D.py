@@ -81,14 +81,14 @@ def test_scan_run(data_sig_bkg1, bhunter):
 
 
 """ 2D signal injection is not implemented yet
-# Test if the SignalInject method runs
+# Test if the signal_inject method runs
 def test_inject_run():
     BHtest.sigma_limit = 5
     BHtest.str_min = -1 # if str_scale='log', the real starting value is 10**str_min
     BHtest.str_scale = 'log'
     BHtest.signal_exp = 150 # Correspond the the real number of signal events generated when making the data
 
-    BHtest.SignalInject(sig,bkg)
+    BHtest.signal_inject(sig,bkg)
 
 # Test if the final signal strength is correct w.r.t. the expected value (up to 2 digit)
 def test_signal_str():
