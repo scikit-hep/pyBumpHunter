@@ -4,8 +4,8 @@
 import concurrent.futures as thd
 from abc import ABCMeta, abstractmethod
 
-import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib.pyplot as plt
 from matplotlib import gridspec as grd
 from scipy.special import gammainc as G  # Need G(a,b) for the gamma function
 from scipy.stats import norm
@@ -78,10 +78,10 @@ class BumpHunter1D:
             The minimum significance required after injection.
 
         str_min :
-            The minimum number signal stregth to inject in background (first iteration).
+            The minimum number signal strength to inject in background (first iteration).
 
         str_step :
-            Increase of the signal stregth to be injected in the background at each iteration.
+            Increase of the signal strength to be injected in the background at each iteration.
 
         str_scale :
             Specify how the signal strength should vary.
@@ -107,20 +107,20 @@ class BumpHunter1D:
             Significance corresponding to the globbal p-value from the test statistic distribution.
 
         res_ar :
-            Array-like container containing all the local p-values calculated during the last BumpHnter scan.
-            The indice 0 (res_ar[0]) correspond to the sacn of the data and the other indices correspond to the the pseudo-data.
+            Array-like container containing all the local p-values calculated during the last BumpHunter scan.
+            Index 0 (res_ar[0]) corresponds to the scan of the data and the other indices correspond to the pseudo-data.
             For each indices, there is a Numpy array of python list containing all the p-values of all windows obtained for a given distribution.
             The numpy array has dimention (Nwidth), with Nwidth the number of window's width tested.
             Each python list as dimension (Nstep), with Nstep the number of scan step for a given width (different for every value of width).
 
         min_Pval_ar :
-            Array containing the minimum p-values obtained for the data (indice=0) and and the pseudo-data (indice>0).
+            Array containing the minimum p-values obtained for the data (index=0) and the pseudo-data (index>0).
 
         min_loc_ar :
-            Array containing the positions of the windows for which the minimum p-value has been found for the data (indice=0) and pseudo-data (indice>0).
+            Array containing the positions of the windows for which the minimum p-value has been found for the data (index=0) and pseudo-data (index>0).
 
         min_width_ar :
-            Array containing the width of the windows for which the minimum p-value has been found for the data (indice=0) and pseudo-data (indice>0).
+            Array containing the width of the windows for which the minimum p-value has been found for the data (index=0) and pseudo-data (index>0).
 
         signal_eval :
             Number of signal events evaluated form the last scan.
@@ -235,11 +235,11 @@ class BumpHunter1D:
                 Deault to 5.
 
             str_min :
-                The minimum number signal stregth to inject in background (first iteration).
+                The minimum number signal strength to inject in background (first iteration).
                 Default to 0.5.
 
             str_step :
-                Increase of the signal stregth to be injected in the background at each iteration.
+                Increase of the signal strength to be injected in the background at each iteration.
                 Default to 0.25.
 
             str_scale :
@@ -341,12 +341,12 @@ class BumpHunter1D:
 
         Results stored in inner variables :
             res :
-                Numpy array of arrays containing all the p-values of all windows computed durring the scan.
+                Numpy array of arrays containing all the p-values of all windows computed during the scan.
                 The numpy array as dimention (Nwidth), with Nwidth the number of window's width tested.
                 Each array has dimension (Nstep), with Nstep the number of scan step for a given width (different for every value of width).
 
             min_Pval :
-                Minimum p_value obtained durring the scan (float).
+                Minimum p_value obtained during the scan (float).
 
             min_loc :
                 Position of the window corresponding to the minimum p-value (integer).
@@ -359,9 +359,13 @@ class BumpHunter1D:
                 If side-band normalization is not use, norm_scale is set to None.
         """
 
-        # Remove the first/last hist bins if empty ... just to be consistant with c++
-        non0 = [iii for iii in range(hist.size) if ref[iii] > 0]
-        Hinf, Hsup = min(non0), max(non0) + 1
+        # Remove the first/last hist bins if empty ... just to be consistent with c++
+        non0 = np.nonzero(ref)[0]
+        if non0.size == 0:
+            raise ValueError(
+                "Reference (background) histogram has no positive bin; cannot scan."
+            )
+        Hinf, Hsup = non0[0], non0[-1] + 1
 
         # Check for sidebands
         if self.use_sideband:
@@ -381,6 +385,10 @@ class BumpHunter1D:
             hist_total = hist[Vinf:Vsup].sum()
             min_scale = np.empty(w_ar.size)
 
+        # Prefix sums so each window count is an O(1) index difference
+        cum_ref = np.concatenate(([0.0], np.cumsum(ref)))
+        cum_hist = np.concatenate(([0], np.cumsum(hist)))
+
         # Loop over all the width of the window
         for i, w in enumerate(w_ar):
             # Auto-adjust scan step if specified
@@ -391,7 +399,7 @@ class BumpHunter1D:
             else:
                 scan_stepp = self.scan_step
 
-            # Define possition range
+            # Define position range
             pos = np.arange(Hinf, Hsup - w + 1, scan_stepp)
 
             # Check that there is at least one interval to check for width w
@@ -406,10 +414,9 @@ class BumpHunter1D:
             # Initialize local p-value array for width w
             res[i] = np.ones(pos.size)
 
-            # Count events in all windows of width w
-            # FIXME any better way to do it ?? Without loop ?? FIXME
-            Nref = np.array([ref[p : p + w].sum() for p in pos], dtype=float)
-            Nhist = np.array([hist[p : p + w].sum() for p in pos])
+            # Count events in all windows of width w via prefix-sum differences
+            Nref = (cum_ref[pos + w] - cum_ref[pos]).astype(float)
+            Nhist = cum_hist[pos + w] - cum_hist[pos]
 
             # Compute and apply side-band normalization scale factor (if needed)
             if self.use_sideband:
@@ -463,7 +470,7 @@ class BumpHunter1D:
     # Extention of the _scan_hist method to multi-channel data.
     def _scan_hist_multi(self, hist, ref, w_ar, ih: int):
         """
-        Scan a distribution in multiple channel and compute the p-value associated to every scan window.
+        Scan a distribution in multiple channels and compute the p-value associated to every scan window.
 
         The algorithm follows the BumpHunter algorithm extended to multiple channels.
 
@@ -483,12 +490,12 @@ class BumpHunter1D:
 
         Results stored in inner variables :
             res :
-                Numpy array of arrays containing all the p-values of all windows computed durring the scan.
-                The numpy array as dimention (Nchan, Nwidth), with Nchan the number of channels and Nwidth the number of window's width tested.
+                Numpy array of arrays containing all the p-values of all windows computed during the scan.
+                The numpy array as dimension (Nchan, Nwidth), with Nchan the number of channels and Nwidth the number of window's width tested.
                 Each array has dimension (Nstep), with Nstep the number of scan step for a given width (different for every value of width).
 
             min_Pval :
-                Minimum p_value obtained durring the scan (float).
+                Minimum p_value obtained during the scan (float).
 
             min_loc :
                 Position of the window corresponding to the minimum p-value (integer).
@@ -501,14 +508,18 @@ class BumpHunter1D:
                 If side-band normalization is not use, norm_scale is set to None.
         """
 
-        # Remove the first/last hist bins if empty ... just to be consistant with c++
+        # Remove the first/last hist bins if empty ... just to be consistent with c++
         # Different Hinf and Hsup for each channel
         Hinf = []
         Hsup = []
         for ch in range(len(hist)):
-            non0 = [iii for iii in range(0, ref[ch].size) if ref[ch][iii] > 0]
-            Hinf.append(min(non0))
-            Hsup.append(max(non0) + 1)
+            non0 = np.nonzero(ref[ch])[0]
+            if non0.size == 0:
+                raise ValueError(
+                    "Reference (background) histogram has no positive bin; cannot scan."
+                )
+            Hinf.append(non0[0])
+            Hsup.append(non0[-1] + 1)
         Hinf = np.array(Hinf)
         Hsup = np.array(Hsup)
 
@@ -555,6 +566,14 @@ class BumpHunter1D:
         # Initialize p-value container for all channels, width and pos
         res_all = np.empty((len(hist), w_ar.size), dtype=object)
 
+        # Prefix sums per channel so each window count is an O(1) index difference
+        cum_ref = [
+            np.concatenate(([0.0], np.cumsum(ref[ch]))) for ch in range(len(hist))
+        ]
+        cum_hist = [
+            np.concatenate(([0], np.cumsum(hist[ch]))) for ch in range(len(hist))
+        ]
+
         # Loop over channels
         for ch in range(len(hist)):
             # Initialize results containers for all width
@@ -573,11 +592,10 @@ class BumpHunter1D:
                     min_loc_current[i] = Hinf
                     continue
 
-                # Count events in all intervals for channel ch and width w
-                Nref = np.array(
-                    [ref[ch][p : p + w].sum() for p in pos[ch][i]], dtype=float
-                )
-                Nhist = np.array([hist[ch][p : p + w].sum() for p in pos[ch][i]])
+                # Count events in all intervals via prefix-sum differences
+                p = pos[ch][i]
+                Nref = (cum_ref[ch][p + w] - cum_ref[ch][p]).astype(float)
+                Nhist = cum_hist[ch][p + w] - cum_hist[ch][p]
 
                 # Compute and apply side-band normalization scale factor (if needed)
                 if self.use_sideband:
@@ -731,7 +749,7 @@ class BumpHunter1D:
         """
         Save the current state (all parameters and results) of a BupHunter instance into a dict variable.
 
-        Ruturns:
+        Returns:
             state :
                 The dict containing all the parameters and results of this BumpHunter instance.
                 The keys of the dict entries correspond the name of their associated parameters/results as defined in the BumpHunter class.
@@ -973,17 +991,17 @@ class BumpHunter1D:
                 Global p-value obtained from the test statistic distribution.
 
             res_ar :
-                Array of containers containing all the p-value calculated durring the scan of the data.
+                Array of containers containing all the p-value calculated during the scan of the data.
                 For more detail about how the p-values are sorted in the containers, please reffer the the doc of the function _scan_hist.
 
             min_Pval_ar :
-                Array containing the minimum p-values obtained for the data (indice=0) and and the pseudo-data (indice>0).
+                Array containing the minimum p-values obtained for the data (index=0) and the pseudo-data (index>0).
 
             min_loc_ar :
-                Array containing the positions of the windows for which the minimum p-value has been found for the data (indice=0) and pseudo-data (indice>0).
+                Array containing the positions of the windows for which the minimum p-value has been found for the data (index=0) and pseudo-data (index>0).
 
             min_width_ar :
-                Array containing the width of the windows for which the minimum p-value has been found for the data (indice=0) and pseudo-data (indice>0).
+                Array containing the width of the windows for which the minimum p-value has been found for the data (index=0) and pseudo-data (index>0).
 
             signal_eval :
                 Number of signal events evaluated form the last scan.
@@ -1057,7 +1075,7 @@ class BumpHunter1D:
                 for ch in range(len(data)):
                     pseudo_hist.append(
                         np.random.poisson(
-                            lam=np.tile(bkg_hist[ch], (self.npe, 1)).transpose(),
+                            lam=bkg_hist[ch][:, None],
                             size=(bkg_hist[ch].size, self.npe),
                         )
                     )
@@ -1066,7 +1084,7 @@ class BumpHunter1D:
 
             else:
                 pseudo_hist = np.random.poisson(
-                    lam=np.tile(bkg_hist, (self.npe, 1)).transpose(),
+                    lam=bkg_hist[:, None],
                     size=(bkg_hist.size, self.npe),
                 )
 
@@ -1085,7 +1103,7 @@ class BumpHunter1D:
                 self.min_width_ar = np.empty(self.npe + 1, dtype=object)
                 self.t_ar = np.empty(self.npe + 1)
             else:
-                if self.min_Pval_ar == []:
+                if len(self.min_Pval_ar) == 0:
                     self.min_Pval_ar = np.empty(1)
                     self.min_loc_ar = np.empty(1, dtype=int)
                     self.min_width_ar = np.empty(1, dtype=int)
@@ -1097,7 +1115,7 @@ class BumpHunter1D:
                 self.min_width_ar = np.empty(self.npe + 1, dtype=int)
                 self.t_ar = np.empty(self.npe + 1)
             else:
-                if self.min_Pval_ar == []:
+                if len(self.min_Pval_ar) == 0:
                     self.min_Pval_ar = np.empty(1)
                     self.min_loc_ar = np.empty(1, dtype=int)
                     self.min_width_ar = np.empty(1, dtype=int)
@@ -1114,45 +1132,56 @@ class BumpHunter1D:
         if do_pseudo:
             if self.nworker > 1:
                 with thd.ThreadPoolExecutor(max_workers=self.nworker) as exe:
+                    futures = []
                     for th in range(self.npe + 1):
                         if multi_chan:
                             if th == 0:
-                                exe.submit(
-                                    self._scan_hist_multi,
-                                    data_hist,
-                                    bkg_hist,
-                                    w_ar,
-                                    th,
+                                futures.append(
+                                    exe.submit(
+                                        self._scan_hist_multi,
+                                        data_hist,
+                                        bkg_hist,
+                                        w_ar,
+                                        th,
+                                    )
                                 )
                             else:
                                 pseudo = [
                                     pseudo_hist[ch][:, th - 1]
                                     for ch in range(len(data))
                                 ]
-                                exe.submit(
-                                    self._scan_hist_multi,
-                                    pseudo,
-                                    bkg_hist,
-                                    w_ar,
-                                    th,
+                                futures.append(
+                                    exe.submit(
+                                        self._scan_hist_multi,
+                                        pseudo,
+                                        bkg_hist,
+                                        w_ar,
+                                        th,
+                                    )
                                 )
                         else:
                             if th == 0:
-                                exe.submit(
-                                    self._scan_hist,
-                                    data_hist,
-                                    bkg_hist,
-                                    w_ar,
-                                    th,
+                                futures.append(
+                                    exe.submit(
+                                        self._scan_hist,
+                                        data_hist,
+                                        bkg_hist,
+                                        w_ar,
+                                        th,
+                                    )
                                 )
                             else:
-                                exe.submit(
-                                    self._scan_hist,
-                                    pseudo_hist[:, th - 1],
-                                    bkg_hist,
-                                    w_ar,
-                                    th,
+                                futures.append(
+                                    exe.submit(
+                                        self._scan_hist,
+                                        pseudo_hist[:, th - 1],
+                                        bkg_hist,
+                                        w_ar,
+                                        th,
+                                    )
                                 )
+                    for f in futures:
+                        f.result()
             else:
                 for i in range(self.npe + 1):
                     if multi_chan:
@@ -1223,7 +1252,7 @@ class BumpHunter1D:
 
             is_hist :
                 Boolean that specify if the given data and background are already in histogram form.
-                If true, the data and backgrouns are considered as already 'histogramed'.
+                If true, the data and backgrounds are considered as already 'histogramed'.
                 Default to False.
 
         Result inner variables :
@@ -1237,7 +1266,7 @@ class BumpHunter1D:
             sigma_ar :
                 Numpy array containing the significance values obtained at each step.
 
-        All the result inner variables of the BumpHunter instance will be filled with the results of the scan permormed
+        All the result inner variables of the BumpHunter instance will be filled with the results of the scan performed
         during the last iteration (when sigma_limit is reached).
         """
 
@@ -1301,8 +1330,12 @@ class BumpHunter1D:
         print("BACKGROUND ONLY SCAN")
         if self.nworker > 1:
             with thd.ThreadPoolExecutor(max_workers=self.nworker) as exe:
-                for th in range(self.npe):
+                futures = [
                     exe.submit(self._scan_hist, pseudo_bkg[:, th], bkg_hist, w_ar, th)
+                    for th in range(self.npe)
+                ]
+                for f in futures:
+                    f.result()
         else:
             for th in range(self.npe):
                 self._scan_hist(pseudo_bkg[:, th], bkg_hist, w_ar, th)
@@ -1393,10 +1426,14 @@ class BumpHunter1D:
             print("BACKGROUND+SIGNAL SCAN")
             if self.nworker > 1:
                 with thd.ThreadPoolExecutor(max_workers=self.nworker) as exe:
-                    for th in range(self.npe_inject):
+                    futures = [
                         exe.submit(
                             self._scan_hist, pseudo_data[:, th], bkg_hist, w_ar, th
                         )
+                        for th in range(self.npe_inject)
+                    ]
+                    for f in futures:
+                        f.result()
             else:
                 for th in range(self.npe_inject):
                     self._scan_hist(pseudo_data[:, th], bkg_hist, w_ar, th)
@@ -1686,7 +1723,7 @@ class BumpHunter1D:
 
                 H = [H[0], H[1]]
             else:
-                H = np.histogram(data[chan], bins=self.bins, range=self.rang)
+                H = np.histogram(data[chan], bins=self.bins[chan], range=self.rang)
         else:
             if not is_hist:
                 H = np.histogram(data, bins=self.bins, range=self.rang)
@@ -2217,7 +2254,7 @@ class BumpHunterInterface(metaclass=ABCMeta):
         """
         Save the current state (all parameters and results) of a BupHunter instance into a dict variable.
 
-        Ruturns:
+        Returns:
             state :
                 The dict containing all the parameters and results of this BumpHunter instance.
                 The keys of the dict entries correspond the name of their associated parameters/results as defined in the BumpHunter class.d
@@ -2255,13 +2292,13 @@ class BumpHunterInterface(metaclass=ABCMeta):
 
             is_hist :
                 Boolean that specify if the given data and background are already in histogram form.
-                If true, the data and backgrouns are considered as already 'histogramed'.
+                If true, the data and backgrounds are considered as already 'histogramed'.
                 Default to False.
 
             do_pseudo :
                 Boolean specifying if pesudo data should be generated.
-                If False, then the BumpHunter statistics distribution kept in memmory is used to compute the global p-value and significance.
-                If there is nothing in memmory, the global p-value and significance will not be computed.
+                If False, then the BumpHunter statistics distribution kept in memory is used to compute the global p-value and significance.
+                If there is nothing in memory, the global p-value and significance will not be computed.
                 Default to True.
 
 
@@ -2270,17 +2307,17 @@ class BumpHunterInterface(metaclass=ABCMeta):
                 Global p-value obtained from the test statistic distribution.
 
             res_ar :
-                 Array of containers containing all the p-value calculated durring the scan of the data (indice=0) and of the pseudo-data (indice>0).
+                 Array of containers containing all the p-value calculated during the scan of the data (index=0) and of the pseudo-data (index>0).
                  For more detail about how the p-values are sorted in the containers, please reffer the the doc of the function scan_hist.
 
             min_Pval_ar :
-                Array containing the minimum p-values obtained for the data (indice=0) and and the pseudo-data (indice>0).
+                Array containing the minimum p-values obtained for the data (index=0) and the pseudo-data (index>0).
 
             min_loc_ar :
-                Array containing the positions of the windows for which the minimum p-value has been found for the data (indice=0) and pseudo-data (indice>0).
+                Array containing the positions of the windows for which the minimum p-value has been found for the data (index=0) and pseudo-data (index>0).
 
             min_width_ar :
-                Array containing the width of the windows for which the minimum p-value has been found for the data (indice=0) and pseudo-data (indice>0).
+                Array containing the width of the windows for which the minimum p-value has been found for the data (index=0) and pseudo-data (index>0).
 
             signal_eval :
                 Number of signal events evaluated form the last scan.
@@ -2305,7 +2342,7 @@ class BumpHunterInterface(metaclass=ABCMeta):
 
             is_hist :
                 Boolean that specify if the given data and background are already in histogram form.
-                If true, the data and backgrouns are considered as already 'histogramed'.
+                If true, the data and backgrounds are considered as already 'histogramed'.
                 Default to False.
 
         Result inner variables :
@@ -2319,7 +2356,7 @@ class BumpHunterInterface(metaclass=ABCMeta):
             sigma_ar :
                 Numpy array containing the significance values obtained at each step.
 
-        All the result inner variables of the BumpHunter instance will be filled with the results of the scan permormed
+        All the result inner variables of the BumpHunter instance will be filled with the results of the scan performed
         during the last iteration (when sigma_limit is reached).
         """
         pass

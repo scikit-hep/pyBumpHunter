@@ -1,9 +1,13 @@
 # pyBumpHunter
 
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/scikit-hep/pyBumpHunter/master)
-[![Test](https://github.com/scikit-hep/pyBumpHunter/workflows/automated_testing/badge.svg)](https://github.com/scikit-hep/pyBumpHunter/actions)
+[![Scikit-HEP](https://scikit-hep.org/assets/images/Scikit--HEP-Project-blue.svg)](https://scikit-hep.org/)
 [![PyPI](https://img.shields.io/pypi/v/pyBumpHunter)](https://pypi.org/project/pyBumpHunter/)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7684558.svg)](https://doi.org/10.5281/zenodo.7684558)
+
+[![Test](https://github.com/scikit-hep/pyBumpHunter/workflows/automated_testing/badge.svg)](https://github.com/scikit-hep/pyBumpHunter/actions)
+[![Code Coverage](https://codecov.io/gh/scikit-hep/pyBumpHunter/branch/master/graph/badge.svg)](https://app.codecov.io/gh/scikit-hep/pyBumpHunter/tree/master)
+
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/scikit-hep/pyBumpHunter/master)
 
 This is a python version of the BumpHunter algorithm, see [arXiv:1101.0390, G. Choudalakis](https://arxiv.org/abs/1101.0390), designed to find localized excess (or deficit) of events in a 1D or 2D distribution.
 
@@ -22,7 +26,7 @@ The BumpHunter algorithm can also perform signal injection tests where more and 
 
 ### Dependencies
 
-Requires Python >= 3.8.
+Requires Python >= 3.9.
 
 BumpHunter depends on the following python libraries :
 
@@ -46,19 +50,19 @@ You can also open the example notebook with jupyter or binder.
 * Bump hunting:
 
 <p align="center">
-<img src="./example/results/1D/bump.png" title="drawing"  width="500">
+<img src="https://raw.githubusercontent.com/scikit-hep/pyBumpHunter/master/example/results/1D/bump.png" title="drawing"  width="500">
 </p>
 
 * Tomography scan:
 
 <p align="center">
-<img src="./example/results/1D/tomography.png" title="drawing"  width="500">
+<img src="https://raw.githubusercontent.com/scikit-hep/pyBumpHunter/master/example/results/1D/tomography.png" title="drawing"  width="500">
 </p>
 
 * Test statistics and global p-value:
 
 <p align="center">
-<img src="./example/results/1D/BH_statistics.png" title="drawing"  width="500">
+<img src="https://raw.githubusercontent.com/scikit-hep/pyBumpHunter/master/example/results/1D/BH_statistics.png" title="drawing"  width="500">
 </p>
 
 See the [wiki](https://github.com/scikit-hep/pyBumpHunter/wiki) for a detailed overview of all the features offered by pyBumpHunter.
