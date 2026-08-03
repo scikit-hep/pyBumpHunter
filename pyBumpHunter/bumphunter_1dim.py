@@ -359,7 +359,7 @@ class BumpHunter1D:
                 If side-band normalization is not use, norm_scale is set to None.
         """
 
-        # Remove the first/last hist bins if empty ... just to be consistant with c++
+        # Remove the first/last hist bins if empty ... just to be consistent with c++
         non0 = np.nonzero(ref)[0]
         if non0.size == 0:
             raise ValueError(
@@ -470,7 +470,7 @@ class BumpHunter1D:
     # Extention of the _scan_hist method to multi-channel data.
     def _scan_hist_multi(self, hist, ref, w_ar, ih: int):
         """
-        Scan a distribution in multiple channel and compute the p-value associated to every scan window.
+        Scan a distribution in multiple channels and compute the p-value associated to every scan window.
 
         The algorithm follows the BumpHunter algorithm extended to multiple channels.
 
@@ -491,7 +491,7 @@ class BumpHunter1D:
         Results stored in inner variables :
             res :
                 Numpy array of arrays containing all the p-values of all windows computed during the scan.
-                The numpy array as dimention (Nchan, Nwidth), with Nchan the number of channels and Nwidth the number of window's width tested.
+                The numpy array as dimension (Nchan, Nwidth), with Nchan the number of channels and Nwidth the number of window's width tested.
                 Each array has dimension (Nstep), with Nstep the number of scan step for a given width (different for every value of width).
 
             min_Pval :
@@ -508,7 +508,7 @@ class BumpHunter1D:
                 If side-band normalization is not use, norm_scale is set to None.
         """
 
-        # Remove the first/last hist bins if empty ... just to be consistant with c++
+        # Remove the first/last hist bins if empty ... just to be consistent with c++
         # Different Hinf and Hsup for each channel
         Hinf = []
         Hsup = []
