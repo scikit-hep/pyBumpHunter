@@ -12,26 +12,25 @@ Note that BumpHunter2D does NOT support signal injection yet.
 
 Basic usage :
 
-To create an BumpHunter class instance (valid for BumpHunter2D) :
+To create a BumpHunter class instance (valid for BumpHunter2D) :
     import pyBumpHunter as BH
-    BHtest = BH.BumpHunter(...)
+    BHtest = BH.BumpHunter1D(...)
 
 To perform a scan using BumpHunter algorithm and compute a global p-value
 and significance (valid for BumpHunter2D) :
-    BHtest.BumpScan(data,bkg)
+    BHtest.bump_scan(data,bkg)
 
-To print the results of the last scan performed and do some plots (valid for BumpHunter2D) :
-    BHtest.PrintBumpInfo()
-    BHtest.PrintBumpTrue()
-    BHtest.GetTomography()
-    BHtest.PlotBump()
-    BHtest.PlotBHstat()
+To get the results of the last scan performed and do some plots (valid for BumpHunter2D) :
+    BHtest.bump_info(data)
+    BHtest.plot_tomography(bkg)
+    BHtest.plot_bump(data,bkg)
+    BHtest.plot_stat()
 
 To perform a signal injection test :
-    BHtest.SignalInject(data,sig)
+    BHtest.signal_inject(sig,bkg)
 
 To plot the result of the last signal injection performed :
-    BHtest.PlinInject()
+    BHtest.plot_inject()
 
 For more details about the BumpHunter class, please refer to its docstring.
 
@@ -47,62 +46,3 @@ from .bumphunter_2dim import BumpHunter2D
 from .version import version as __version__
 
 __all__ = ["BumpHunter1D", "BumpHunter2D", "__version__"]
-
-from .util import deprecated as _deprecated
-
-
-class BumpHunter(BumpHunter1D):
-    @_deprecated("Use BumpHunter1D or BumpHunter2D instead of BumpHunter.")
-    def __init__(
-        self,
-        rang=None,
-        mode="excess",
-        width_min=1,
-        width_max=None,
-        width_step=1,
-        scan_step=1,
-        npe=100,
-        bins=60,
-        weights=None,
-        nworker=4,
-        sigma_limit=5,
-        str_min=0.5,
-        str_step=0.25,
-        str_scale="lin",
-        signal_exp=None,
-        flip_sig=True,
-        seed=None,
-        use_sideband=None,
-        Npe=None,
-        Nworker=None,
-        useSideBand=None,
-    ):
-        deprecated_kwargs = {}
-        if Npe is not None:
-            deprecated_kwargs["Npe"] = Npe
-        if Nworker is not None:
-            deprecated_kwargs["Nworker"] = Nworker
-        if useSideBand is not None:
-            deprecated_kwargs["useSideBand"] = useSideBand
-        if use_sideband is not None:
-            deprecated_kwargs["use_sideband"] = use_sideband
-        super().__init__(
-            rang=rang,
-            mode=mode,
-            width_min=width_min,
-            width_max=width_max,
-            width_step=width_step,
-            scan_step=scan_step,
-            npe=npe,
-            bins=bins,
-            weights=weights,
-            nworker=nworker,
-            sigma_limit=sigma_limit,
-            str_min=str_min,
-            str_step=str_step,
-            str_scale=str_scale,
-            signal_exp=signal_exp,
-            flip_sig=flip_sig,
-            seed=seed,
-            **deprecated_kwargs,
-        )

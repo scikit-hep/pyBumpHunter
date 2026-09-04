@@ -12,8 +12,6 @@ from scipy.stats import norm
 
 from pyBumpHunter.bumphunter_1dim import BumpHunterInterface
 
-from .util import deprecated, deprecated_arg
-
 
 # THE super BumpHunter2D class
 class BumpHunter2D(BumpHunterInterface):
@@ -147,9 +145,6 @@ class BumpHunter2D(BumpHunterInterface):
     """
 
     # Initializer method
-    @deprecated_arg("useSideBand", "use_sideband")
-    @deprecated_arg("Nworker", "nworker")
-    @deprecated_arg("Npe", "npe")
     def __init__(
         self,
         rang=None,
@@ -171,9 +166,6 @@ class BumpHunter2D(BumpHunterInterface):
         seed=None,
         use_sideband: bool = False,
         sideband_width=None,
-        Npe=None,
-        Nworker=None,
-        useSideBand=None,
     ):
         """
         Arguments:
@@ -274,24 +266,7 @@ class BumpHunter2D(BumpHunterInterface):
                 The side-band will be removed from the scan range, but it will be used for background normalization.
                 If None, then all the histograms range will be used for both the scan and normalization.
                 Default to None.
-
-            Npe : *Deprecated*
-                Same as npe. This argument is deprecated and will be removed in future versions.
-
-            Nworker : *Deprecated*
-                Same as nworker. This argument is deprecated and will be removed in future versions.
-
-            useSideBand : *Deprecated*
-                Same as use_sideband. This argument is deprecated and will be removed in future versions.
         """
-
-        # legacy deprecation
-        if useSideBand is not None:
-            use_sideband = useSideBand
-        if Nworker is not None:
-            nworker = Nworker
-        if Npe is not None:
-            npe = Npe
 
         if width_min is None:
             width_min = [1, 1]
@@ -834,10 +809,6 @@ class BumpHunter2D(BumpHunterInterface):
 
         return
 
-    @deprecated("Use `reset` instead.")
-    def Reset(self, *args, **kwargs):
-        return self.reset(*args, **kwargs)
-
     # Export/import parameters/results
     def save_state(self):
         """
@@ -886,10 +857,6 @@ class BumpHunter2D(BumpHunterInterface):
         state["data_inject"] = self.data_inject
 
         return state
-
-    @deprecated("Use `save_state` instead.")
-    def SaveState(self, *args, **kwargs):
-        return self.save_state(*args, **kwargs)
 
     def load_state(self, state: dict):
         """
@@ -1025,10 +992,6 @@ class BumpHunter2D(BumpHunterInterface):
             self.data_inject = state["data_inject"]
 
         return
-
-    @deprecated("Use `load_state` instead.")
-    def LoadState(self, *args, **kwargs):
-        return self.load_state(*args, **kwargs)
 
     ## Scan methods
 
@@ -1242,38 +1205,46 @@ class BumpHunter2D(BumpHunterInterface):
                     for th in range(self.npe + 1):
                         if multi_chan:
                             if th == 0:
-                                futures.append(exe.submit(
-                                    self._scan_hist_multi,
-                                    data_hist,
-                                    bkg_hist,
-                                    w_ar,
-                                    th,
-                                ))
+                                futures.append(
+                                    exe.submit(
+                                        self._scan_hist_multi,
+                                        data_hist,
+                                        bkg_hist,
+                                        w_ar,
+                                        th,
+                                    )
+                                )
                             else:
                                 pseudo = [
                                     pseudo_hist[ch][:, :, th - 1]
                                     for ch in range(len(data))
                                 ]
-                                futures.append(exe.submit(
-                                    self._scan_hist_multi,
-                                    pseudo,
-                                    bkg_hist,
-                                    w_ar,
-                                    th,
-                                ))
+                                futures.append(
+                                    exe.submit(
+                                        self._scan_hist_multi,
+                                        pseudo,
+                                        bkg_hist,
+                                        w_ar,
+                                        th,
+                                    )
+                                )
                         else:
                             if th == 0:
-                                futures.append(exe.submit(
-                                    self._scan_hist, data_hist, bkg_hist, w_ar, th
-                                ))
+                                futures.append(
+                                    exe.submit(
+                                        self._scan_hist, data_hist, bkg_hist, w_ar, th
+                                    )
+                                )
                             else:
-                                futures.append(exe.submit(
-                                    self._scan_hist,
-                                    pseudo_hist[:, :, th - 1],
-                                    bkg_hist,
-                                    w_ar,
-                                    th,
-                                ))
+                                futures.append(
+                                    exe.submit(
+                                        self._scan_hist,
+                                        pseudo_hist[:, :, th - 1],
+                                        bkg_hist,
+                                        w_ar,
+                                        th,
+                                    )
+                                )
                     for f in futures:
                         f.result()
             else:
@@ -1324,10 +1295,6 @@ class BumpHunter2D(BumpHunterInterface):
         print("")
 
         return
-
-    @deprecated("Use `bump_scan` instead.")
-    def BumpScan(self, *args, **kwargs):
-        return self.bump_scan(*args, **kwargs)
 
     # Perform signal injection on background and determine the minimum aount of signal required for observation
     def signal_inject(self, sig, bkg, is_hist: bool = False):
@@ -1601,14 +1568,9 @@ class BumpHunter2D(BumpHunterInterface):
 
         return
 
-    @deprecated("Use `signal_inject` instead.")
-    def SignalInject(self, *args, **kwargs):
-        return self.signal_inject(*args, **kwargs)
-
     ## Display methods
 
     # Plot the data and bakground histograms with the bump found by BumpHunter highlighted
-    @deprecated_arg("useSideBand", "use_sideband")
     def plot_bump(
         self,
         data,
@@ -1618,7 +1580,6 @@ class BumpHunter2D(BumpHunterInterface):
         label: str = "",
         filename=None,
         chan: int = 0,
-        useSideBand=None,
     ):
         """
         Plot the data and bakground histograms with the bump found by BumpHunter highlighted.
@@ -1652,14 +1613,7 @@ class BumpHunter2D(BumpHunterInterface):
                 Specify the number of the channel to be shown (if there are more than one).
                 Ignored if there is only one channel.
                 Default to 0 (the first channel).
-
-            useSideBand : *Deprecated*
-                Same as use_sideband. This argument is deprecated and will be removed in a future version.
         """
-
-        # legacy deprecation
-        if useSideBand is not None:
-            use_sideband = useSideBand
 
         # Check if there are multiple channels
         if self.res_ar.ndim == 2:
@@ -1809,10 +1763,6 @@ class BumpHunter2D(BumpHunterInterface):
 
         return
 
-    @deprecated("Use `plot_bump` instead.")
-    def PlotBump(self, *args, **kwargs):
-        return self.plot_bump(*args, **kwargs)
-
     # Plot the Bumpunter test statistic distribution with the result for data
     def plot_stat(self, show_Pval: bool = False, filename=None):
         """
@@ -1866,10 +1816,6 @@ class BumpHunter2D(BumpHunterInterface):
             plt.close(F)
 
         return
-
-    @deprecated("Use `plot_stat` instead.")
-    def PlotBHstat(self, *args, **kwargs):
-        return self.plot_stat(*args, **kwargs)
 
     # Method to plot the signal injection result
     def plot_inject(self, filename=None):
@@ -1955,10 +1901,6 @@ class BumpHunter2D(BumpHunterInterface):
                 if not nolog:
                     plt.savefig(filename[1], bbox_inches="tight")
                 plt.close(F)
-
-    @deprecated("Use `plot_inject` instead.")
-    def PlotInject(self, *args, **kwargs):
-        return self.plot_inject(*args, **kwargs)
 
     # Method to obtained a printable string containing all the results of the last BumpHunter scans
     def bump_info(self, data, is_hist: bool = False):
@@ -2094,152 +2036,5 @@ class BumpHunter2D(BumpHunterInterface):
             bstr += f"Global significance : {self.significance:.3g}"
 
         return bstr
-
-    # Method that print the local infomation about the most significante bump in data
-    @deprecated("Use `bump_info` instead.")
-    def print_bump_info(self):
-        """
-        Function that print the local infomation about the most significante bump in data.
-        Information are printed to stdout.
-        """
-
-        # Print stuff
-        print("BUMP WINDOW")
-        print(f"   loc = {self.min_loc_ar[0]}")
-        print(f"   width = {self.min_width_ar[0]}")
-
-        # Check if there ara multiple channels
-        if not isinstance(self.min_Pval_ar[0], np.ndarray):
-            # Print stuff for 1 channel
-            print(f"   local p-value = {self.min_Pval_ar[0]:.5g}")
-            print(f"   -ln(loc p-value) = {self.t_ar[0]:.5f}")
-            print(f"   local significance = {norm.ppf(1 - self.min_Pval_ar[0]):.5f}")
-        else:
-            # Print stuf for multiple channels
-            print("   local p-value (per channel) = [", end="")
-            [
-                print(f"{self.min_Pval_ar[0][ch]:.5g}  ", end="")
-                for ch in range(len(self.min_Pval_ar[0]))
-            ]
-            print("]")
-            print(f"   local p-value (combined) = {self.min_Pval_ar[0].prod():.5g}")
-            print(f"   -ln(loc p-value) (combined) = {self.t_ar[0]:.5f}")
-            print(
-                f"   local significance (combined) = {norm.ppf(1 - self.min_Pval_ar[0].prod()):.5f}"
-            )
-
-        print("")
-
-        return
-
-    @deprecated("Use `print_bump_info` instead.")
-    def PrintBumpInfo(self, *args, **kwargs):
-        return self.print_bump_info(*args, **kwargs)
-
-    # Function that print the global infomation about the most significante bump in data
-    @deprecated("Use `bump_info` instead.")
-    def print_bump_true(self, data, bkg, is_hist: bool = False):
-        """
-        Print the global informations about the most significante bump in data in real scale.
-        Information are printed to stdout.
-
-        Arguments :
-            data :
-                Numpy array containing the data.
-
-            bkg :
-                Numpy array containing the background.
-
-            is_hist :
-                Boolean specifying if data and bkg are given in histogram form or not.
-                Default to False.
-        """
-
-        # Chek if we have multi-channel
-        if (
-            isinstance(self.res_ar, np.ndarray)
-            and self.res_ar.size > 0
-            and self.res_ar.ndim == 2
-        ):
-            # We have multiple channels
-            multi_chan = True
-        else:
-            # Only a single channel
-            multi_chan = False
-
-        # Get the data and background in histogram form
-        if not is_hist:
-            if multi_chan:
-                # Loop over all channels
-                bins = []
-                for ch in range(len(data)):
-                    _, binx, biny = np.histogram2d(
-                        data[ch][:, 0],
-                        data[ch][:, 1],
-                        bins=self.bins[ch],
-                        range=self.rang,
-                    )
-                    bins.append([binx, biny])
-            else:
-                _, binx, biny = np.histogram2d(
-                    data[:, 0], data[:, 1], bins=self.bins, range=self.rang
-                )
-                bins = [binx, biny]
-        else:
-            bins = self.bins
-
-        # Compute real bin edges
-        if multi_chan:
-            Bminx = np.array(
-                [bins[ch][0][self.min_loc_ar[0][ch][0]] for ch in range(len(data))]
-            )
-            Bmaxx = np.array(
-                [
-                    bins[ch][0][self.min_loc_ar[0][ch][0] + self.min_width_ar[0][ch][0]]
-                    for ch in range(len(data))
-                ]
-            )
-            Bminy = np.array(
-                [bins[ch][1][self.min_loc_ar[0][ch][1]] for ch in range(len(data))]
-            )
-            Bmaxy = np.array(
-                [
-                    bins[ch][1][self.min_loc_ar[0][ch][1] + self.min_width_ar[0][ch][1]]
-                    for ch in range(len(data))
-                ]
-            )
-
-            # Take common overlap window
-            Bmin = np.array([Bminx.max(), Bminy.max()])
-            Bmax = np.array([Bmaxx.min(), Bmaxy.min()])
-        else:
-            Bmin = np.array(
-                [bins[0][self.min_loc_ar[0][0]], bins[1][self.min_loc_ar[0][1]]]
-            )
-            Bmax = np.array(
-                [
-                    bins[0][self.min_loc_ar[0][0] + self.min_width_ar[0][0]],
-                    bins[1][self.min_loc_ar[0][1] + self.min_width_ar[0][1]],
-                ]
-            )
-        Bmean = (Bmin + Bmax) / 2
-        Bwidth = Bmax - Bmin
-
-        # Print informations about the bump itself
-        print("BUMP POSITION")
-        print(f"   min : [{Bmin[0]:.3f}, {Bmin[1]:.3f}]")
-        print(f"   max : [{Bmax[0]:.3f}, {Bmax[1]:.3f}]")
-        print(f"   mean : [{Bmean[0]:.3f}, {Bmean[1]:.3f}]")
-        print(f"   width : [{Bwidth[0]:.3f}, {Bwidth[1]:.3f}]")
-        print(f"   number of signal events : {self.signal_eval}")
-        print(f"   global p-value : {self.global_Pval:1.5f}")
-        print(f"   significance = {self.significance:1.5f}")
-        print("")
-
-        return
-
-    @deprecated("Use `print_bump_true` instead.")
-    def PrintBumpTrue(self, *args, **kwargs):
-        return self.print_bump_true(*args, **kwargs)
 
     # end of BumpHunter2D class
