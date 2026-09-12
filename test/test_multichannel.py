@@ -85,6 +85,14 @@ def scanned_multi_2d(data_bkg_2d):
     return hunter
 
 
+@pytest.fixture(scope="module")
+def scanned_single_2d(data_bkg_2d):
+    data, bkg = data_bkg_2d
+    hunter = BH.BumpHunter2D(**PARAMS_2D)
+    hunter.bump_scan(data, bkg)
+    return hunter
+
+
 def test_multi_chan_1d_scans_every_channel(scanned_multi_1d):
     assert np.asarray(scanned_multi_1d.res_ar).ndim == 2
     assert len(scanned_multi_1d.min_loc_ar[0]) == 2
@@ -96,10 +104,14 @@ def test_multi_chan_1d_finds_the_known_bump(scanned_multi_1d):
     assert list(scanned_multi_1d.min_width_ar[0]) == [EXPECTED_WIDTH] * 2
 
 
-def test_multi_chan_1d_fills_pseudo_results(scanned_multi_1d):
+def test_multi_chan_1d_fills_pseudo_results(scanned_multi_1d, data_bkg_1d):
     assert len(scanned_multi_1d.min_Pval_ar) == PARAMS_1D["npe"] + 1
     assert len(scanned_multi_1d.t_ar) == PARAMS_1D["npe"] + 1
-    assert 0.0 <= scanned_multi_1d.global_Pval <= 1.0
+
+    # t is summed over the channels, so two identical channels double it
+    single = BH.BumpHunter1D(**PARAMS_1D)
+    single.bump_scan(*data_bkg_1d)
+    assert scanned_multi_1d.t_ar[0] == pytest.approx(2 * single.t_ar[0])
 
 
 def test_multi_chan_1d_plot_tomography_per_channel(
@@ -112,10 +124,12 @@ def test_multi_chan_1d_plot_tomography_per_channel(
         assert out.exists() and out.stat().st_size > 0
 
 
-def test_multi_chan_2d_scans_every_channel(scanned_multi_2d):
+def test_multi_chan_2d_scans_every_channel(scanned_multi_2d, scanned_single_2d):
     assert np.asarray(scanned_multi_2d.res_ar).ndim == 2
     assert len(scanned_multi_2d.min_loc_ar[0]) == 2
-    assert 0.0 <= scanned_multi_2d.global_Pval <= 1.0
+
+    # t is summed over the channels, so two identical channels double it
+    assert scanned_multi_2d.t_ar[0] == pytest.approx(2 * scanned_single_2d.t_ar[0])
 
 
 def _scan_summary(hunter):
@@ -125,6 +139,8 @@ def _scan_summary(hunter):
         int(hunter.min_loc_ar[0]),
         int(hunter.min_width_ar[0]),
         float(hunter.min_Pval_ar[0]),
+        float(hunter.signal_eval),
+        hunter.norm_scale,
     )
 
 
@@ -171,6 +187,12 @@ def test_scan_without_pseudo_data_keeps_previous_stats(data_bkg_1d):
     data, bkg = data_bkg_1d
     hunter = BH.BumpHunter1D(**PARAMS_1D)
     hunter.bump_scan(data, bkg)
+    global_Pval, significance = hunter.global_Pval, hunter.significance
+
     hunter.bump_scan(data, bkg, do_pseudo=False)
-    assert len(hunter.min_loc_ar) > 0
+
+    # The test statistics of the first scan must be reused, not recomputed
+    assert len(hunter.t_ar) == PARAMS_1D["npe"] + 1
+    assert hunter.global_Pval == global_Pval
+    assert hunter.significance == significance
     assert int(hunter.min_loc_ar[0]) == EXPECTED_LOC
