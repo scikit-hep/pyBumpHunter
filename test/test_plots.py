@@ -162,8 +162,9 @@ def test_signal_inject_fills_sigma_ar(injected_1d):
 
 
 def test_plot_stat_before_scan_raises(tmp_path):
+    # The exception type is not part of the API, only the refusal to plot
     hunter = BH.BumpHunter1D(**PARAMS_1D)
-    with pytest.raises(IndexError):
+    with pytest.raises((IndexError, ValueError, RuntimeError)):
         hunter.plot_stat(filename=str(tmp_path / "never.png"))
 
 

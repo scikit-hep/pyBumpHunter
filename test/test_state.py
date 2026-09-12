@@ -59,6 +59,30 @@ LOAD_STATE_DEFAULTS = {
     "sideband_width": None,
 }
 
+# Every value differs from the matching LOAD_STATE_DEFAULTS entry
+NON_DEFAULT_PARAMS = dict(
+    mode="deficit",
+    rang=[0, 20],
+    bins=40,
+    weights=[1.0],
+    width_min=2,
+    width_max=6,
+    width_step=2,
+    scan_step=2,
+    npe=7,
+    nworker=1,
+    seed=666,
+    use_sideband=True,
+    sigma_limit=3,
+    str_min=0.1,
+    str_step=0.5,
+    str_scale="log",
+    signal_exp=150,
+    flip_sig=False,
+    npe_inject=5,
+    sideband_width=2,
+)
+
 RESULT_DEFAULTS = {
     "global_Pval": 0,
     "significance": 0,
@@ -119,7 +143,10 @@ def _same(left, right):
         return len(left) == len(right) and all(
             np.array_equal(a, b) for a, b in zip(left, right)
         )
-    return bool(np.array_equal(left, right))
+    if isinstance(right, (list, tuple, np.ndarray)):
+        return bool(np.array_equal(left, right))
+    # Exact comparison, because np.array_equal makes False equal to 0
+    return isinstance(left, bool) == isinstance(right, bool) and left == right
 
 
 def _assert_round_trip(original, restored, state):
@@ -157,7 +184,11 @@ def test_round_trip_keeps_result_shapes(scanned_1d):
 
 
 def test_load_empty_state_restores_defaults():
-    hunter = BH.BumpHunter1D(**PARAMS_1D)
+    assert set(NON_DEFAULT_PARAMS) == set(LOAD_STATE_DEFAULTS)
+    for attr, default in LOAD_STATE_DEFAULTS.items():
+        assert not _same(NON_DEFAULT_PARAMS[attr], default), attr
+
+    hunter = BH.BumpHunter1D(**NON_DEFAULT_PARAMS)
     hunter.load_state({})
     for attr, expected in LOAD_STATE_DEFAULTS.items():
         assert _same(getattr(hunter, attr), expected), attr
