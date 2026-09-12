@@ -114,3 +114,14 @@ def test_scan_no_pseudo(data_sig_bkg1, bhunter):
     data, bkg = data_sig_bkg1
     bhunter.bump_scan(data, bkg, do_pseudo=False)
     assert len(bhunter.min_loc_ar) > 0
+
+
+# Test a multi-channel scan without pseudo experiments
+def test_multi_chan_scan_no_pseudo(data_sig_bkg1, bhunter):
+    data, bkg = data_sig_bkg1
+    bhunter.bump_scan([data, data], [bkg, bkg], multi_chan=True, do_pseudo=False)
+
+    # The result containers must hold one entry per channel
+    assert len(bhunter.min_Pval_ar[0]) == 2
+    assert len(bhunter.min_loc_ar[0]) == 2
+    assert len(bhunter.min_width_ar[0]) == 2

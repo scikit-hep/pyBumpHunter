@@ -117,3 +117,36 @@ def test_inject_run(bhunter, data_sig_bkg1):
 
     # Test if the final signal ratio is correct w.r.t. the expected value
     assert f"{bhunter.signal_ratio:.2f}" == "2.00"
+
+
+# Test if a multi-channel scan can reuse the pseudo-data of a previous scan
+def test_multi_chan_scan_without_pseudo_data(data_sig_bkg1):
+    # Get the data
+    data, _, bkg = data_sig_bkg1
+
+    hunter = BH.BumpHunter1D(
+        rang=[0, 20],
+        width_min=2,
+        width_max=6,
+        width_step=1,
+        scan_step=1,
+        npe=100,
+        nworker=1,
+        seed=666,
+    )
+
+    # Scan the data only, the result containers must hold one entry per channel
+    hunter.bump_scan([data, data], [bkg, bkg], multi_chan=True, do_pseudo=False)
+    assert len(hunter.min_Pval_ar[0]) == 2
+    assert len(hunter.min_loc_ar[0]) == 2
+    assert len(hunter.min_width_ar[0]) == 2
+
+    # A second scan that reuses the pseudo-data of the first one
+    hunter.bump_scan([data, data], [bkg, bkg], multi_chan=True)
+    global_Pval, significance = hunter.global_Pval, hunter.significance
+    hunter.bump_scan([data, data], [bkg, bkg], multi_chan=True, do_pseudo=False)
+
+    # Test if the test statistics of the previous scan are kept
+    assert len(hunter.t_ar) == hunter.npe + 1
+    assert hunter.global_Pval == global_Pval
+    assert hunter.significance == significance
