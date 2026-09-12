@@ -566,7 +566,7 @@ class BumpHunter2D(BumpHunterInterface):
                 for i, w in enumerate(w_ar)
             ]
             posy = [
-                np.arange(Hinf[ch, 1], Hinf[ch, 0] - w[1] + 1, scan_stepp[i][1])
+                np.arange(Hinf[ch, 1], Hsup[ch, 1] - w[1] + 1, scan_stepp[i][1])
                 for i, w in enumerate(w_ar)
             ]
             pos.append(

@@ -125,3 +125,20 @@ def test_multi_chan_scan_no_pseudo(data_sig_bkg1, bhunter):
     assert len(bhunter.min_Pval_ar[0]) == 2
     assert len(bhunter.min_loc_ar[0]) == 2
     assert len(bhunter.min_width_ar[0]) == 2
+
+
+# Test if a multi-channel scan gives the same result as two identical channels
+def test_multi_chan_scan(data_sig_bkg1, bhunter):
+    data, bkg = data_sig_bkg1
+
+    # Reduce the number of pseudo-experiments, only the data scan is tested here
+    bhunter.npe = 10
+    bhunter.bump_scan([data, data], [bkg, bkg], multi_chan=True)
+
+    # Both channels must give the result of the single channel scan
+    assert [list(loc) for loc in bhunter.min_loc_ar[0]] == [[3, 5], [3, 5]]
+    assert [list(w) for w in bhunter.min_width_ar[0]] == [[3, 3], [3, 3]]
+    assert f"{bhunter.min_Pval_ar[0][0]:.5g}" == "3.6572e-07"
+
+    # t is summed over the channels, so two identical channels double it
+    assert f"{bhunter.t_ar[0]:.5g}" == f"{-2 * np.log(3.6572e-07):.5g}"
