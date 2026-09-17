@@ -566,7 +566,7 @@ class BumpHunter2D(BumpHunterInterface):
                 for i, w in enumerate(w_ar)
             ]
             posy = [
-                np.arange(Hinf[ch, 1], Hinf[ch, 0] - w[1] + 1, scan_stepp[i][1])
+                np.arange(Hinf[ch, 1], Hsup[ch, 1] - w[1] + 1, scan_stepp[i][1])
                 for i, w in enumerate(w_ar)
             ]
             pos.append(
@@ -1171,7 +1171,8 @@ class BumpHunter2D(BumpHunterInterface):
                 self.t_ar = np.empty(self.npe + 1)
             else:
                 if len(self.min_Pval_ar) == 0:
-                    self.min_Pval_ar = np.empty(1)
+                    # One entry per channel is stored for each scan
+                    self.min_Pval_ar = np.empty(1, dtype=object)
                     self.min_loc_ar = np.empty(1, dtype=object)
                     self.min_width_ar = np.empty(1, dtype=object)
                     self.t_ar = np.empty(1)
