@@ -187,8 +187,10 @@ def test_deficit_mode_runs(data_bkg_1d):
     data, bkg = data_bkg_1d
     hunter = BH.BumpHunter1D(**{**PARAMS_1D, "mode": "deficit"})
     hunter.bump_scan(data, bkg)
-    assert 0.0 <= hunter.global_Pval <= 1.0
-    assert 0.0 < hunter.min_Pval_ar[0] <= 1.0
+
+    # A deficit holds fewer events than the reference, and is not the known excess
+    assert hunter.signal_eval < 0
+    assert int(hunter.min_loc_ar[0]) != EXPECTED_LOC
 
 
 def test_scan_without_pseudo_data_keeps_previous_stats(data_bkg_1d):
