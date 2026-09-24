@@ -1,3 +1,11 @@
+"""Tests for multi-channel scans, and for results that must not change.
+
+Multi-channel scans in 1D and 2D are checked against the equivalent single
+channel scan. The remaining tests check that a scan gives the same answer
+whatever the number of workers, whether or not the input is already binned,
+and when it is repeated.
+"""
+
 from pathlib import Path
 
 import matplotlib

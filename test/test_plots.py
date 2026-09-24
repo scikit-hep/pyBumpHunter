@@ -1,3 +1,10 @@
+"""Tests for bump_info and the plotting methods of both classes.
+
+Figures are written into tmp_path and the resulting files are checked. The
+last two tests cover the refusal to plot before a scan, and the error raised
+when the reference histogram is empty.
+"""
+
 from pathlib import Path
 
 import matplotlib

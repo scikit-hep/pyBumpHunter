@@ -1,3 +1,10 @@
+"""Tests for saving, loading and resetting the state of a BumpHunter.
+
+Covers the save_state/load_state round trip for both classes, the defaults
+that an empty state restores, and reset(). A small npe is used because no
+exact p-value is checked here.
+"""
+
 from pathlib import Path
 
 import numpy as np
