@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Python version of the BupHunter algorithm as described in https://arxiv.org/pdf/1101.0390.pdf"""
+"""Python version of the BumpHunter algorithm as described in https://arxiv.org/pdf/1101.0390.pdf"""
 
 import concurrent.futures as thd
 from abc import ABCMeta, abstractmethod
@@ -718,7 +718,7 @@ class BumpHunter1D:
     # Export/import parameters/results
     def save_state(self):
         """
-        Save the current state (all parameters and results) of a BupHunter instance into a dict variable.
+        Save the current state (all parameters and results) of a BumpHunter instance into a dict variable.
 
         Returns:
             state :
@@ -2057,7 +2057,7 @@ class BumpHunterInterface(metaclass=ABCMeta):
     @abstractmethod
     def save_state(self):
         """
-        Save the current state (all parameters and results) of a BupHunter instance into a dict variable.
+        Save the current state (all parameters and results) of a BumpHunter instance into a dict variable.
 
         Returns:
             state :
