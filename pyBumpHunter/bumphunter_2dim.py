@@ -807,6 +807,9 @@ class BumpHunter2D(BumpHunterInterface):
         self.signal_ratio = None
         self.data_inject = []
 
+        if hasattr(self, "sigma_ar"):
+            del self.sigma_ar
+
         return
 
     # Export/import parameters/results
