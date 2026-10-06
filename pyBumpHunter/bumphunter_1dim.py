@@ -712,6 +712,7 @@ class BumpHunter1D:
         self.signal_min = 0
         self.signal_ratio = None
         self.data_inject = []
+        self.sigma_ar = []
 
         return
 
