@@ -712,9 +712,7 @@ class BumpHunter1D:
         self.signal_min = 0
         self.signal_ratio = None
         self.data_inject = []
-
-        if hasattr(self, "sigma_ar"):
-            del self.sigma_ar
+        self.sigma_ar = []
 
         return
 
