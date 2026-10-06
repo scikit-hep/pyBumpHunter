@@ -2052,7 +2052,7 @@ class BumpHunterInterface(metaclass=ABCMeta):
         Reset all the inner result parameter for this BumpHunter instance.
         Use with caution.
         """
-        pass
+        pass  # pragma: no cover
 
     @abstractmethod
     def save_state(self):
@@ -2064,7 +2064,7 @@ class BumpHunterInterface(metaclass=ABCMeta):
                 The dict containing all the parameters and results of this BumpHunter instance.
                 The keys of the dict entries correspond the name of their associated parameters/results as defined in the BumpHunter class.d
         """
-        pass
+        pass  # pragma: no cover
 
     @abstractmethod
     def load_state(self, state):
@@ -2076,7 +2076,7 @@ class BumpHunterInterface(metaclass=ABCMeta):
                 A dict containing all the parameters/results of a previous BumpHunter instance.
                 If a parameter or a result field is missing, it will be set to its default value.
         """
-        pass
+        pass  # pragma: no cover
 
     @abstractmethod
     def bump_scan(self, data, bkg, is_hist, do_pseudo):
@@ -2127,7 +2127,7 @@ class BumpHunterInterface(metaclass=ABCMeta):
             signal_eval :
                 Number of signal events evaluated form the last scan.
         """
-        pass
+        pass  # pragma: no cover
 
     @abstractmethod
     def signal_inject(self, sig, bkg, is_hist):
@@ -2164,4 +2164,4 @@ class BumpHunterInterface(metaclass=ABCMeta):
         All the result inner variables of the BumpHunter instance will be filled with the results of the scan performed
         during the last iteration (when sigma_limit is reached).
         """
-        pass
+        pass  # pragma: no cover
